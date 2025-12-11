@@ -67,14 +67,10 @@ const AdminCatalogo = () => {
   };
 
   return (
-    <AdminLayout>
+    <AdminLayout title="Catálogo Maestro B2B" subtitle="Logística Central - Gestión de Inventario">
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Catálogo Maestro B2B</h1>
-            <p className="text-muted-foreground">Logística Central - Gestión de Inventario</p>
-          </div>
+        {/* Actions Header */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
           <div className="flex flex-wrap gap-2">
             <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />

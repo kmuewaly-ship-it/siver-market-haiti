@@ -57,10 +57,15 @@ const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
 
   const onSubmit = async (data: ProductFormData) => {
     await createProduct.mutateAsync({
-      ...data,
+      sku_interno: data.sku_interno,
+      nombre: data.nombre,
+      descripcion_corta: data.descripcion_corta || null,
       categoria_id: data.categoria_id || null,
       proveedor_id: data.proveedor_id || null,
+      precio_mayorista: data.precio_mayorista,
       precio_sugerido_venta: data.precio_sugerido_venta || null,
+      moq: data.moq,
+      stock_fisico: data.stock_fisico,
       peso_kg: data.peso_kg || null,
       url_origen: data.url_origen || null,
     });
