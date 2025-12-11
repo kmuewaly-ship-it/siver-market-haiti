@@ -38,7 +38,7 @@ Este documento explica la separación estricta entre las experiencias Mayorista 
 
 ### 2. Vendedor (Seller)
 - **Acceso**: Módulo `/seller/*`
-- **Permisos**:
+- **Permisos**: 
   - Ver catálogo B2B (precios mayoristas)
   - Realizar pedidos en lotes
   - Gestionar pagos anticipados
@@ -46,7 +46,10 @@ Este documento explica la separación estricta entre las experiencias Mayorista 
 
 **Redirección al login**: `/seller/adquisicion-lotes` ✨ (Automática)
 
-### 3. Cliente Final (Client)
+### 3. Administrador - Acceso B2B
+- **Acceso**: También puede acceder a `/seller/adquisicion-lotes` y `/seller/checkout`
+- **Propósito**: Testear, simular compras, validar flujos como vendedor
+- **Redirección automática**: `/admin/dashboard` (pero puede navegar a `/seller/*` manualmente)### 3. Cliente Final (Client)
 - **Acceso**: Experiencia pública `/` y `/marketplace`
 - **Permisos**:
   - Ver catálogo B2C (precios minoristas)

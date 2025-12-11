@@ -37,6 +37,17 @@ TEST 1: ACCESO A LA PÁGINA DE CATÁLOGO
     □ Ves la barra de filtros
     □ Ves 5 productos mock en la página
 
+✓ PASO 1.2B: (ADMIN TESTING) Loguéate con cuenta ADMIN
+  CÓMO:
+    1. Ir a /admin/login
+    2. Ingresa credenciales de admin
+    3. Serás redirigido a /admin/dashboard
+    4. Navega manualmente a /seller/adquisicion-lotes
+  VERIFICAR:
+    □ Admin puede acceder a /seller/adquisicion-lotes ✓
+    □ Admin puede ver catálogo y realizar "compras" de prueba
+    □ Útil para testear flujo B2B sin necesidad de cuenta seller
+
 ✓ PASO 1.3: Verificar estructura de página
   DEBE VER:
     □ Header (con logo SIVER Market)
@@ -382,6 +393,18 @@ TEST 8: VALIDACIONES FINALES
     □ Página carga en < 3 segundos
     □ Sin componentes que se quedan en loading
     □ Búsqueda y filtros son rápidos (debounce)
+
+✓ PASO 8.5: Admin Access (Admin Testing)
+  HACER:
+    1. Loguéate como ADMIN
+    2. Serás redirigido a /admin/dashboard
+    3. Navega manualmente a: /seller/adquisicion-lotes
+  ESPERADO:
+    □ Admin puede acceder sin problemas
+    □ Ve el mismo catálogo que un seller
+    □ Puede añadir al carrito
+    □ Puede hacer checkout
+    □ Útil para testear flujo sin crear cuenta seller
 
 
 ═══════════════════════════════════════════════════════════════════════════════

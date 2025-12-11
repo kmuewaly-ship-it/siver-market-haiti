@@ -84,7 +84,7 @@ const App = () => (
             <Route 
               path="/seller/adquisicion-lotes" 
               element={
-                <ProtectedRoute requiredRoles={[UserRole.SELLER]}>
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
                   <SellerAcquisicionLotes />
                 </ProtectedRoute>
               } 
@@ -92,7 +92,7 @@ const App = () => (
             <Route 
               path="/seller/checkout" 
               element={
-                <ProtectedRoute requiredRoles={[UserRole.SELLER]}>
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
                   <SellerCheckout />
                 </ProtectedRoute>
               } 

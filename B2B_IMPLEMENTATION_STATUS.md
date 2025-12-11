@@ -64,8 +64,11 @@
 
 ### Routing Updates
 - Imported SellerAcquisicionLotes and SellerCheckout in App.tsx
-- Added protected routes for both pages (UserRole.SELLER)
-- useAuth now redirects SELLER → `/seller/adquisicion-lotes` on login
+- Added protected routes for both pages (UserRole.SELLER + UserRole.ADMIN)
+  - `/seller/adquisicion-lotes` - Accessible to both SELLER and ADMIN
+  - `/seller/checkout` - Accessible to both SELLER and ADMIN
+- useAuth redirects SELLER → `/seller/adquisicion-lotes` on login
+- useAuth redirects ADMIN → `/admin/dashboard` on login (but can navigate to `/seller/*` manually)
 
 ### Documentation
 - Updated ARQUITECTURA_B2B_B2C.md with complete B2B flow diagram

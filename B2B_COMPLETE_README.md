@@ -22,9 +22,11 @@
 - `useCartB2B` - Complete cart management with localStorage persistence
 
 ### 🛣️ Updated Routing
-- Protected `/seller/adquisicion-lotes` route
-- Protected `/seller/checkout` route
-- Auto-redirect from login to acquisition page for sellers
+- Protected `/seller/adquisicion-lotes` route (SELLER + ADMIN access)
+- Protected `/seller/checkout` route (SELLER + ADMIN access)
+- Auto-redirect from login:
+  - SELLER → `/seller/adquisicion-lotes`
+  - ADMIN → `/admin/dashboard` (can navigate to `/seller/*` for testing)
 
 ### 📚 Comprehensive Documentation
 - `ARQUITECTURA_B2B_B2C.md` - Complete architecture guide (Updated)
@@ -188,14 +190,17 @@ clearCart()
 ## 🔐 Security Features
 
 ✅ **Role-Based Access Control**
-- Only UserRole.SELLER can access /seller/*
+- UserRole.SELLER can access /seller/*
+- UserRole.ADMIN can also access /seller/* (for testing and oversight)
 - ProtectedRoute enforces role validation
 - Auto-redirects unauthorized users
+- Clients cannot access B2B interface
 
 ✅ **Data Isolation**
 - Sellers only see B2B prices (precio_b2b)
 - Clients never see mayorista data
 - Separation enforced at frontend + will be enforced at backend
+- Admin access to B2B is for testing/monitoring purposes only
 
 ✅ **Input Validation**
 - MOQ enforcement prevents invalid orders
