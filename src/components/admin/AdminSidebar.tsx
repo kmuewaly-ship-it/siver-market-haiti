@@ -7,7 +7,8 @@ import {
   Settings,
   LogOut,
   ShoppingBag,
-  ChevronLeft
+  ChevronLeft,
+  FolderTree
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ const mainNavItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
   { title: "Conciliación B2B", url: "/admin/conciliacion", icon: CreditCard },
   { title: "Catálogo", url: "/admin/catalogo", icon: Package },
+  { title: "Categorías", url: "/admin/categorias", icon: FolderTree },
   { title: "Vendedores", url: "/admin/vendedores", icon: Users },
   { title: "Puntos de Recogida", url: "/admin/puntos", icon: MapPin },
 ];
