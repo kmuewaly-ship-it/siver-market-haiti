@@ -142,6 +142,7 @@ const BulkImportDialog = ({ open, onOpenChange }: BulkImportDialogProps) => {
   };
 
   const getColumnIndex = (columnName: string): number => {
+    if (columnName === '__none__') return -1;
     return headers.indexOf(columnName);
   };
 
@@ -319,7 +320,7 @@ const BulkImportDialog = ({ open, onOpenChange }: BulkImportDialogProps) => {
                       <SelectValue placeholder="Seleccionar columna" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">-- No mapear --</SelectItem>
+                      <SelectItem value="__none__">-- No mapear --</SelectItem>
                       {headers.map((header) => (
                         <SelectItem key={header} value={header}>{header}</SelectItem>
                       ))}
