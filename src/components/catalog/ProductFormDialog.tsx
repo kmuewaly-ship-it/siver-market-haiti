@@ -11,6 +11,7 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 
 interface ProductFormDialogProps {
   open: boolean;
@@ -164,16 +165,14 @@ const ProductFormDialog = ({ open, onOpenChange }: ProductFormDialogProps) => {
                       control={form.control}
                       name="categoria_id"
                       render={({ field }) => (
-                        <Select onValueChange={field.onChange} value={field.value}>
-                          <SelectTrigger className="flex-1">
-                            <SelectValue placeholder="Seleccionar" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {categories?.map((cat) => (
-                              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <div className="flex-1">
+                          <HierarchicalCategorySelect
+                            categories={categories}
+                            value={field.value}
+                            onValueChange={field.onChange}
+                            placeholder="Seleccionar"
+                          />
+                        </div>
                       )}
                     />
                     <Button type="button" variant="outline" size="icon" onClick={() => setShowNewCategory(true)}>
