@@ -19,7 +19,8 @@ const authSchema = z.object({
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { user, isAdmin, isLoading: authLoading, signIn, signUp } = useAuth();
+  const { user, role, isLoading: authLoading, signIn, signUp } = useAuth();
+  const isAdmin = role === 'admin';
   
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,7 +44,10 @@ import {
   Eye,
   EyeOff,
   Layers,
-  Tag
+  Tag,
+  Upload,
+  X,
+  ImageIcon
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -74,6 +77,9 @@ const AdminCategorias = () => {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deletingCategory, setDeletingCategory] = useState<Category | null>(null);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
+  const [isUploading, setIsUploading] = useState(false);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Form state
   const [formData, setFormData] = useState({
@@ -208,6 +214,10 @@ const AdminCategorias = () => {
     });
     setEditingCategory(null);
     setIsFormOpen(false);
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleEdit = (category: Category) => {
@@ -221,7 +231,58 @@ const AdminCategorias = () => {
       icon: category.icon || "",
       sort_order: category.sort_order,
     });
+    setImagePreview(category.icon || null);
     setIsFormOpen(true);
+  };
+
+  const handleImageUpload = async (file: File) => {
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({ title: "Solo se permiten imágenes", variant: "destructive" });
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ title: "La imagen no debe superar 5MB", variant: "destructive" });
+      return;
+    }
+
+    setIsUploading(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `category-${Date.now()}.${fileExt}`;
+      const filePath = `categories/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(filePath);
+
+      setFormData({ ...formData, icon: publicUrl });
+      setImagePreview(publicUrl);
+      toast({ title: "Imagen subida correctamente" });
+    } catch (error: any) {
+      toast({ title: "Error al subir imagen", description: error.message, variant: "destructive" });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData({ ...formData, icon: "" });
+    setImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
   };
 
   const handleSubmit = () => {
@@ -512,6 +573,64 @@ const AdminCategorias = () => {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* Image Upload */}
+            <div className="space-y-2">
+              <Label>Imagen de Categoría</Label>
+              <div className="flex items-start gap-4">
+                {imagePreview ? (
+                  <div className="relative w-24 h-24 rounded-full overflow-hidden border border-border">
+                    <img 
+                      src={imagePreview} 
+                      alt="Preview" 
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-0 right-0 p-1 bg-destructive text-destructive-foreground rounded-full"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-muted border border-dashed border-border flex items-center justify-center">
+                    <ImageIcon className="h-8 w-8 text-muted-foreground" />
+                  </div>
+                )}
+                <div className="flex-1 space-y-2">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) handleImageUpload(file);
+                    }}
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading}
+                  >
+                    {isUploading ? (
+                      "Subiendo..."
+                    ) : (
+                      <>
+                        <Upload className="h-4 w-4 mr-2" />
+                        {imagePreview ? "Cambiar imagen" : "Subir imagen"}
+                      </>
+                    )}
+                  </Button>
+                  <p className="text-xs text-muted-foreground">
+                    PNG, JPG o WebP. Máx 5MB.
+                  </p>
+                </div>
+              </div>
             </div>
             
             <div className="space-y-2">

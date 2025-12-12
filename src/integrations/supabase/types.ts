@@ -117,6 +117,120 @@ export type Database = {
           },
         ]
       }
+      order_items_b2b: {
+        Row: {
+          cantidad: number
+          created_at: string
+          descuento_percent: number | null
+          id: string
+          nombre: string
+          order_id: string
+          precio_unitario: number
+          product_id: string | null
+          sku: string
+          subtotal: number
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string
+          descuento_percent?: number | null
+          id?: string
+          nombre: string
+          order_id: string
+          precio_unitario: number
+          product_id?: string | null
+          sku: string
+          subtotal: number
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string
+          descuento_percent?: number | null
+          id?: string
+          nombre?: string
+          order_id?: string
+          precio_unitario?: number
+          product_id?: string | null
+          sku?: string
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_b2b_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_b2b_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders_b2b: {
+        Row: {
+          buyer_id: string | null
+          created_at: string
+          currency: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          payment_method: string | null
+          seller_id: string
+          status: string
+          total_amount: number
+          total_quantity: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          payment_method?: string | null
+          seller_id: string
+          status?: string
+          total_amount?: number
+          total_quantity?: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string | null
+          created_at?: string
+          currency?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          payment_method?: string | null
+          seller_id?: string
+          status?: string
+          total_amount?: number
+          total_quantity?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_b2b_buyer_id_fkey"
+            columns: ["buyer_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_b2b_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_price_history: {
         Row: {
           campo_modificado: string
