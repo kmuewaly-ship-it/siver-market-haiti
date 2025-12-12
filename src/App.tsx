@@ -13,6 +13,9 @@ import NotFound from "./pages/NotFound";
 import StorePage from "./pages/StorePage";
 import ProductPage from "./pages/ProductPage";
 import SellerRegistrationPage from "./pages/SellerRegistrationPage";
+import CategoriesPage from "./pages/CategoriesPage";
+import CategoryProductsPage from "./pages/CategoryProductsPage";
+import StoreProfilePage from "./pages/StoreProfilePage";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -38,7 +41,9 @@ const App = () => (
             {/* ========== PUBLIC ROUTES (B2C) ========== */}
             <Route path="/" element={<Index />} />
             <Route path="/marketplace" element={<Index />} />
-            <Route path="/tienda/:sellerId" element={<StorePage />} />
+            <Route path="/categorias" element={<CategoriesPage />} />
+            <Route path="/categoria/:slug" element={<CategoryProductsPage />} />
+            <Route path="/tienda/:storeId" element={<StoreProfilePage />} />
             <Route path="/producto/:sku" element={<ProductPage />} />
             
             {/* Seller Registration Landing Page */}
