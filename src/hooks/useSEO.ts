@@ -44,9 +44,11 @@ export const useSEO = (metadata: SEOMetadata) => {
     setOrCreateMeta("twitter:description", metadata.description);
     if (metadata.image) setOrCreateMeta("twitter:image", metadata.image);
 
-    // Schema.org structured data
+    // Schema.org structured data for products
+    let schemaScript: HTMLScriptElement | null = null;
+    
     if (metadata.type === "product") {
-      const schemaScript = document.createElement("script");
+      schemaScript = document.createElement("script");
       schemaScript.type = "application/ld+json";
       schemaScript.textContent = JSON.stringify({
         "@context": "https://schema.org",
@@ -56,9 +58,13 @@ export const useSEO = (metadata: SEOMetadata) => {
         image: metadata.image,
       });
       document.head.appendChild(schemaScript);
-
-      return () => document.head.removeChild(schemaScript);
     }
+
+    return () => {
+      if (schemaScript && document.head.contains(schemaScript)) {
+        document.head.removeChild(schemaScript);
+      }
+    };
   }, [metadata]);
 };
 

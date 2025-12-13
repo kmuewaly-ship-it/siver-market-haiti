@@ -1,6 +1,6 @@
 import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Product } from "@/types/products";
+import type { Product } from "@/types/products";
 
 export const useProducts = (page = 0, limit = 12) => {
   return useQuery({
@@ -9,6 +9,7 @@ export const useProducts = (page = 0, limit = 12) => {
       const { data, error, count } = await supabase
         .from("products")
         .select("*", { count: "exact" })
+        .eq("is_active", true)
         .range(page * limit, (page + 1) * limit - 1)
         .order("created_at", { ascending: false });
 
@@ -18,14 +19,14 @@ export const useProducts = (page = 0, limit = 12) => {
   });
 };
 
-export const useProductBySkU = (sku: string) => {
+export const useProductBySku = (sku: string) => {
   return useQuery({
     queryKey: ["product", sku],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
         .select("*")
-        .eq("sku", sku)
+        .eq("sku_interno", sku)
         .single();
 
       if (error) throw new Error(error.message);
@@ -44,9 +45,10 @@ export const useProductsByCategory = (categoryId: string | null, page = 0, limit
       const { data, error, count } = await supabase
         .from("products")
         .select("*", { count: "exact" })
-        .eq("category_id", categoryId)
+        .eq("categoria_id", categoryId)
+        .eq("is_active", true)
         .range(page * limit, (page + 1) * limit - 1)
-        .order("popularity", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (error) throw new Error(error.message);
       return { products: data as Product[], total: count || 0 };
@@ -64,7 +66,8 @@ export const useSearchProducts = (query: string, page = 0, limit = 12) => {
       const { data, error, count } = await supabase
         .from("products")
         .select("*", { count: "exact" })
-        .ilike("name", `%${query}%`)
+        .eq("is_active", true)
+        .ilike("nombre", `%${query}%`)
         .range(page * limit, (page + 1) * limit - 1);
 
       if (error) throw new Error(error.message);
@@ -81,6 +84,7 @@ export const useInfiniteProducts = (limit = 12) => {
       const { data, error, count } = await supabase
         .from("products")
         .select("*", { count: "exact" })
+        .eq("is_active", true)
         .range(pageParam * limit, (pageParam + 1) * limit - 1)
         .order("created_at", { ascending: false });
 

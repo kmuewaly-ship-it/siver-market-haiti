@@ -14,6 +14,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      b2b_cart_items: {
+        Row: {
+          cart_id: string
+          color: string | null
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          nombre: string
+          product_id: string | null
+          quantity: number
+          size: string | null
+          sku: string
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          cart_id: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          nombre: string
+          product_id?: string | null
+          quantity: number
+          size?: string | null
+          sku: string
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          cart_id?: string
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          nombre?: string
+          product_id?: string | null
+          quantity?: number
+          size?: string | null
+          sku?: string
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2b_cart_items_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "b2b_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2b_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      b2b_carts: {
+        Row: {
+          buyer_user_id: string
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          buyer_user_id: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          buyer_user_id?: string
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2b_carts_buyer_user_id_fkey"
+            columns: ["buyer_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       b2b_payments: {
         Row: {
           amount: number
@@ -113,6 +211,70 @@ export type Database = {
             columns: ["parent_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      inventory_movements: {
+        Row: {
+          change_amount: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          new_stock: number | null
+          previous_stock: number | null
+          product_id: string | null
+          reason: string
+          reference_id: string | null
+          reference_type: string | null
+          seller_catalog_id: string | null
+        }
+        Insert: {
+          change_amount: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          new_stock?: number | null
+          previous_stock?: number | null
+          product_id?: string | null
+          reason: string
+          reference_id?: string | null
+          reference_type?: string | null
+          seller_catalog_id?: string | null
+        }
+        Update: {
+          change_amount?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          new_stock?: number | null
+          previous_stock?: number | null
+          product_id?: string | null
+          reason?: string
+          reference_id?: string | null
+          reference_type?: string | null
+          seller_catalog_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_movements_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog"
             referencedColumns: ["id"]
           },
         ]
@@ -380,6 +542,82 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_catalog: {
+        Row: {
+          descripcion: string | null
+          id: string
+          images: Json | null
+          imported_at: string | null
+          is_active: boolean | null
+          metadata: Json | null
+          nombre: string
+          precio_costo: number
+          precio_venta: number
+          seller_store_id: string
+          sku: string
+          source_order_id: string | null
+          source_product_id: string | null
+          stock: number
+          updated_at: string | null
+        }
+        Insert: {
+          descripcion?: string | null
+          id?: string
+          images?: Json | null
+          imported_at?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          nombre: string
+          precio_costo?: number
+          precio_venta?: number
+          seller_store_id: string
+          sku: string
+          source_order_id?: string | null
+          source_product_id?: string | null
+          stock?: number
+          updated_at?: string | null
+        }
+        Update: {
+          descripcion?: string | null
+          id?: string
+          images?: Json | null
+          imported_at?: string | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          nombre?: string
+          precio_costo?: number
+          precio_venta?: number
+          seller_store_id?: string
+          sku?: string
+          source_order_id?: string | null
+          source_product_id?: string | null
+          stock?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_catalog_seller_store_id_fkey"
+            columns: ["seller_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_catalog_source_order_id_fkey"
+            columns: ["source_order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_catalog_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sellers: {
         Row: {
           business_name: string | null
@@ -415,6 +653,56 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      stores: {
+        Row: {
+          banner: string | null
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          logo: string | null
+          metadata: Json | null
+          name: string
+          owner_user_id: string
+          slug: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          banner?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo?: string | null
+          metadata?: Json | null
+          name: string
+          owner_user_id: string
+          slug?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          banner?: string | null
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          logo?: string | null
+          metadata?: Json | null
+          name?: string
+          owner_user_id?: string
+          slug?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       suppliers: {
         Row: {
