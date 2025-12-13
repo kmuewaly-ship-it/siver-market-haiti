@@ -9,15 +9,15 @@ import CategoryCard from "@/components/landing/CategoryCard";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [openMobileCategory, setOpenMobileCategory] = useState<string | null>(null);
+  const [openMobileCategory, setOpenMobileCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
   const navigate = useNavigate();
 
-  const catBarRef = useRef<HTMLDivElement | null>(null);
+  const catBarRef = useRef(null);
   const [hasOverflow, setHasOverflow] = useState(false);
-  const headerRef = useRef<HTMLElement | null>(null);
+  const headerRef = useRef(null);
   const [headerHeight, setHeaderHeight] = useState(0);
 
   useEffect(() => {
@@ -38,7 +38,7 @@ const Header = () => {
     return () => window.removeEventListener("resize", update);
   }, []);
 
-  const scrollHeader = (dir: number) => {
+  const scrollHeader = (dir) => {
     const el = catBarRef.current;
     if (!el) return;
     const amount = Math.max(el.clientWidth * 0.5, 240);
@@ -46,10 +46,10 @@ const Header = () => {
   };
 
   // Root categories (no parent)
-  const rootCategories: Category[] = categories.filter((c: Category) => !c.parent_id);
+  const rootCategories = categories.filter((c) => !c.parent_id);
 
-  const getSubcategories = (parentId: string) =>
-    categories.filter((c: Category) => c.parent_id === parentId);
+  const getSubcategories = (parentId) =>
+    categories.filter((c) => c.parent_id === parentId);
 
   return (
     <>
@@ -99,18 +99,18 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-6">
-            <button className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+            <Link to="/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
               <Heart className="w-6 h-6" />
               <span className="text-xs">Favoritos</span>
-            </button>
-            <button className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+            </Link>
+            <Link to="/cuenta" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
               <User className="w-6 h-6" />
               <span className="text-xs">Cuenta</span>
-            </button>
-            <button className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+            </Link>
+            <Link to="/carrito" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
               <ShoppingBag className="w-6 h-6" />
               <span className="text-xs">Carrito</span>
-            </button>
+            </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -205,6 +205,20 @@ const Header = () => {
             <Input type="text" placeholder="Buscar..." className="w-full mb-4 rounded-full" />
 
             <nav className="flex flex-col gap-2">
+              <div className="flex items-center justify-around py-4 border-b border-gray-100">
+                <Link to="/favoritos" className="flex flex-col items-center gap-1 text-gray-700" onClick={() => setIsMenuOpen(false)}>
+                  <Heart className="w-6 h-6" />
+                  <span className="text-xs">Favoritos</span>
+                </Link>
+                <Link to="/cuenta" className="flex flex-col items-center gap-1 text-gray-700" onClick={() => setIsMenuOpen(false)}>
+                  <User className="w-6 h-6" />
+                  <span className="text-xs">Cuenta</span>
+                </Link>
+                <Link to="/carrito" className="flex flex-col items-center gap-1 text-gray-700" onClick={() => setIsMenuOpen(false)}>
+                  <ShoppingBag className="w-6 h-6" />
+                  <span className="text-xs">Carrito</span>
+                </Link>
+              </div>
               {rootCategories.map((cat) => {
                 const subs = getSubcategories(cat.id);
                 const isOpen = openMobileCategory === cat.id;
