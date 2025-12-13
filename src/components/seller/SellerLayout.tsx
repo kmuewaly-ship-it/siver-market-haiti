@@ -11,7 +11,7 @@ export function SellerLayout({ children }: SellerLayoutProps) {
     <SidebarProvider>
       <div className="flex w-full">
         <SellerSidebar />
-        <main className="flex-1 pt-28 lg:pt-36">
+        <main className="flex-1">
           {children}
         </main>
       </div>
