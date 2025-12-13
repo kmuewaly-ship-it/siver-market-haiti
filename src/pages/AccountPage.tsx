@@ -36,7 +36,7 @@ const AccountPage = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 container mx-auto px-4 pt-40 pb-8">
+      <main className="flex-1 container mx-auto px-4 pt-28 lg:pt-36 pb-8">
         <h1 className="text-3xl font-bold mb-8">Mi Cuenta</h1>
         
         <div className="grid gap-6 md:grid-cols-2">

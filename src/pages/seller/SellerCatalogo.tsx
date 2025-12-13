@@ -94,7 +94,7 @@ const SellerCatalogo = () => {
       <SellerLayout>
         <div className="min-h-screen bg-background">
           <Header />
-          <main className="container mx-auto px-4 pt-40 pb-8">
+          <main className="container mx-auto px-4 pb-8">
             <div className="flex items-center justify-center py-20">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
             </div>
@@ -110,7 +110,7 @@ const SellerCatalogo = () => {
       <div className="min-h-screen bg-background">
         <Header />
 
-        <main className="container mx-auto px-4 pt-40 pb-8">
+        <main className="container mx-auto px-4 pb-8">
           {/* Header */}
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
             <div>

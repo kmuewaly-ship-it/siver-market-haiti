@@ -56,7 +56,7 @@ const CategoriesPage = () => {
     return (
       <div className="min-h-screen bg-white">
         <Header />
-        <main className="container mx-auto px-4 pt-40 pb-8">
+        <main className="container mx-auto px-4 pt-28 lg:pt-36 pb-8">
           <h1 className="text-3xl font-bold mb-8">Categorías</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
@@ -73,7 +73,7 @@ const CategoriesPage = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="container mx-auto px-4 pt-40 pb-8">
+      <main className="container mx-auto px-4 pt-28 lg:pt-36 pb-8">
         {/* Breadcrumb */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-gray-600">

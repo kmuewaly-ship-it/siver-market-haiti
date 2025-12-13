@@ -171,7 +171,7 @@ const StoreProfilePage = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <main className="container mx-auto px-4 pt-40 pb-8">
+        <main className="container mx-auto px-4 pt-28 lg:pt-36 pb-8">
           <Skeleton className="h-80 mb-8" />
           <Skeleton className="h-60 mb-8" />
         </main>
@@ -194,7 +194,7 @@ const StoreProfilePage = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="container mx-auto px-4 pt-40 pb-0">
+      <main className="container mx-auto px-4 pt-28 lg:pt-36 pb-0">
         {/* Banner */}
         <div className="relative h-64 md:h-80 bg-gray-200 rounded-b-lg overflow-hidden -mx-4 mb-0">
           <img

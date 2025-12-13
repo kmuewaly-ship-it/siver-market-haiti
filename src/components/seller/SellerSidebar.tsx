@@ -57,7 +57,7 @@ export function SellerSidebar() {
   const isActive = (url) => location.pathname === url;
 
   return (
-    <Sidebar collapsible="icon" className="border-r border-border bg-card pt-40">
+    <Sidebar collapsible="icon" className="border-r border-border bg-card pt-28 lg:pt-36">
       <SidebarHeader className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

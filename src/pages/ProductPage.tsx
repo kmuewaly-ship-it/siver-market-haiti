@@ -125,7 +125,7 @@ const ProductPage = () => {
     return (
       <div className="min-h-screen bg-gray-50">
         <Header />
-        <main className="container mx-auto px-4 pt-40 pb-8">
+        <main className="container mx-auto px-4 pt-28 lg:pt-36 pb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Skeleton className="aspect-square" />
             <Skeleton className="h-screen" />
@@ -140,7 +140,7 @@ const ProductPage = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="container mx-auto px-4 pt-40 pb-8">
+      <main className="container mx-auto px-4 pt-28 lg:pt-36 pb-8">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
           <button onClick={() => navigate("/")} className="hover:text-blue-600">

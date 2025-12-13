@@ -165,7 +165,7 @@ const SellerAcquisicionLotes = () => {
       <div className="min-h-screen bg-gray-50">
         <Header />
         
-        <main className="container mx-auto px-4 pt-40 pb-8">
+        <main className="container mx-auto px-4 pb-8">
           {/* Encabezado */}
           <div className="mb-8">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">

@@ -16,7 +16,7 @@ const SellerFavoritesPage = () => {
     <SellerLayout>
       <div className="min-h-screen bg-background flex flex-col">
         <Header />
-        <main className="flex-1 container mx-auto px-4 pt-40 pb-8">
+        <main className="flex-1 container mx-auto px-4 pb-8">
           <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
             <Heart className="h-8 w-8 text-red-500 fill-current" />
             Lista de Deseos (Lotes)

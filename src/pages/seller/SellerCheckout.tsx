@@ -98,7 +98,7 @@ const SellerCheckout = () => {
       <SellerLayout>
         <div className="min-h-screen bg-background">
           <Header />
-          <main className="container mx-auto px-4 pt-40 pb-8">
+          <main className="container mx-auto px-4 pb-8">
             <div className="max-w-2xl mx-auto">
               <Card className="p-8 text-center">
                 <ShoppingBag className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
@@ -126,7 +126,7 @@ const SellerCheckout = () => {
       <SellerLayout>
         <div className="min-h-screen bg-background">
           <Header />
-          <main className="container mx-auto px-4 pt-40 pb-8">
+          <main className="container mx-auto px-4 pb-8">
             <div className="max-w-2xl mx-auto">
               <Card className="p-8 text-center">
                 <div className="mb-6">
@@ -233,7 +233,7 @@ const SellerCheckout = () => {
       <div className="min-h-screen bg-background">
         <Header />
 
-        <main className="container mx-auto px-4 pt-40 pb-8">
+        <main className="container mx-auto px-4 pb-8">
           <div className="mb-8">
             <Link
               to="/seller/adquisicion-lotes"
