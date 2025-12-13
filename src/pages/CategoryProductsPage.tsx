@@ -138,7 +138,39 @@ const CategoryProductsPage = () => {
           </div>
         </div>
 
-          {/* Mobile filters toggle */}
+        {/* Filters bar (desktop + mobile sticky) */}
+        <div className="mb-4">
+          <div className="bg-white rounded-lg p-4 shadow-sm flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium">Ordenar:</label>
+              <select value={filters.sortBy} onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as FilterOptions["sortBy"] })} className="px-3 py-2 border rounded">
+                <option value="newest">Más Nuevo</option>
+                <option value="price_asc">Precio: Menor a Mayor</option>
+                <option value="price_desc">Precio: Mayor a Menor</option>
+                <option value="rating">Mejor Valorado</option>
+              </select>
+            </div>
+
+            <div className="flex items-center gap-3">
+              <label className="text-sm font-medium">Color:</label>
+              <select value={(selectedSubcategory as string) ?? ""} onChange={(e) => { /* placeholder: colors not yet available */ }} className="px-3 py-2 border rounded">
+                <option value="">Todos</option>
+                <option value="red">Rojo</option>
+                <option value="blue">Azul</option>
+                <option value="black">Negro</option>
+              </select>
+
+              <label className="text-sm font-medium">Envío:</label>
+              <select className="px-3 py-2 border rounded">
+                <option value="all">Todos</option>
+                <option value="free">Envío Gratis</option>
+                <option value="fast">Envío Rápido</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile filters toggle */}
           <div className="mb-4 md:hidden">
             <button onClick={() => setShowFiltersMobile((s) => !s)} className="px-4 py-2 bg-white border rounded w-full text-left">Filtros &nbsp; {showFiltersMobile ? '▲' : '▼'}</button>
             {showFiltersMobile && (

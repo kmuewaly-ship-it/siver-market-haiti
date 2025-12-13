@@ -8,19 +8,26 @@ const HeroSection = () => {
     {
       id: 1,
       title: "Navidad",
-      image: "https://images.unsplash.com/photo-1482684364924-3be32fe17ce9?w=1200&h=400&fit=crop",
+      // Prefer a project-local image in `public/hero-1.jpg` — falls back to placeholder if missing
+      image: "/hero-1.jpg",
+      fallback:
+        "https://images.unsplash.com/photo-1482684364924-3be32fe17ce9?w=1200&h=400&fit=crop",
       color: "bg-red-600",
     },
     {
       id: 2,
       title: "Súper Rebajas",
-      image: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=400&fit=crop",
+      image: "/hero-2.jpg",
+      fallback:
+        "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=400&fit=crop",
       color: "bg-orange-600",
     },
     {
       id: 3,
       title: "Top Ventas",
-      image: "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&h=400&fit=crop",
+      image: "/hero-3.jpg",
+      fallback:
+        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=1200&h=400&fit=crop",
       color: "bg-purple-600",
     },
   ];
@@ -59,6 +66,15 @@ const HeroSection = () => {
               src={slide.image}
               alt={slide.title}
               className="w-full h-full object-cover"
+              onError={(e) => {
+                const img = e.currentTarget as HTMLImageElement;
+                // try fallback then placeholder
+                if (slide.fallback && img.src !== slide.fallback) {
+                  img.src = slide.fallback;
+                } else if (!img.src.includes("/placeholder.svg")) {
+                  img.src = "/placeholder.svg";
+                }
+              }}
             />
             <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
               <h2 className="text-4xl md:text-6xl font-bold text-white">

@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useState, useRef, useEffect } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { Menu, X, ShoppingBag, Search, Heart, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,37 @@ const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
+  const navigate = useNavigate();
+
+  const catBarRef = useRef<HTMLDivElement | null>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
+  const [headerHeight, setHeaderHeight] = useState(0);
+
+  useEffect(() => {
+    const el = catBarRef.current;
+    if (!el) return;
+    const check = () => setHasOverflow(el.scrollWidth > el.clientWidth + 4);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, [categories]);
+
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const update = () => setHeaderHeight(el.offsetHeight);
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  const scrollHeader = (dir: number) => {
+    const el = catBarRef.current;
+    if (!el) return;
+    const amount = Math.max(el.clientWidth * 0.5, 240);
+    el.scrollBy({ left: dir * amount, behavior: "smooth" });
+  };
 
   // Root categories (no parent)
   const rootCategories: Category[] = categories.filter((c: Category) => !c.parent_id);
@@ -21,7 +52,8 @@ const Header = () => {
     categories.filter((c: Category) => c.parent_id === parentId);
 
   return (
-    <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
+    <>
+    <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
       {/* Top Bar */}
       <div className="bg-gray-50 border-b border-gray-200">
         <div className="container mx-auto px-4">
@@ -95,28 +127,30 @@ const Header = () => {
         </div>
 
         {/* Categories Bar */}
-        <div className="hidden lg:flex items-center overflow-x-auto gap-0 border-t border-gray-200 h-12 relative">
+        <div className="hidden lg:block border-t border-gray-200 relative">
+          <div ref={catBarRef} className="flex items-center gap-0 h-12 overflow-hidden whitespace-nowrap pl-12 pr-12">
           {categoriesLoading ? (
             <div className="px-4 py-3 text-sm text-gray-500">Cargando categorías...</div>
           ) : (
             rootCategories.map((cat) => {
               const subs = getSubcategories(cat.id);
               return (
-                <div key={cat.id} className="relative group">
-                  <Link
-                    to={`/categoria/${cat.slug}`}
-                    className="px-4 py-3 text-sm font-medium text-gray-700 hover:text-red-500 hover:bg-gray-50 border-b-2 border-transparent hover:border-red-500 transition whitespace-nowrap flex items-center gap-2"
-                  >
-                    {cat.name}
-                  </Link>
+                <div key={cat.id} className="relative group inline-block">
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/categoria/${cat.slug}`)}
+                        className="px-4 py-3 text-sm font-medium text-gray-700 hover:text-red-500 hover:bg-gray-50 border-b-2 border-transparent hover:border-red-500 transition whitespace-nowrap flex items-center gap-2"
+                      >
+                        {cat.name}
+                      </button>
 
                   {/* Subcategories dropdown on hover */}
                   {subs.length > 0 && (
-                    <div className="absolute left-0 top-full mt-2 hidden group-hover:flex p-4 bg-white border border-gray-100 shadow-lg rounded-lg z-40">
-                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                    <div className="absolute left-0 top-full mt-2 hidden group-hover:flex p-6 bg-white border border-gray-100 shadow-lg rounded-lg z-40 max-w-screen-lg">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         {subs.map((sub) => (
-                          <Link key={sub.id} to={`/categoria/${sub.slug}`} className="flex flex-col items-center text-center w-32">
-                            <div className="w-20 h-20 rounded-full overflow-hidden bg-muted flex items-center justify-center mb-2 border border-border">
+                          <button key={sub.id} type="button" onClick={() => navigate(`/categoria/${sub.slug}`)} className="flex flex-col items-center text-center w-36">
+                            <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center mb-2 border border-border">
                               {sub.icon ? (
                                 <img src={sub.icon} alt={sub.name} className="w-full h-full object-cover" />
                               ) : (
@@ -125,8 +159,9 @@ const Header = () => {
                                 </div>
                               )}
                             </div>
-                            <div className="text-xs text-gray-700">{sub.name}</div>
-                          </Link>
+                            <div className="text-sm text-gray-700 font-medium">{sub.name}</div>
+                            {sub.description && <div className="text-xs text-gray-500 mt-1 line-clamp-2">{sub.description}</div>}
+                          </button>
                         ))}
                       </div>
                     </div>
@@ -134,6 +169,31 @@ const Header = () => {
                 </div>
               );
             })
+          )}
+          </div>
+
+          {/* Scroll buttons */}
+          {hasOverflow && (
+            <>
+              <button
+                aria-label="scroll left"
+                onClick={() => scrollHeader(-1)}
+                className="hidden lg:flex absolute left-2 top-1/2 -translate-y-1/2 z-50"
+              >
+                <div className="w-6 h-6 bg-gray-200 border-2 border-black rounded flex items-center justify-center shadow-sm">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-black"><path d="M15 18l-6-6 6-6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+              </button>
+              <button
+                aria-label="scroll right"
+                onClick={() => scrollHeader(1)}
+                className="hidden lg:flex absolute right-2 top-1/2 -translate-y-1/2 z-50"
+              >
+                <div className="w-6 h-6 bg-gray-200 border-2 border-black rounded flex items-center justify-center shadow-sm">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-black"><path d="M9 6l6 6-6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                </div>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -150,24 +210,16 @@ const Header = () => {
                 const isOpen = openMobileCategory === cat.id;
                 return (
                   <div key={cat.id} className="border-b border-gray-100">
-                    <button
-                      onClick={() => setOpenMobileCategory(isOpen ? null : cat.id)}
-                      className="w-full text-left py-3 px-2 flex items-center justify-between text-gray-800 hover:bg-gray-50"
-                    >
-                      <span className="font-medium">{cat.name}</span>
-                      <span className="text-sm text-gray-500">{subs.length > 0 ? (isOpen ? "-" : "+") : ""}</span>
-                    </button>
+                    <div className="flex items-center justify-between w-full">
+                      <button onClick={() => { setOpenMobileCategory(isOpen ? null : cat.id); }} className="w-full text-left py-3 px-2 text-gray-800 hover:bg-gray-50 font-medium">{cat.name}</button>
+                      <button onClick={() => navigate(`/categoria/${cat.slug}`)} className="px-3 py-2 text-gray-600">Ir</button>
+                    </div>
 
                     {isOpen && subs.length > 0 && (
                       <div className="px-2 py-2 bg-white">
                         <div className="grid grid-cols-3 gap-2">
                           {subs.map((sub) => (
-                            <Link
-                              key={sub.id}
-                              to={`/categoria/${sub.slug}`}
-                              onClick={() => setIsMenuOpen(false)}
-                              className="flex flex-col items-center text-center p-2"
-                            >
+                            <button key={sub.id} type="button" onClick={() => { setIsMenuOpen(false); navigate(`/categoria/${sub.slug}`); }} className="flex flex-col items-center text-center p-2">
                               <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center mb-2 border border-border">
                                 {sub.icon ? (
                                   <img src={sub.icon} alt={sub.name} className="w-full h-full object-cover" />
@@ -178,7 +230,7 @@ const Header = () => {
                                 )}
                               </div>
                               <div className="text-xs text-gray-700">{sub.name}</div>
-                            </Link>
+                            </button>
                           ))}
                         </div>
                       </div>
@@ -191,6 +243,10 @@ const Header = () => {
         </div>
       )}
     </header>
+
+    {/* spacer to push page content below fixed header */}
+    <div aria-hidden style={{ height: headerHeight }} />
+    </>
   );
 };
 
