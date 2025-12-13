@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 const HeroSection = () => {
@@ -20,6 +20,22 @@ const HeroSection = () => {
       fallback:
         "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=1200&h=400&fit=crop",
       color: "bg-orange-600",
+    },
+    {
+      id: 3,
+      title: "Ofertas Especiales",
+      image: "/navidad-3.png",
+      fallback:
+        "https://images.unsplash.com/photo-1512909006721-3d6018887383?w=1200&h=400&fit=crop",
+      color: "bg-green-600",
+    },
+    {
+      id: 4,
+      title: "Colección de Invierno",
+      image: "/navidad-4.png",
+      fallback:
+        "https://images.unsplash.com/photo-1543589077-47d81606c1bf?w=1200&h=400&fit=crop",
+      color: "bg-blue-600",
     },
   ];
 
