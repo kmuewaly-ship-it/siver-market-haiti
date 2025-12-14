@@ -1,22 +1,119 @@
-import { Link } from "react-router-dom";
-import { ArrowRight, CheckCircle, Users, Shield, TrendingUp } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { ArrowRight, CheckCircle, Users, Shield, TrendingUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
+import { z } from "zod";
+
+const sellerRegistrationSchema = z.object({
+  businessName: z.string().min(2, "El nombre del negocio debe tener al menos 2 caracteres").max(100),
+  email: z.string().email("Email inválido").max(255),
+  phone: z.string().min(8, "Teléfono debe tener al menos 8 dígitos").max(20),
+  country: z.string().min(1, "Selecciona un país"),
+  businessType: z.string().min(1, "Selecciona un tipo de negocio"),
+  password: z.string().min(6, "La contraseña debe tener al menos 6 caracteres"),
+  confirmPassword: z.string(),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Las contraseñas no coinciden",
+  path: ["confirmPassword"],
+});
 
 const SellerRegistrationPage = () => {
+  const navigate = useNavigate();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     businessName: "",
     email: "",
     phone: "",
     country: "",
     businessType: "",
+    password: "",
+    confirmPassword: "",
   });
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aquí irá la lógica de registro
-    console.log("Form submitted:", formData);
+    setErrors({});
+
+    // Validate form
+    const result = sellerRegistrationSchema.safeParse(formData);
+    if (!result.success) {
+      const fieldErrors: Record<string, string> = {};
+      result.error.errors.forEach((err) => {
+        if (err.path[0]) {
+          fieldErrors[err.path[0] as string] = err.message;
+        }
+      });
+      setErrors(fieldErrors);
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // 1. Create auth user
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/login`,
+          data: {
+            full_name: formData.businessName,
+          },
+        },
+      });
+
+      if (authError) {
+        if (authError.message.includes("already registered")) {
+          toast.error("Este email ya está registrado. Intenta iniciar sesión.");
+        } else {
+          toast.error(authError.message);
+        }
+        return;
+      }
+
+      if (!authData.user) {
+        toast.error("Error al crear la cuenta");
+        return;
+      }
+
+      // 2. Create seller record
+      const { error: sellerError } = await supabase.from("sellers").insert({
+        user_id: authData.user.id,
+        email: formData.email,
+        name: formData.businessName,
+        business_name: formData.businessName,
+        phone: formData.phone,
+        is_verified: false,
+      });
+
+      if (sellerError) {
+        console.error("Seller creation error:", sellerError);
+        toast.error("Error al registrar el vendedor");
+        return;
+      }
+
+      // 3. Assign seller role
+      const { error: roleError } = await supabase.from("user_roles").insert({
+        user_id: authData.user.id,
+        role: "seller",
+      });
+
+      if (roleError) {
+        console.error("Role assignment error:", roleError);
+      }
+
+      toast.success("Registro exitoso! Tu cuenta está pendiente de verificación por un administrador.");
+      navigate("/login");
+    } catch (error) {
+      console.error("Registration error:", error);
+      toast.error("Error al procesar el registro");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const benefits = [
@@ -123,7 +220,11 @@ const SellerRegistrationPage = () => {
                   }
                   required
                   className="w-full"
+                  disabled={isLoading}
                 />
+                {errors.businessName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.businessName}</p>
+                )}
               </div>
 
               <div>
@@ -139,7 +240,11 @@ const SellerRegistrationPage = () => {
                   }
                   required
                   className="w-full"
+                  disabled={isLoading}
                 />
+                {errors.email && (
+                  <p className="text-red-500 text-sm mt-1">{errors.email}</p>
+                )}
               </div>
 
               <div>
@@ -155,7 +260,11 @@ const SellerRegistrationPage = () => {
                   }
                   required
                   className="w-full"
+                  disabled={isLoading}
                 />
+                {errors.phone && (
+                  <p className="text-red-500 text-sm mt-1">{errors.phone}</p>
+                )}
               </div>
 
               <div>
@@ -169,6 +278,7 @@ const SellerRegistrationPage = () => {
                   }
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  disabled={isLoading}
                 >
                   <option value="">Selecciona tu país</option>
                   <option value="haiti">Haití</option>
@@ -176,6 +286,9 @@ const SellerRegistrationPage = () => {
                   <option value="jamaica">Jamaica</option>
                   <option value="otro">Otro</option>
                 </select>
+                {errors.country && (
+                  <p className="text-red-500 text-sm mt-1">{errors.country}</p>
+                )}
               </div>
 
               <div>
@@ -189,6 +302,7 @@ const SellerRegistrationPage = () => {
                   }
                   required
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
+                  disabled={isLoading}
                 >
                   <option value="">Selecciona tu tipo de negocio</option>
                   <option value="retail">Tienda Minorista</option>
@@ -197,23 +311,80 @@ const SellerRegistrationPage = () => {
                   <option value="fabricante">Fabricante</option>
                   <option value="otro">Otro</option>
                 </select>
+                {errors.businessType && (
+                  <p className="text-red-500 text-sm mt-1">{errors.businessType}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Contraseña *
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Mínimo 6 caracteres"
+                  value={formData.password}
+                  onChange={(e) =>
+                    setFormData({ ...formData, password: e.target.value })
+                  }
+                  required
+                  className="w-full"
+                  disabled={isLoading}
+                />
+                {errors.password && (
+                  <p className="text-red-500 text-sm mt-1">{errors.password}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Confirmar Contraseña *
+                </label>
+                <Input
+                  type="password"
+                  placeholder="Repite tu contraseña"
+                  value={formData.confirmPassword}
+                  onChange={(e) =>
+                    setFormData({ ...formData, confirmPassword: e.target.value })
+                  }
+                  required
+                  className="w-full"
+                  disabled={isLoading}
+                />
+                {errors.confirmPassword && (
+                  <p className="text-red-500 text-sm mt-1">{errors.confirmPassword}</p>
+                )}
               </div>
 
               <div className="pt-4">
                 <Button
                   type="submit"
                   className="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 rounded-lg font-medium flex items-center justify-center gap-2 transition"
+                  disabled={isLoading}
                 >
-                  Solicitar Acceso
-                  <ArrowRight className="w-4 h-4" />
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      Solicitar Acceso
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
                 </Button>
               </div>
 
               <p className="text-sm text-gray-600 text-center">
                 ¿Ya tienes cuenta?{" "}
-                <Link to="/seller/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
+                <Link to="/login" className="text-indigo-600 hover:text-indigo-700 font-medium">
                   Inicia sesión
                 </Link>
+              </p>
+
+              <p className="text-xs text-gray-500 text-center mt-4">
+                Tu cuenta será revisada por un administrador antes de poder publicar productos.
               </p>
             </form>
           </div>
