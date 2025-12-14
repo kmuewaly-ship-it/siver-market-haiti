@@ -5,9 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Mail, Calendar, Package, MapPin, LogOut, Settings } from "lucide-react";
 import { Link } from "react-router-dom";
+import { UserRole } from "@/types/auth";
+import { SellerLayout } from "@/components/seller/SellerLayout";
 
 const AccountPage = () => {
-  const { user, logout } = useAuth();
+  const { user, logout, role } = useAuth();
 
   if (!user) {
     return (
@@ -33,7 +35,7 @@ const AccountPage = () => {
     );
   }
 
-  return (
+  const Content = () => (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
       <main className="flex-1 container mx-auto px-4 pb-8">
@@ -110,6 +112,16 @@ const AccountPage = () => {
       <Footer />
     </div>
   );
+
+  if (role === UserRole.SELLER) {
+    return (
+      <SellerLayout>
+        <Content />
+      </SellerLayout>
+    );
+  }
+
+  return <Content />;
 };
 
 export default AccountPage;
