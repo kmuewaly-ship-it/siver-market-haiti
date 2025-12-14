@@ -8,8 +8,9 @@ import { Link } from "react-router-dom";
 import { useCartB2B } from "@/hooks/useCartB2B";
 
 const SellerCartPage = () => {
-  const { items, removeItem, updateQuantity, calculateTotals, clearCart } = useCartB2B();
-  const { subtotal, totalQuantity } = calculateTotals(items);
+  const { cart, removeItem, updateQuantity, clearCart } = useCartB2B();
+  const items = cart.items;
+  const { subtotal, totalQuantity } = { subtotal: cart.subtotal, totalQuantity: cart.totalQuantity };
 
   return (
     <SellerLayout>

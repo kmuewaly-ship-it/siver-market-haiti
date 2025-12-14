@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { User, Store, Mail, Calendar, Shield, LogOut, Settings, CreditCard, Bell } from "lucide-react";
 
 const SellerAccountPage = () => {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
 
   return (
     <SellerLayout>
@@ -86,7 +86,7 @@ const SellerAccountPage = () => {
                   <Bell className="h-4 w-4" />
                   Configuración de Notificaciones
                 </Button>
-                <Button variant="destructive" className="w-full justify-start gap-2" onClick={logout}>
+                <Button variant="destructive" className="w-full justify-start gap-2" onClick={signOut}>
                   <LogOut className="h-4 w-4" />
                   Cerrar Sesión
                 </Button>

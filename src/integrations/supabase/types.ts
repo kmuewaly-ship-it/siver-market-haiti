@@ -771,9 +771,10 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_seller: { Args: { _user_id: string }; Returns: boolean }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      app_role: "admin" | "moderator" | "user" | "seller"
       payment_method: "stripe" | "moncash" | "transfer"
       payment_status: "pending" | "verified" | "rejected"
       stock_status: "in_stock" | "low_stock" | "out_of_stock"
@@ -904,7 +905,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user"],
+      app_role: ["admin", "moderator", "user", "seller"],
       payment_method: ["stripe", "moncash", "transfer"],
       payment_status: ["pending", "verified", "rejected"],
       stock_status: ["in_stock", "low_stock", "out_of_stock"],

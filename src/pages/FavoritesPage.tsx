@@ -61,7 +61,7 @@ const FavoritesPage = () => {
                   </p>
                   <Button
                     className="w-full gap-2"
-                    onClick={() => addItem({ ...item, quantity: 1 })}
+                    onClick={() => addItem({ id: item.id, name: item.name, price: item.price, image: item.image, sku: item.id })}
                   >
                     <ShoppingCart className="h-4 w-4" />
                     Agregar al Carrito
