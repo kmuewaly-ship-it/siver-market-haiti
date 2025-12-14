@@ -9,6 +9,7 @@ import { UserRole } from "@/types/auth";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 
 const AccountPage = () => {
+  // Main account page component
   const { user, logout, role } = useAuth();
 
   if (!user) {
