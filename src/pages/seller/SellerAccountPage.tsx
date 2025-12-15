@@ -100,8 +100,6 @@ const SellerAccountPage = () => {
         
         toast({ title: "Tienda creada", description: "Tu tienda ha sido inicializada correctamente." });
         queryClient.invalidateQueries({ queryKey: ["store"] });
-        // Force reload to ensure everything is fresh
-        window.location.reload();
     } catch (e) {
         console.error(e);
         toast({ title: "Error", description: "No se pudo crear la tienda", variant: "destructive" });
