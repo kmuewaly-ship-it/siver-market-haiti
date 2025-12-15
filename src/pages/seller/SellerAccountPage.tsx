@@ -142,13 +142,6 @@ const SellerAccountPage = () => {
                             </div>
 
                             <div className="flex gap-3">
-                                <Button
-                                    onClick={() => navigate("/seller/profile")}
-                                    className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm"
-                                >
-                                    <Edit className="h-4 w-4 mr-2" />
-                                    Editar Perfil
-                                </Button>
                                 {store?.id ? (
                                 <Button
                                     onClick={handleViewStore}
