@@ -33,15 +33,46 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const bannerInputRef = useRef<HTMLInputElement>(null);
 
+  // Max file sizes: 2MB for logo, 5MB for banner
+  const MAX_LOGO_SIZE = 2 * 1024 * 1024;
+  const MAX_BANNER_SIZE = 5 * 1024 * 1024;
+  const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+
+  const validateFile = (file: File, type: "logo" | "banner"): string | null => {
+    const maxSize = type === "logo" ? MAX_LOGO_SIZE : MAX_BANNER_SIZE;
+    const maxSizeMB = type === "logo" ? "2MB" : "5MB";
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return "Formato no válido. Usa JPG, PNG, WebP o GIF.";
+    }
+
+    if (file.size > maxSize) {
+      return `El archivo es muy grande. Máximo ${maxSizeMB}.`;
+    }
+
+    return null;
+  };
+
   const handleImageUpload = async (
     file: File,
     type: "logo" | "banner"
   ): Promise<string | null> => {
+    // Validate file before upload
+    const validationError = validateFile(file, type);
+    if (validationError) {
+      toast({
+        title: "Archivo no válido",
+        description: validationError,
+        variant: "destructive",
+      });
+      return null;
+    }
+
     const setUploading = type === "logo" ? setIsUploadingLogo : setIsUploadingBanner;
     setUploading(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
+      const fileExt = file.name.split(".").pop()?.toLowerCase();
       const fileName = `${store?.id}/${type}-${Date.now()}.${fileExt}`;
 
       const { error: uploadError } = await supabase.storage
