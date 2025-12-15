@@ -14,7 +14,7 @@ import { UserRole } from "@/types/auth";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 
 const AccountPage = () => {
-  const { user, logout, role } = useAuth();
+  const { user, signOut, role } = useAuth();
 
   if (!user) {
     return (
@@ -171,7 +171,7 @@ const AccountPage = () => {
                     </button>
 
                     <button 
-                        onClick={logout}
+                        onClick={signOut}
                         className="flex flex-col items-start p-6 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-red-100 transition-all duration-300 group text-left md:col-span-2 lg:col-span-3 bg-gradient-to-r hover:from-red-50 hover:to-white"
                     >
                         <div className="flex items-center gap-4 w-full">

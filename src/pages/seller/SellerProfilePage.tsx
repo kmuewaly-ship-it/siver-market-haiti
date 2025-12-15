@@ -43,16 +43,10 @@ const SellerProfilePage = () => {
                     <div className="relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full blur opacity-30"></div>
                         <Avatar className="h-32 w-32 border-4 border-white shadow-2xl relative">
-                            <AvatarImage src={user?.avatar_url} className="object-cover" />
                             <AvatarFallback className="text-4xl font-bold bg-white text-[#071d7f]">
                                 {user?.name?.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
                         </Avatar>
-                        {user?.email_verified && (
-                            <div className="absolute bottom-2 right-2 h-6 w-6 bg-blue-500 border-4 border-white rounded-full flex items-center justify-center" title="Verificado">
-                                <CheckCircle className="h-3 w-3 text-white" />
-                            </div>
-                        )}
                     </div>
                     
                     <div className="mb-2 text-white flex-1">
@@ -90,9 +84,9 @@ const SellerProfilePage = () => {
                         </CardHeader>
                         <CardContent className="pt-6 space-y-6">
                             <div className="flex items-center justify-between">
-                                <span className="text-sm text-gray-500 font-medium">Verificación</span>
-                                <Badge className={user?.email_verified ? "bg-green-500 hover:bg-green-600" : "bg-yellow-500 hover:bg-yellow-600"}>
-                                    {user?.email_verified ? "Verificado" : "Pendiente"}
+                                <span className="text-sm text-gray-500 font-medium">Estado</span>
+                                <Badge className="bg-green-500 hover:bg-green-600">
+                                    Activo
                                 </Badge>
                             </div>
                             

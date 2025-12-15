@@ -21,7 +21,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const SellerAccountPage = () => {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const { data: store, isLoading } = useStoreByOwner(user?.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -320,7 +320,7 @@ const SellerAccountPage = () => {
 
                         {/* Logout Card */}
                         <button
-                            onClick={logout}
+                            onClick={signOut}
                             className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-red-100 transition-all duration-300 group text-left bg-gradient-to-r hover:from-red-50 hover:to-white"
                         >
                             <div className="flex flex-col items-start w-full">

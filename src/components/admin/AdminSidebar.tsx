@@ -13,7 +13,9 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
+import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   Sidebar,
   SidebarContent,
@@ -43,6 +45,7 @@ const settingsItems = [
 
 export function AdminSidebar() {
   const { state, toggleSidebar } = useSidebar();
+  const { signOut, user } = useAuth();
   const isCollapsed = state === "collapsed";
 
   return (
@@ -143,10 +146,33 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 border-t border-border">
+        {!isCollapsed && user && (
+          <div className="flex items-center gap-3 mb-3 px-2">
+            <Avatar className="h-9 w-9 border-2 border-primary/20">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {user.name?.substring(0, 2).toUpperCase() || "AD"}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-sm font-medium text-foreground truncate">{user.name || "Admin"}</span>
+              <span className="text-xs text-muted-foreground truncate">{user.email}</span>
+            </div>
+          </div>
+        )}
+        {isCollapsed && user && (
+          <div className="flex justify-center mb-3">
+            <Avatar className="h-9 w-9 border-2 border-primary/20">
+              <AvatarFallback className="bg-primary/10 text-primary text-sm font-semibold">
+                {user.name?.substring(0, 2).toUpperCase() || "AD"}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        )}
         <Button 
           variant="ghost" 
           className="w-full justify-start gap-3 text-muted-foreground hover:text-destructive"
+          onClick={signOut}
         >
           <LogOut className="h-5 w-5" />
           {!isCollapsed && <span>Cerrar Sesión</span>}
