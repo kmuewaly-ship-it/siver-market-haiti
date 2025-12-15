@@ -1,11 +1,12 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Loader2, Upload, X, Store, Image } from "lucide-react";
+import { Edit, Loader2, Upload, X, Store, Image, CheckCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -24,6 +25,8 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [isUploadingBanner, setIsUploadingBanner] = useState(false);
+  const [logoProgress, setLogoProgress] = useState(0);
+  const [bannerProgress, setBannerProgress] = useState(0);
   const [name, setName] = useState(store?.name || "");
   const [description, setDescription] = useState(store?.description || "");
   const [logo, setLogo] = useState(store?.logo || "");
@@ -69,7 +72,21 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
     }
 
     const setUploading = type === "logo" ? setIsUploadingLogo : setIsUploadingBanner;
+    const setProgress = type === "logo" ? setLogoProgress : setBannerProgress;
+    
     setUploading(true);
+    setProgress(0);
+
+    // Simulate progress since Supabase doesn't provide native progress events
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(progressInterval);
+          return 90;
+        }
+        return prev + Math.random() * 15;
+      });
+    }, 150);
 
     try {
       const fileExt = file.name.split(".").pop()?.toLowerCase();
@@ -85,17 +102,27 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
         .from("product-images")
         .getPublicUrl(fileName);
 
+      clearInterval(progressInterval);
+      setProgress(100);
+      
+      // Keep 100% visible briefly before resetting
+      setTimeout(() => {
+        setUploading(false);
+        setProgress(0);
+      }, 500);
+
       return urlData.publicUrl;
     } catch (error) {
+      clearInterval(progressInterval);
       console.error(`Error uploading ${type}:`, error);
       toast({
         title: "Error al subir imagen",
         description: `No se pudo subir la imagen de ${type === "logo" ? "perfil" : "portada"}.`,
         variant: "destructive",
       });
-      return null;
-    } finally {
       setUploading(false);
+      setProgress(0);
+      return null;
     }
   };
 
@@ -227,8 +254,16 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
                   </div>
                 )}
                 {isUploadingLogo && (
-                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-2 p-2">
+                    {logoProgress < 100 ? (
+                      <>
+                        <Loader2 className="h-5 w-5 animate-spin text-blue-600" />
+                        <Progress value={logoProgress} className="w-16 h-1" />
+                        <span className="text-xs text-gray-500">{Math.round(logoProgress)}%</span>
+                      </>
+                    ) : (
+                      <CheckCircle className="h-6 w-6 text-green-500" />
+                    )}
                   </div>
                 )}
               </div>
@@ -248,10 +283,10 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
                   disabled={isUploadingLogo}
                 >
                   <Upload className="h-4 w-4 mr-2" />
-                  Subir Logo
+                  {isUploadingLogo ? "Subiendo..." : "Subir Logo"}
                 </Button>
                 <p className="text-xs text-gray-500 mt-2">
-                  Recomendado: 200x200px, formato JPG o PNG
+                  Máx. 2MB · JPG, PNG, WebP
                 </p>
               </div>
             </div>
@@ -282,8 +317,16 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
                 </div>
               )}
               {isUploadingBanner && (
-                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                <div className="absolute inset-0 bg-white/90 flex flex-col items-center justify-center gap-2">
+                  {bannerProgress < 100 ? (
+                    <>
+                      <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                      <Progress value={bannerProgress} className="w-32 h-2" />
+                      <span className="text-sm text-gray-600">{Math.round(bannerProgress)}%</span>
+                    </>
+                  ) : (
+                    <CheckCircle className="h-8 w-8 text-green-500" />
+                  )}
                 </div>
               )}
             </div>
@@ -303,10 +346,10 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
                 disabled={isUploadingBanner}
               >
                 <Upload className="h-4 w-4 mr-2" />
-                Subir Portada
+                {isUploadingBanner ? "Subiendo..." : "Subir Portada"}
               </Button>
               <p className="text-xs text-gray-500">
-                Recomendado: 1200x400px
+                Máx. 5MB · 1200x400px
               </p>
             </div>
           </div>
