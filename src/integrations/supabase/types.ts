@@ -664,14 +664,18 @@ export type Database = {
           country: string | null
           created_at: string | null
           description: string | null
+          facebook: string | null
           id: string
+          instagram: string | null
           is_active: boolean | null
           logo: string | null
           metadata: Json | null
           name: string
           owner_user_id: string
           slug: string | null
+          tiktok: string | null
           updated_at: string | null
+          whatsapp: string | null
         }
         Insert: {
           banner?: string | null
@@ -679,14 +683,18 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           description?: string | null
+          facebook?: string | null
           id?: string
+          instagram?: string | null
           is_active?: boolean | null
           logo?: string | null
           metadata?: Json | null
           name: string
           owner_user_id: string
           slug?: string | null
+          tiktok?: string | null
           updated_at?: string | null
+          whatsapp?: string | null
         }
         Update: {
           banner?: string | null
@@ -694,14 +702,18 @@ export type Database = {
           country?: string | null
           created_at?: string | null
           description?: string | null
+          facebook?: string | null
           id?: string
+          instagram?: string | null
           is_active?: boolean | null
           logo?: string | null
           metadata?: Json | null
           name?: string
           owner_user_id?: string
           slug?: string | null
+          tiktok?: string | null
           updated_at?: string | null
+          whatsapp?: string | null
         }
         Relationships: [
           {

@@ -98,11 +98,18 @@ const StoreProfilePage = () => {
     followers: 342,
     productsCount: productsData?.total || 0,
     joinDate: new Date(storeData.created_at).toLocaleDateString(),
-    location: COUNTRIES_MAP[storeData.metadata?.country] || "Colombia",
+    location: storeData.city && storeData.country 
+      ? `${storeData.city}, ${storeData.country}` 
+      : storeData.country || COUNTRIES_MAP[storeData.metadata?.country] || "Haití",
     responseTime: "Usually within 24h",
     categories: ["Ropa", "Accesorios", "Tecnología"], // Mock categories for now
     badges: storeData.is_active ? ["Verificado"] : [],
-    social: storeData.metadata?.social || {}
+    social: {
+      instagram: storeData.instagram,
+      facebook: storeData.facebook,
+      whatsapp: storeData.whatsapp,
+      tiktok: storeData.tiktok,
+    }
   };
 
   // Generate approx sales for last 24h (Mock logic for demo)

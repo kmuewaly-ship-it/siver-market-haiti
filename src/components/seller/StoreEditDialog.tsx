@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Loader2, Upload, X, Store, Image, CheckCircle, MapPin } from "lucide-react";
+import { Edit, Loader2, Upload, X, Store, Image, CheckCircle, MapPin, Instagram, Phone } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -47,6 +47,10 @@ interface StoreEditDialogProps {
     banner: string | null;
     country: string | null;
     city: string | null;
+    instagram: string | null;
+    facebook: string | null;
+    whatsapp: string | null;
+    tiktok: string | null;
   } | null;
 }
 
@@ -61,8 +65,12 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
   const [description, setDescription] = useState(store?.description || "");
   const [logo, setLogo] = useState(store?.logo || "");
   const [banner, setBanner] = useState(store?.banner || "");
-  const [country, setCountry] = useState(store?.country || "Haiti");
+  const [country, setCountry] = useState(store?.country || "Haití");
   const [city, setCity] = useState(store?.city || "");
+  const [instagram, setInstagram] = useState(store?.instagram || "");
+  const [facebook, setFacebook] = useState(store?.facebook || "");
+  const [whatsapp, setWhatsapp] = useState(store?.whatsapp || "");
+  const [tiktok, setTiktok] = useState(store?.tiktok || "");
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
@@ -188,6 +196,10 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
           banner,
           country,
           city,
+          instagram,
+          facebook,
+          whatsapp,
+          tiktok,
           updated_at: new Date().toISOString()
         })
         .eq("id", store.id);
@@ -448,6 +460,68 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
                 placeholder="Ej: Port-au-Prince"
               />
             </div>
+          </div>
+
+          {/* Social Media Fields */}
+          <div className="space-y-4">
+            <Label className="text-base font-semibold text-gray-700">Redes Sociales</Label>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="instagram" className="flex items-center gap-2 text-sm">
+                  <Instagram className="h-4 w-4 text-pink-500" />
+                  Instagram
+                </Label>
+                <Input
+                  id="instagram"
+                  value={instagram}
+                  onChange={(e) => setInstagram(e.target.value)}
+                  placeholder="@tu_tienda"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="facebook" className="flex items-center gap-2 text-sm">
+                  <svg className="h-4 w-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
+                  </svg>
+                  Facebook
+                </Label>
+                <Input
+                  id="facebook"
+                  value={facebook}
+                  onChange={(e) => setFacebook(e.target.value)}
+                  placeholder="facebook.com/tu_tienda"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="whatsapp" className="flex items-center gap-2 text-sm">
+                  <Phone className="h-4 w-4 text-green-500" />
+                  WhatsApp
+                </Label>
+                <Input
+                  id="whatsapp"
+                  value={whatsapp}
+                  onChange={(e) => setWhatsapp(e.target.value)}
+                  placeholder="+509 1234 5678"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tiktok" className="flex items-center gap-2 text-sm">
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5 20.1a6.34 6.34 0 0 0 10.86-4.43v-7a8.16 8.16 0 0 0 4.77 1.52v-3.4a4.85 4.85 0 0 1-1-.1z"/>
+                  </svg>
+                  TikTok
+                </Label>
+                <Input
+                  id="tiktok"
+                  value={tiktok}
+                  onChange={(e) => setTiktok(e.target.value)}
+                  placeholder="@tu_tienda"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">
+              Agrega tus redes sociales para que tus clientes puedan seguirte.
+            </p>
           </div>
         </div>
         <div className="flex justify-end gap-3">

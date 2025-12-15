@@ -18,6 +18,10 @@ export interface StoreProfile {
   metadata: any;
   country: string | null;
   city: string | null;
+  instagram: string | null;
+  facebook: string | null;
+  whatsapp: string | null;
+  tiktok: string | null;
 }
 
 export const useStore = (storeId: string | undefined) => {
