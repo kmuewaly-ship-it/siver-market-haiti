@@ -5,10 +5,38 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Loader2, Upload, X, Store, Image, CheckCircle } from "lucide-react";
+import { Edit, Loader2, Upload, X, Store, Image, CheckCircle, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
+
+// Lista de países predefinidos para el Caribe y Latinoamérica
+const COUNTRIES = [
+  { code: "HT", name: "Haití", flag: "🇭🇹" },
+  { code: "DO", name: "República Dominicana", flag: "🇩🇴" },
+  { code: "US", name: "Estados Unidos", flag: "🇺🇸" },
+  { code: "PR", name: "Puerto Rico", flag: "🇵🇷" },
+  { code: "CU", name: "Cuba", flag: "🇨🇺" },
+  { code: "JM", name: "Jamaica", flag: "🇯🇲" },
+  { code: "MX", name: "México", flag: "🇲🇽" },
+  { code: "CO", name: "Colombia", flag: "🇨🇴" },
+  { code: "VE", name: "Venezuela", flag: "🇻🇪" },
+  { code: "PA", name: "Panamá", flag: "🇵🇦" },
+  { code: "CR", name: "Costa Rica", flag: "🇨🇷" },
+  { code: "GT", name: "Guatemala", flag: "🇬🇹" },
+  { code: "HN", name: "Honduras", flag: "🇭🇳" },
+  { code: "SV", name: "El Salvador", flag: "🇸🇻" },
+  { code: "NI", name: "Nicaragua", flag: "🇳🇮" },
+  { code: "EC", name: "Ecuador", flag: "🇪🇨" },
+  { code: "PE", name: "Perú", flag: "🇵🇪" },
+  { code: "CL", name: "Chile", flag: "🇨🇱" },
+  { code: "AR", name: "Argentina", flag: "🇦🇷" },
+  { code: "BR", name: "Brasil", flag: "🇧🇷" },
+  { code: "ES", name: "España", flag: "🇪🇸" },
+  { code: "FR", name: "Francia", flag: "🇫🇷" },
+  { code: "CA", name: "Canadá", flag: "🇨🇦" },
+] as const;
 
 interface StoreEditDialogProps {
   store: {
@@ -391,13 +419,25 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
           {/* Location fields */}
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-2">
-              <Label htmlFor="country">País</Label>
-              <Input
-                id="country"
-                value={country}
-                onChange={(e) => setCountry(e.target.value)}
-                placeholder="Ej: Haiti"
-              />
+              <Label htmlFor="country" className="flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                País
+              </Label>
+              <Select value={country} onValueChange={setCountry}>
+                <SelectTrigger className="w-full bg-white">
+                  <SelectValue placeholder="Selecciona un país" />
+                </SelectTrigger>
+                <SelectContent className="bg-white z-50 max-h-[300px]">
+                  {COUNTRIES.map((c) => (
+                    <SelectItem key={c.code} value={c.name} className="cursor-pointer">
+                      <span className="flex items-center gap-2">
+                        <span>{c.flag}</span>
+                        <span>{c.name}</span>
+                      </span>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             <div className="space-y-2">
               <Label htmlFor="city">Ciudad</Label>
