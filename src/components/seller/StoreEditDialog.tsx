@@ -129,10 +129,46 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
             Editar
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-[800px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-[#071d7f]">Editar Información de la Tienda</DialogTitle>
         </DialogHeader>
+        
+        {/* Preview Section */}
+        <div className="bg-gray-100 rounded-lg p-4 mb-4">
+          <p className="text-sm font-medium text-gray-600 mb-3">Vista Previa</p>
+          <div className="bg-white rounded-lg overflow-hidden shadow-sm">
+            {/* Mini Banner Preview */}
+            <div className="relative h-20 bg-gradient-to-r from-blue-900 to-blue-600">
+              {banner && (
+                <img src={banner} alt="Banner preview" className="w-full h-full object-cover" />
+              )}
+            </div>
+            {/* Mini Profile Card Preview */}
+            <div className="px-4 pb-4 -mt-6">
+              <div className="flex items-end gap-3">
+                <div className="w-14 h-14 rounded-lg border-2 border-white shadow-md bg-white overflow-hidden flex items-center justify-center">
+                  {logo ? (
+                    <img src={logo} alt="Logo preview" className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-lg font-bold text-gray-300">
+                      {name.substring(0, 2).toUpperCase() || "TI"}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0 pb-1">
+                  <h3 className="font-bold text-gray-900 truncate text-sm">
+                    {name || "Nombre de la tienda"}
+                  </h3>
+                  <p className="text-xs text-gray-500 line-clamp-1">
+                    {description || "Descripción de la tienda..."}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <div className="grid gap-6 py-4">
           {/* Logo Upload */}
           <div className="space-y-3">
