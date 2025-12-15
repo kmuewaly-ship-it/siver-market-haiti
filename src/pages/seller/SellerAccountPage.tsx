@@ -8,11 +8,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  User, Store, Mail, Calendar, Shield, LogOut, 
-  Settings, CreditCard, Bell, Globe, Edit, MapPin, Phone
+import {
+  User, Store, Mail, Calendar, Shield, LogOut,
+  Settings, CreditCard, Bell, Globe, Edit, MapPin, Phone, Loader2
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,6 +24,14 @@ const SellerAccountPage = () => {
   const { user, logout } = useAuth();
   const { data: store, isLoading } = useStoreByOwner(user?.id);
   const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [isCreatingStore, setIsCreatingStore] = useState(false);
+
+  useEffect(() => {
+    console.log("SellerAccountPage - User:", user);
+    console.log("SellerAccountPage - Store:", store);
+    console.log("SellerAccountPage - IsLoading:", isLoading);
+  }, [user, store, isLoading]);
 
   const handleViewStore = () => {
     console.log("Store data:", store);
@@ -32,6 +43,36 @@ const SellerAccountPage = () => {
         description: "No se encontró la información de la tienda. Por favor contacta a soporte.",
         variant: "destructive",
       });
+    }
+  };
+
+  const handleCreateStore = async () => {
+    if (!user) return;
+    setIsCreatingStore(true);
+    try {
+        const slug = (user.name || "tienda")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/(^-|-$)/g, "") + "-" + Math.floor(Math.random() * 1000);
+
+        const { error } = await supabase.from("stores").insert({
+            owner_user_id: user.id,
+            name: user.name || "Mi Tienda",
+            slug: slug,
+            is_active: true
+        });
+        
+        if (error) throw error;
+        
+        toast({ title: "Tienda creada", description: "Tu tienda ha sido inicializada correctamente." });
+        queryClient.invalidateQueries({ queryKey: ["store"] });
+        // Force reload to ensure everything is fresh
+        window.location.reload();
+    } catch (e) {
+        console.error(e);
+        toast({ title: "Error", description: "No se pudo crear la tienda", variant: "destructive" });
+    } finally {
+        setIsCreatingStore(false);
     }
   };
 
@@ -63,7 +104,7 @@ const SellerAccountPage = () => {
             {/* Decorative circles */}
             <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-72 h-72 bg-blue-400/10 rounded-full blur-2xl" />
-
+            
             <div className="container mx-auto px-6 h-full flex items-end pb-8 relative z-10">
                 <div className="flex flex-col md:flex-row md:items-end gap-6 w-full">
                     <div className="relative">
@@ -76,7 +117,7 @@ const SellerAccountPage = () => {
                         </Avatar>
                         <div className="absolute bottom-2 right-2 h-6 w-6 bg-green-500 border-4 border-white rounded-full" title="Online"></div>
                     </div>
-                    
+
                     <div className="mb-2 text-white flex-1">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
@@ -97,21 +138,32 @@ const SellerAccountPage = () => {
                                     </span>
                                 </p>
                             </div>
-                            
+
                             <div className="flex gap-3">
-                                <Button 
+                                <Button
                                     onClick={() => navigate("/seller/profile")}
                                     className="bg-white/10 hover:bg-white/20 text-white border-white/20 backdrop-blur-sm"
                                 >
                                     <Edit className="h-4 w-4 mr-2" />
                                     Editar Perfil
                                 </Button>
-                                <Button 
+                                {store?.id ? (
+                                <Button
                                     onClick={handleViewStore}
                                     className="bg-[#94111f] hover:bg-[#7a0e19] text-white shadow-lg shadow-red-900/20 border-none"
                                 >
                                     Ver Tienda
                                 </Button>
+                                ) : (
+                                <Button
+                                    onClick={handleCreateStore}
+                                    disabled={isCreatingStore}
+                                    className="bg-green-600 hover:bg-green-700 text-white shadow-lg border-none"
+                                >
+                                    {isCreatingStore ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
+                                    Activar Tienda
+                                </Button>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -121,7 +173,7 @@ const SellerAccountPage = () => {
 
         <div className="container mx-auto px-6 mt-8">
           <div className="grid gap-8 md:grid-cols-12">
-            
+
             {/* Left Column: User Profile (Sticky) */}
             <div className="md:col-span-4 lg:col-span-3 space-y-6">
                 <Card className="shadow-lg border-none overflow-hidden sticky top-28 group hover:shadow-xl transition-all duration-300">
@@ -133,7 +185,7 @@ const SellerAccountPage = () => {
                         </AvatarFallback>
                     </Avatar>
                   </div>
-                  
+
                   <CardContent className="pt-4 text-center space-y-6 pb-8">
                     <div>
                         <h3 className="font-bold text-xl text-gray-900">{user?.name || "Usuario"}</h3>
@@ -142,9 +194,9 @@ const SellerAccountPage = () => {
                             {user?.role || "Vendedor"}
                         </Badge>
                     </div>
-                    
+
                     <Separator className="bg-gray-100" />
-                    
+
                     <div className="space-y-4 text-left">
                         <div className="flex items-center gap-3 text-sm group/item p-2 rounded-lg hover:bg-gray-50 transition-colors">
                             <div className="p-2 bg-blue-50 text-[#071d7f] rounded-full">
@@ -173,7 +225,7 @@ const SellerAccountPage = () => {
 
             {/* Right Column: Store Details & Settings */}
             <div className="md:col-span-8 lg:col-span-9 space-y-8">
-                
+
                 {/* Store Information Card */}
                 <Card className="shadow-lg border-none overflow-hidden hover:shadow-xl transition-all duration-300">
                     <CardHeader className="border-b bg-white px-8 py-6">
@@ -203,7 +255,7 @@ const SellerAccountPage = () => {
                                         Modificable una vez al año
                                     </p>
                                 </div>
-                                
+
                                 <div className="space-y-2">
                                     <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Estado Operativo</label>
                                     <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg border border-gray-100">
@@ -232,7 +284,7 @@ const SellerAccountPage = () => {
                         Panel de Control
                     </h3>
                     <div className="grid gap-4 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                        
+
                         {/* Action Card 1 */}
                         <button className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left">
                             <div className="p-2 rounded-xl bg-blue-50 text-[#071d7f] group-hover:bg-[#071d7f] group-hover:text-white transition-colors mb-3 shadow-sm">
@@ -267,7 +319,7 @@ const SellerAccountPage = () => {
                         </button>
 
                         {/* Logout Card */}
-                        <button 
+                        <button
                             onClick={logout}
                             className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-red-100 transition-all duration-300 group text-left bg-gradient-to-r hover:from-red-50 hover:to-white"
                         >

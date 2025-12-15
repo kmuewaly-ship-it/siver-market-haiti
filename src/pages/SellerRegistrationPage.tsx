@@ -1,4 +1,4 @@
-import { Link, useNavigate } from "react-router-dom";
+﻿import { Link, useNavigate } from "react-router-dom";
 import { ArrowRight, CheckCircle, Users, Shield, TrendingUp, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +8,7 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const sellerRegistrationSchema = z.object({
-  businessName: z.string().min(2, "El nombre del negocio debe tener al menos 2 caracteres").max(100),
+  businessName: z.string().min(2, "El nombre del negocio debe tener al menos 2 caracteres").max(100),     
   email: z.string().email("Email inválido").max(255),
   phone: z.string().min(8, "Teléfono debe tener al menos 8 dígitos").max(20),
   country: z.string().min(1, "Selecciona un país"),
@@ -96,7 +96,25 @@ const SellerRegistrationPage = () => {
         return;
       }
 
-      // 3. Assign seller role
+      // 3. Create store record (NEW)
+      const slug = formData.businessName
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/(^-|-$)/g, "") + "-" + Math.floor(Math.random() * 1000);
+
+      const { error: storeError } = await supabase.from("stores").insert({
+        owner_user_id: authData.user.id,
+        name: formData.businessName,
+        slug: slug,
+        is_active: true,
+      });
+
+      if (storeError) {
+        console.error("Store creation error:", storeError);
+        // Don't block registration if store creation fails, but log it
+      }
+
+      // 4. Assign seller role
       const { error: roleError } = await supabase.from("user_roles").insert({
         user_id: authData.user.id,
         role: "seller",
@@ -168,7 +186,7 @@ const SellerRegistrationPage = () => {
           {benefits.map((benefit, index) => (
             <div
               key={index}
-              className="bg-white rounded-lg p-8 shadow-md hover:shadow-lg transition text-center"
+              className="bg-white rounded-lg p-8 shadow-md hover:shadow-lg transition text-center"        
             >
               <div className="flex justify-center mb-4 text-indigo-600">
                 {benefit.icon}
@@ -184,7 +202,7 @@ const SellerRegistrationPage = () => {
           {/* Left side - Value prop */}
           <div className="flex flex-col justify-center">
             <h2 className="text-3xl font-bold mb-6">¿Por qué unirse a SIVER?</h2>
-            
+
             <ul className="space-y-4">
               {[
                 "Acceso a múltiples mayoristas de la región",
@@ -205,7 +223,7 @@ const SellerRegistrationPage = () => {
           {/* Right side - Form */}
           <div className="bg-white rounded-lg shadow-lg p-8">
             <h3 className="text-2xl font-bold mb-6">Solicitar acceso</h3>
-            
+
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
