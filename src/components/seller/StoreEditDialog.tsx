@@ -1,12 +1,11 @@
-﻿import { useState } from "react";
+import { useState, useRef } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Edit, Loader2, Facebook, Instagram, Phone, Video, Globe } from "lucide-react";
+import { Edit, Loader2, Upload, X, Store, Image } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -17,57 +16,86 @@ interface StoreEditDialogProps {
     description: string | null;
     logo: string | null;
     banner: string | null;
-    metadata: any;
   } | null;
 }
-
-const COUNTRIES = [
-  { code: "CO", name: "Colombia", currency: "COP" },
-  { code: "MX", name: "México", currency: "MXN" },
-  { code: "AR", name: "Argentina", currency: "ARS" },
-  { code: "CL", name: "Chile", currency: "CLP" },
-  { code: "PE", name: "Perú", currency: "PEN" },
-  { code: "US", name: "Estados Unidos", currency: "USD" },
-  { code: "ES", name: "España", currency: "EUR" },
-  { code: "OT", name: "Otro", currency: "USD" }
-];
 
 export function StoreEditDialog({ store }: StoreEditDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isUploadingBanner, setIsUploadingBanner] = useState(false);
   const [name, setName] = useState(store?.name || "");
   const [description, setDescription] = useState(store?.description || "");
-  const [country, setCountry] = useState(store?.metadata?.country || "CO");
-
-  // Social Media State
-  const [facebook, setFacebook] = useState(store?.metadata?.social?.facebook || "");
-  const [instagram, setInstagram] = useState(store?.metadata?.social?.instagram || "");
-  const [whatsapp, setWhatsapp] = useState(store?.metadata?.social?.whatsapp || "");
-  const [tiktok, setTiktok] = useState(store?.metadata?.social?.tiktok || "");
-
+  const [logo, setLogo] = useState(store?.logo || "");
+  const [banner, setBanner] = useState(store?.banner || "");
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const bannerInputRef = useRef<HTMLInputElement>(null);
+
+  const handleImageUpload = async (
+    file: File,
+    type: "logo" | "banner"
+  ): Promise<string | null> => {
+    const setUploading = type === "logo" ? setIsUploadingLogo : setIsUploadingBanner;
+    setUploading(true);
+
+    try {
+      const fileExt = file.name.split(".").pop();
+      const fileName = `${store?.id}/${type}-${Date.now()}.${fileExt}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("product-images")
+        .upload(fileName, file, { upsert: true });
+
+      if (uploadError) throw uploadError;
+
+      const { data: urlData } = supabase.storage
+        .from("product-images")
+        .getPublicUrl(fileName);
+
+      return urlData.publicUrl;
+    } catch (error) {
+      console.error(`Error uploading ${type}:`, error);
+      toast({
+        title: "Error al subir imagen",
+        description: `No se pudo subir la imagen de ${type === "logo" ? "perfil" : "portada"}.`,
+        variant: "destructive",
+      });
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = await handleImageUpload(file, "logo");
+    if (url) setLogo(url);
+  };
+
+  const handleBannerChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const url = await handleImageUpload(file, "banner");
+    if (url) setBanner(url);
+  };
 
   const handleSave = async () => {
     if (!store?.id) return;
-
+    
     setIsLoading(true);
     try {
       const { error } = await supabase
         .from("stores")
-        .update({
-          name,
+        .update({ 
+          name, 
           description,
-          metadata: {
-            ...store.metadata,
-            country,
-            social: {
-              facebook,
-              instagram,
-              whatsapp,
-              tiktok
-            }
-          },
+          logo,
+          banner,
           updated_at: new Date().toISOString()
         })
         .eq("id", store.id);
@@ -78,7 +106,7 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
         title: "Tienda actualizada",
         description: "Los detalles de tu tienda han sido guardados.",
       });
-
+      
       queryClient.invalidateQueries({ queryKey: ["store"] });
       setIsOpen(false);
     } catch (error) {
@@ -106,6 +134,116 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
           <DialogTitle className="text-xl font-bold text-[#071d7f]">Editar Información de la Tienda</DialogTitle>
         </DialogHeader>
         <div className="grid gap-6 py-4">
+          {/* Logo Upload */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Store className="h-4 w-4" />
+              Foto de Perfil (Logo)
+            </Label>
+            <div className="flex items-center gap-4">
+              <div className="relative w-24 h-24 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 overflow-hidden flex items-center justify-center group">
+                {logo ? (
+                  <>
+                    <img src={logo} alt="Logo" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => setLogo("")}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </>
+                ) : (
+                  <div className="text-gray-400 text-center">
+                    <Store className="h-8 w-8 mx-auto mb-1" />
+                    <span className="text-xs">Sin logo</span>
+                  </div>
+                )}
+                {isUploadingLogo && (
+                  <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                    <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleLogoChange}
+                  className="hidden"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => logoInputRef.current?.click()}
+                  disabled={isUploadingLogo}
+                >
+                  <Upload className="h-4 w-4 mr-2" />
+                  Subir Logo
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Recomendado: 200x200px, formato JPG o PNG
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Banner Upload */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2">
+              <Image className="h-4 w-4" />
+              Imagen de Portada (Banner)
+            </Label>
+            <div className="relative w-full h-32 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 overflow-hidden flex items-center justify-center group">
+              {banner ? (
+                <>
+                  <img src={banner} alt="Banner" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setBanner("")}
+                    className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </>
+              ) : (
+                <div className="text-gray-400 text-center">
+                  <Image className="h-8 w-8 mx-auto mb-1" />
+                  <span className="text-xs">Sin imagen de portada</span>
+                </div>
+              )}
+              {isUploadingBanner && (
+                <div className="absolute inset-0 bg-white/80 flex items-center justify-center">
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-600" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                ref={bannerInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleBannerChange}
+                className="hidden"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => bannerInputRef.current?.click()}
+                disabled={isUploadingBanner}
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Subir Portada
+              </Button>
+              <p className="text-xs text-gray-500">
+                Recomendado: 1200x400px
+              </p>
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="name" className="text-right">
               Nombre Comercial
@@ -121,28 +259,6 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
               Este es el nombre que verán tus clientes.
             </p>
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="country" className="text-right">
-              País / Ubicación
-            </Label>
-            <Select value={country} onValueChange={setCountry}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Selecciona un país" />
-              </SelectTrigger>
-              <SelectContent>
-                {COUNTRIES.map((c) => (
-                  <SelectItem key={c.code} value={c.code}>
-                    {c.name} ({c.currency})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-gray-500">
-              Ayuda a calcular las estadísticas de ventas en tu moneda local.
-            </p>
-          </div>
-
           <div className="space-y-2">
             <Label htmlFor="description" className="text-right">
               Descripción Pública
@@ -151,70 +267,20 @@ export function StoreEditDialog({ store }: StoreEditDialogProps) {
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="col-span-3 min-h-[100px]"
+              className="col-span-3 min-h-[120px]"
               placeholder="Describe tu negocio, productos y servicios..."
             />
-          </div>
-
-          <div className="space-y-4 border-t pt-4">
-            <h4 className="font-medium text-gray-900">Redes Sociales</h4>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                    <Label htmlFor="facebook" className="flex items-center gap-2">
-                        <Facebook className="h-4 w-4 text-blue-600" /> Facebook
-                    </Label>
-                    <Input
-                        id="facebook"
-                        value={facebook}
-                        onChange={(e) => setFacebook(e.target.value)}
-                        placeholder="URL de Facebook"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="instagram" className="flex items-center gap-2">
-                        <Instagram className="h-4 w-4 text-pink-600" /> Instagram
-                    </Label>
-                    <Input
-                        id="instagram"
-                        value={instagram}
-                        onChange={(e) => setInstagram(e.target.value)}
-                        placeholder="URL de Instagram"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="whatsapp" className="flex items-center gap-2">
-                        <Phone className="h-4 w-4 text-green-600" /> WhatsApp
-                    </Label>
-                    <Input
-                        id="whatsapp"
-                        value={whatsapp}
-                        onChange={(e) => setWhatsapp(e.target.value)}
-                        placeholder="Número (ej: +57...)"
-                    />
-                </div>
-
-                <div className="space-y-2">
-                    <Label htmlFor="tiktok" className="flex items-center gap-2">
-                        <Video className="h-4 w-4 text-black" /> TikTok
-                    </Label>
-                    <Input
-                        id="tiktok"
-                        value={tiktok}
-                        onChange={(e) => setTiktok(e.target.value)}
-                        placeholder="URL de TikTok"
-                    />
-                </div>
-            </div>
           </div>
         </div>
         <div className="flex justify-end gap-3">
           <Button variant="outline" onClick={() => setIsOpen(false)} disabled={isLoading}>
             Cancelar
           </Button>
-          <Button onClick={handleSave} disabled={isLoading} className="bg-[#071d7f] hover:bg-[#051560]">
+          <Button 
+            onClick={handleSave} 
+            disabled={isLoading || isUploadingLogo || isUploadingBanner} 
+            className="bg-[#071d7f] hover:bg-[#051560]"
+          >
             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Guardar Cambios
           </Button>
