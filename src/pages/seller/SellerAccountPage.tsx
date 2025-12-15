@@ -180,8 +180,11 @@ const SellerAccountPage = () => {
                   <div className="h-24 bg-gradient-to-r from-gray-100 to-gray-200" />
                   <div className="px-6 -mt-12 flex justify-center">
                      <Avatar className="h-24 w-24 border-4 border-white shadow-md">
+                        {user?.avatar_url && (
+                          <AvatarImage src={user.avatar_url} alt={user?.name || "Usuario"} />
+                        )}
                         <AvatarFallback className="bg-gray-100 text-gray-600 text-xl">
-                            <User className="h-10 w-10" />
+                            {user?.name ? user.name.substring(0, 2).toUpperCase() : <User className="h-10 w-10" />}
                         </AvatarFallback>
                     </Avatar>
                   </div>
