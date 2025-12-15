@@ -20,8 +20,6 @@ const AdminLogin = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user, role, isLoading: authLoading, signIn, signUp } = useAuth();
-  const isAdmin = role === 'admin';
-  
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
@@ -30,12 +28,18 @@ const AdminLogin = () => {
   const [isSignUp, setIsSignUp] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Redirect if already logged in and is admin
+  // Redirect if already logged in based on role
   useEffect(() => {
-    if (!authLoading && user && isAdmin) {
-      navigate("/admin");
+    if (!authLoading && user) {
+      if (role === 'admin') {
+        navigate("/admin");
+      } else if (role === 'seller') {
+        navigate("/seller/adquisicion-lotes");
+      } else {
+        navigate("/");
+      }
     }
-  }, [user, isAdmin, authLoading, navigate]);
+  }, [user, role, authLoading, navigate]);
 
   const validateForm = () => {
     try {
