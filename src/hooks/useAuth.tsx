@@ -10,6 +10,7 @@ interface AppUser {
   name: string;
   role: UserRole;
   avatar_url: string | null;
+  banner_url: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -80,6 +81,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         name: data.full_name || 'Usuario',
         role: UserRole.CLIENT, // Se obtiene de la tabla user_roles
         avatar_url: data.avatar_url || null,
+        banner_url: data.banner_url || null,
         created_at: data.created_at,
         updated_at: data.updated_at,
       };

@@ -194,7 +194,18 @@ const SellerAccountPage = () => {
             {/* Left Column: User Profile (Sticky) */}
             <div className="md:col-span-4 lg:col-span-3 space-y-6">
                 <Card className="shadow-lg border-none overflow-hidden sticky top-28 group hover:shadow-xl transition-all duration-300">
-                  <div className="h-24 bg-gradient-to-r from-gray-100 to-gray-200" />
+                  {/* User Banner */}
+                  <div className="h-24 relative overflow-hidden">
+                    {user?.banner_url ? (
+                      <img 
+                        src={user.banner_url} 
+                        alt="Banner de perfil" 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-r from-gray-100 to-gray-200" />
+                    )}
+                  </div>
                   <div className="px-6 -mt-12 flex justify-center">
                      <Avatar className="h-24 w-24 border-4 border-white shadow-md">
                         {user?.avatar_url && (
