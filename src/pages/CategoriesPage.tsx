@@ -1,123 +1,162 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { usePublicCategories, Category } from "@/hooks/useCategories";
+import { Skeleton } from "@/components/ui/skeleton";
+import MobileCategoryHeader from "@/components/categories/MobileCategoryHeader";
+import CategorySidebar from "@/components/categories/CategorySidebar";
+import SubcategoryGrid from "@/components/categories/SubcategoryGrid";
+import MobileBottomNav from "@/components/categories/MobileBottomNav";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight } from "lucide-react";
-
-interface Category {
-  id: string;
-  name: string;
-  slug: string;
-  icon?: string;
-  productCount?: number;
-}
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CategoriesPage = () => {
-  const navigate = useNavigate();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: categories = [], isLoading } = usePublicCategories();
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
+  // Auto-select first root category if none selected
   useEffect(() => {
-    // Mock data - En producción, esto vendría de Supabase
-    const mockCategories: Category[] = [
-      { id: "c1", name: "Mujer", slug: "mujer", productCount: 1245 },
-      { id: "c2", name: "Curvy", slug: "curvy", productCount: 856 },
-      { id: "c3", name: "Niños", slug: "ninos", productCount: 432 },
-      { id: "c4", name: "Hombre", slug: "hombre", productCount: 678 },
-      { id: "c5", name: "Sweaters", slug: "sweaters", productCount: 234 },
-      { id: "c6", name: "Celulares y Accs", slug: "celulares-y-accs", productCount: 892 },
-      { id: "c7", name: "Joyería y accs", slug: "joyeria-y-accs", productCount: 456 },
-      { id: "c8", name: "Tops", slug: "tops", productCount: 567 },
-      { id: "c9", name: "Hogar y Vida", slug: "hogar-y-vida", productCount: 345 },
-      { id: "c10", name: "Belleza y salud", slug: "belleza-y-salud", productCount: 678 },
-      { id: "c11", name: "Zapatos", slug: "zapatos", productCount: 789 },
-      { id: "c12", name: "Deportes y Aire Libre", slug: "deportes-y-aire-libre", productCount: 423 },
-      { id: "c13", name: "Automotriz", slug: "automotriz", productCount: 234 },
-      { id: "c14", name: "Mezclilla", slug: "mezclilla", productCount: 345 },
-      { id: "c15", name: "Ropa Interior y Pijamas", slug: "ropa-interior-y-pijamas", productCount: 456 },
-      { id: "c16", name: "Bebé y maternidad", slug: "bebe-y-maternidad", productCount: 567 },
-      { id: "c17", name: "Vestidos", slug: "vestidos", productCount: 678 },
-      { id: "c18", name: "Bottoms", slug: "bottoms", productCount: 789 },
-      { id: "c19", name: "Abrigos y Trajes", slug: "abrigos-y-trajes", productCount: 234 },
-      { id: "c20", name: "Bolsas y Equipaje", slug: "bolsas-y-equipaje", productCount: 345 },
-      { id: "c21", name: "Útiles escolares y de oficina", slug: "utiles-escolares-y-oficina", productCount: 456 },
-      { id: "c22", name: "Juguetes y juegos", slug: "juguetes-y-juegos", productCount: 567 },
-    ];
+    if (categories.length > 0 && !selectedCategory) {
+      const rootCategories = categories.filter((c) => !c.parent_id);
+      if (rootCategories.length > 0) {
+        setSelectedCategory(rootCategories[0].id);
+      }
+    }
+  }, [categories, selectedCategory]);
 
-    // Simular delay de carga
-    setTimeout(() => {
-      setCategories(mockCategories);
-      setIsLoading(false);
-    }, 500);
-  }, []);
+  // Get subcategories of selected parent
+  const getSubcategories = (parentId: string | null): Category[] => {
+    if (!parentId) return [];
+    return categories.filter((c) => c.parent_id === parentId);
+  };
 
+  // Get selected parent category object
+  const getParentCategory = (): Category | null => {
+    if (!selectedCategory) return null;
+    return categories.find((c) => c.id === selectedCategory) || null;
+  };
+
+  const subcategories = getSubcategories(selectedCategory);
+  const parentCategory = getParentCategory();
+
+  // Loading skeleton
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-white">
-        <Header />
-        <main className="container mx-auto px-4 pb-8">
-          <h1 className="text-3xl font-bold mb-8">Categorías</h1>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {Array.from({ length: 12 }).map((_, i) => (
-              <Skeleton key={i} className="h-32" />
-            ))}
-          </div>
-        </main>
-        <Footer />
+      <div className="min-h-screen bg-background">
+        {isMobile ? (
+          <>
+            <div className="h-24 bg-background border-b border-border" />
+            <div className="flex h-[calc(100vh-24px-56px)]">
+              <div className="w-32 bg-background border-r border-border p-2 space-y-2">
+                {Array.from({ length: 10 }).map((_, i) => (
+                  <Skeleton key={i} className="h-8 w-full" />
+                ))}
+              </div>
+              <div className="flex-1 p-4 grid grid-cols-3 gap-3">
+                {Array.from({ length: 9 }).map((_, i) => (
+                  <div key={i} className="flex flex-col items-center gap-2">
+                    <Skeleton className="w-16 h-16 rounded-full" />
+                    <Skeleton className="h-3 w-12" />
+                  </div>
+                ))}
+              </div>
+            </div>
+          </>
+        ) : (
+          <>
+            <Header />
+            <main className="container mx-auto px-4 py-8">
+              <div className="grid grid-cols-4 gap-4">
+                {Array.from({ length: 12 }).map((_, i) => (
+                  <Skeleton key={i} className="h-32" />
+                ))}
+              </div>
+            </main>
+            <Footer />
+          </>
+        )}
       </div>
     );
   }
 
+  // Mobile layout with sidebar
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {/* Mobile header with search and category tabs */}
+        <MobileCategoryHeader
+          categories={categories}
+          selectedCategory={selectedCategory}
+          onSelectCategory={setSelectedCategory}
+        />
+
+        {/* Main content area with sidebar + subcategories */}
+        <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 100px - 56px)" }}>
+          {/* Left sidebar with parent categories */}
+          <CategorySidebar
+            categories={categories}
+            selectedCategory={selectedCategory}
+            onSelectCategory={setSelectedCategory}
+          />
+
+          {/* Right side with subcategories grid */}
+          <SubcategoryGrid
+            subcategories={subcategories}
+            parentCategory={parentCategory}
+          />
+        </div>
+
+        {/* Bottom navigation */}
+        <MobileBottomNav />
+      </div>
+    );
+  }
+
+  // Desktop layout (keep original Header/Footer)
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <Header />
 
-      <main className="container mx-auto px-4 pb-8">
-        {/* Breadcrumb */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-600">
-            <button onClick={() => navigate("/")} className="hover:text-blue-600">Inicio</button>
-            <ChevronRight className="w-4 h-4" />
-            <span>Todas las Categorías</span>
-          </div>
-        </div>
+      <main className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold text-foreground mb-8">Categorías</h1>
+        
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
+          {categories.filter(c => !c.parent_id).map((category) => {
+            const subs = getSubcategories(category.id);
+            
+            return (
+              <div key={category.id} className="space-y-4">
+                <button
+                  onClick={() => setSelectedCategory(
+                    selectedCategory === category.id ? null : category.id
+                  )}
+                  className="w-full text-left p-4 bg-card border border-border rounded-lg hover:border-destructive transition-colors"
+                >
+                  <h3 className="font-semibold text-foreground">{category.name}</h3>
+                  {subs.length > 0 && (
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {subs.length} subcategorías
+                    </p>
+                  )}
+                </button>
 
-        {/* Título */}
-        <div className="mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-2">Todas las Categorías</h1>
-          <p className="text-gray-600">Explora nuestras {categories.length} categorías de productos</p>
-        </div>
-
-        {/* Grid de Categorías */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-          {categories.map((category) => (
-            <div
-              key={category.id}
-              onClick={() => navigate(`/categoria/${category.slug}`)}
-              className="group cursor-pointer bg-white rounded-lg overflow-hidden hover:shadow-lg transition duration-300"
-            >
-              {/* Imagen de fondo */}
-              <div className="relative h-32 bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center overflow-hidden">
-                <div className="text-6xl opacity-20 group-hover:scale-110 transition transform duration-300">
-                  {category.name.charAt(0)}
-                </div>
+                {/* Show subcategories if selected */}
+                {selectedCategory === category.id && subs.length > 0 && (
+                  <div className="grid grid-cols-2 gap-2 pl-2">
+                    {subs.map((sub) => (
+                      <a
+                        key={sub.id}
+                        href={`/categoria/${sub.slug}`}
+                        className="text-sm text-muted-foreground hover:text-destructive transition-colors"
+                      >
+                        {sub.name}
+                      </a>
+                    ))}
+                  </div>
+                )}
               </div>
-
-              {/* Contenido */}
-              <div className="p-4">
-                <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition">
-                  {category.name}
-                </h3>
-                <p className="text-sm text-gray-500 mt-1">
-                  {category.productCount?.toLocaleString() || 0} productos
-                </p>
-                <div className="mt-3 flex items-center gap-1 text-blue-600 font-medium text-sm opacity-0 group-hover:opacity-100 transition">
-                  Ver más <ChevronRight className="w-4 h-4" />
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </main>
 
