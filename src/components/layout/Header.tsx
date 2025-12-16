@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, ShoppingBag, Search, Heart, User, Mail, Camera, Loader2 } from "lucide-react";
+import { Menu, X, ShoppingBag, Search, Heart, User, Mail, Camera, Loader2, TrendingUp } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useAuth } from "@/hooks/useAuth";
@@ -155,7 +155,10 @@ const Header = () => {
           <div className="flex items-center justify-between h-10 text-xs text-gray-600">
             <div className="flex items-center gap-4">
               <span>Envío desde el extranjero</span>
-              <span></span>
+              <Link to="/tendencias" className="flex items-center gap-1 hover:text-red-500 transition-colors">
+                <TrendingUp className="w-3 h-3" />
+                <span>Tendencias</span>
+              </Link>
               <span>Devolución Gratis</span>
             </div>
             <div className="flex items-center gap-4">

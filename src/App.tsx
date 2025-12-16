@@ -23,6 +23,7 @@ import AccountPage from "./pages/AccountPage";
 import CartPage from "./pages/CartPage";
 import FavoritesPage from "./pages/FavoritesPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
+import TrendsPage from "./pages/TrendsPage";
 import LoginPage from "./pages/LoginPage";
 
 // Admin Pages
@@ -73,6 +74,7 @@ const AppContent = () => {
             <Route path="/cuenta" element={<AccountPage />} />
             <Route path="/carrito" element={<CartPage />} />
             <Route path="/favoritos" element={<FavoritesPage />} />
+            <Route path="/tendencias" element={<TrendsPage />} />
             <Route path="/busqueda" element={<SearchResultsPage />} />
             
             {/* Auth Routes */}
