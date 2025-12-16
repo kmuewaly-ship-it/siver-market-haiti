@@ -8,14 +8,23 @@ const MobileBottomNav = () => {
   const location = useLocation();
   const { role } = useAuth();
   
+  // Hide on admin and seller routes
+  const isAdminRoute = location.pathname.startsWith('/admin');
+  const isSellerRoute = location.pathname.startsWith('/seller');
+  const isLoginRoute = location.pathname === '/login';
+  
+  if (isAdminRoute || isSellerRoute || isLoginRoute) {
+    return null;
+  }
+  
   const accountLink = role === UserRole.SELLER ? "/seller/cuenta" : "/cuenta";
   
   const navItems = [
-    { href: "/", icon: Home, label: "Acheter", activeIcon: Home },
-    { href: "/categorias", icon: LayoutGrid, label: "Catégories", activeIcon: LayoutGrid },
-    { href: "/productos", icon: Sparkles, label: "Tendances", activeIcon: Sparkles, hasDot: true },
-    { href: "/carrito", icon: ShoppingBag, label: "Panier", activeIcon: ShoppingBag, badge: "99+" },
-    { href: accountLink, icon: User, label: "Moi", activeIcon: User },
+    { href: "/", icon: Home, label: "Acheter" },
+    { href: "/categorias", icon: LayoutGrid, label: "Catégories" },
+    { href: "/productos", icon: Sparkles, label: "Tendances", hasDot: true },
+    { href: "/carrito", icon: ShoppingBag, label: "Panier", badge: "99+" },
+    { href: accountLink, icon: User, label: "Moi" },
   ];
 
   return (
