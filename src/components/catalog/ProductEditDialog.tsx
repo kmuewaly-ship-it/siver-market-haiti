@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Upload, Trash2, Image as ImageIcon, Package, DollarSign, Ruler, History, X } from 'lucide-react';
+import { Loader2, Upload, Trash2, Image as ImageIcon, Package, DollarSign, Ruler, History, X, Cpu } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -20,6 +20,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '
 import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
+import EmbeddingService from '@/services/ai/embeddingService';
 
 interface ProductEditDialogProps {
   productId: string;
@@ -57,6 +58,7 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
   const { data: suppliers } = useSuppliers();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [generatingEmbedding, setGeneratingEmbedding] = useState(false);
   const [localImages, setLocalImages] = useState<string[]>([]);
   const initializedRef = useRef(false);
 
@@ -154,6 +156,28 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
     onOpenChange(false);
   };
 
+  // Generate embedding for an image URL
+  const generateAndSaveEmbedding = async (imageUrl: string) => {
+    setGeneratingEmbedding(true);
+    try {
+      console.log('Generating embedding for:', imageUrl);
+      const embedding = await EmbeddingService.generateImageEmbedding(imageUrl);
+      const embeddingString = `[${embedding.join(',')}]`;
+      
+      await supabase
+        .from('products')
+        .update({ embedding: embeddingString })
+        .eq('id', productId);
+      
+      toast({ title: 'Embedding IA generado automáticamente', description: 'El producto ahora es buscable por imagen' });
+    } catch (error) {
+      console.error('Error generating embedding:', error);
+      // Don't show error to user - embedding is optional
+    } finally {
+      setGeneratingEmbedding(false);
+    }
+  };
+
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -169,6 +193,8 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
           updates: { imagen_principal: url },
           userId: user?.id,
         });
+        // Generate embedding for new main image
+        generateAndSaveEmbedding(url);
       } else {
         setLocalImages(prev => [...prev, url]);
       }
@@ -197,6 +223,9 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
       userId: user?.id,
     });
     setLocalImages(newGallery);
+    
+    // Generate embedding for new main image
+    generateAndSaveEmbedding(url);
   };
 
   const removeFromGallery = (url: string) => {
@@ -211,6 +240,9 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
       updates: { imagen_principal: null },
       userId: user?.id,
     });
+    
+    // Also remove embedding
+    await supabase.from('products').update({ embedding: null }).eq('id', productId);
   };
 
   const handleDelete = async () => {
