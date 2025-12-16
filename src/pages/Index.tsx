@@ -5,7 +5,6 @@ import ProductCarousel from "@/components/landing/ProductCarousel";
 import ProductGrid from "@/components/landing/ProductGrid";
 import CategoryGrid from "@/components/landing/CategoryGrid";
 import { useIsMobile } from "@/hooks/use-mobile";
-import MobileBottomNav from "@/components/categories/MobileBottomNav";
 
 const Index = () => {
   const isMobile = useIsMobile();
@@ -97,8 +96,10 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <Header />
-      <main>
+      {/* Desktop header - hidden on mobile since GlobalMobileHeader handles it */}
+      {!isMobile && <Header />}
+      
+      <main className={isMobile ? "pb-14" : ""}>
         <HeroSection />
         {/* Categories grid from database */}
         <CategoryGrid />
@@ -138,8 +139,7 @@ const Index = () => {
           products={mockProducts}
         />
       </main>
-      <Footer />
-      {isMobile && <MobileBottomNav />}
+      {!isMobile && <Footer />}
     </div>
   );
 };

@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Star,
   Heart,
@@ -55,6 +56,7 @@ const ProductPage = () => {
   const { sku } = useParams<{ sku: string }>();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const isMobile = useIsMobile();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
@@ -124,23 +126,23 @@ const ProductPage = () => {
   if (isLoading || !product) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
-        <main className="container mx-auto px-4 pb-8">
+        {!isMobile && <Header />}
+        <main className={`container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Skeleton className="aspect-square" />
             <Skeleton className="h-screen" />
           </div>
         </main>
-        <Footer />
+        {!isMobile && <Footer />}
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      {!isMobile && <Header />}
 
-      <main className="container mx-auto px-4 pb-8">
+      <main className={`container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
           <button onClick={() => navigate("/")} className="hover:text-blue-600">
@@ -511,7 +513,7 @@ const ProductPage = () => {
         </div>
       </main>
 
-      <Footer />
+      {!isMobile && <Footer />}
     </div>
   );
 };

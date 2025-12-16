@@ -6,15 +6,17 @@ import { Heart, ShoppingCart, Trash2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useFavorites } from "@/hooks/useFavorites";
 import { useCart } from "@/hooks/useCart";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const FavoritesPage = () => {
   const { items, removeFavorite } = useFavorites();
   const { addItem } = useCart();
+  const isMobile = useIsMobile();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 pb-8">
+      {!isMobile && <Header />}
+      <main className={`flex-1 container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
           <Heart className="h-8 w-8 text-red-500 fill-current" />
           Mis Favoritos
@@ -72,7 +74,7 @@ const FavoritesPage = () => {
           </div>
         )}
       </main>
-      <Footer />
+      {!isMobile && <Footer />}
     </div>
   );
 };

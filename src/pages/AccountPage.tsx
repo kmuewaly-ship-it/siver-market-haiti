@@ -1,4 +1,4 @@
-﻿import Header from "@/components/layout/Header";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -12,15 +12,17 @@ import {
 import { Link } from "react-router-dom";
 import { UserRole } from "@/types/auth";
 import { SellerLayout } from "@/components/seller/SellerLayout";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const AccountPage = () => {
   const { user, signOut, role } = useAuth();
+  const isMobile = useIsMobile();
 
   if (!user) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
-        <Header />
-        <main className="flex-1 container mx-auto px-4 pb-8 flex items-center justify-center">
+        {!isMobile && <Header />}
+        <main className={`flex-1 container mx-auto px-4 flex items-center justify-center ${isMobile ? 'pb-20' : 'pb-8'}`}>
           <Card className="w-full max-w-md shadow-lg">
             <CardHeader>
               <CardTitle className="text-center text-[#071d7f]">Iniciar Sesión</CardTitle>
@@ -35,14 +37,14 @@ const AccountPage = () => {
             </CardContent>
           </Card>
         </main>
-        <Footer />
+        {!isMobile && <Footer />}
       </div>
     );
   }
 
   const Content = () => (
-    <div className="min-h-screen bg-gray-50/50 flex flex-col font-sans">
-      <Header />
+    <div className={`min-h-screen bg-gray-50/50 flex flex-col font-sans ${isMobile ? 'pb-14' : ''}`}>
+      {!isMobile && <Header />}
       
       {/* Modern Hero Section */}
       <div className="relative h-64 w-full overflow-hidden group">
@@ -190,7 +192,7 @@ const AccountPage = () => {
             </div>
         </div>
       </main>
-      <Footer />
+      {!isMobile && <Footer />}
     </div>
   );
 

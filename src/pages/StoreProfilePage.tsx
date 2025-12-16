@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useStore, useStoreProducts, useStoreSales } from "@/hooks/useStore";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Star,
   MessageCircle,
@@ -42,6 +43,7 @@ const StoreProfilePage = () => {
   const navigate = useNavigate();
   const { role } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Fetch real store data
   const { data: storeData, isLoading: isStoreLoading } = useStore(storeId);
@@ -66,12 +68,12 @@ const StoreProfilePage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
-        <main className="container mx-auto px-4 pb-8">
+        {!isMobile && <Header />}
+        <main className={`container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
           <Skeleton className="h-80 mb-8" />
           <Skeleton className="h-60 mb-8" />
         </main>
-        <Footer />
+        {!isMobile && <Footer />}
       </div>
     );
   }
@@ -79,13 +81,13 @@ const StoreProfilePage = () => {
   if (!storeData) {
     return (
       <div className="min-h-screen bg-gray-50">
-        <Header />
-        <main className="container mx-auto px-4 py-12 text-center">
+        {!isMobile && <Header />}
+        <main className={`container mx-auto px-4 py-12 text-center ${isMobile ? 'pb-20' : ''}`}>
           <h2 className="text-2xl font-bold text-gray-900">Tienda no encontrada</h2>
           <p className="text-gray-600 mt-2">No pudimos encontrar la tienda que buscas.</p>
           <Button onClick={() => navigate("/")} className="mt-4">Volver al inicio</Button>
         </main>
-        <Footer />
+        {!isMobile && <Footer />}
       </div>
     );
   }
@@ -159,9 +161,9 @@ const StoreProfilePage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      {!isMobile && <Header />}
 
-      <main className="container mx-auto px-4 pb-0">
+      <main className={`container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-0'}`}>
         {/* Banner */}
         <div className="relative h-64 md:h-80 bg-gray-200 rounded-b-lg overflow-hidden -mx-4 mb-0">
           {store.banner ? (
@@ -509,7 +511,7 @@ const StoreProfilePage = () => {
 
       </main>
 
-      <Footer />
+      {!isMobile && <Footer />}
     </div>
   );
 };

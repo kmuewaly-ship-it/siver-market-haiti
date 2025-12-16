@@ -44,6 +44,7 @@ import SellerFavoritesPage from "./pages/seller/SellerFavoritesPage";
 import { PageLoader } from "./components/ui/PageLoader";
 import { NavigationLoader } from "./components/ui/NavigationLoader";
 import MobileBottomNav from "./components/categories/MobileBottomNav";
+import GlobalMobileHeader from "./components/layout/GlobalMobileHeader";
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -56,6 +57,7 @@ const AppContent = () => {
   return (
     <>
       <NavigationLoader />
+      <GlobalMobileHeader />
       <ToastContainer toasts={toasts} onRemove={removeToast} />
       <Toaster />
       <Sonner />

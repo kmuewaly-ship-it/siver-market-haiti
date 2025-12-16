@@ -10,6 +10,7 @@ import { UserRole } from "@/types/auth";
 import { useCategoryBySlug } from "@/hooks/useQueriesCategories";
 import { useProductsByCategory } from "@/hooks/useProducts";
 import { usePublicCategories } from "@/hooks/useCategories";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type AnyProduct = Record<string, any>;
 
@@ -22,6 +23,7 @@ const CategoryProductsPage = () => {
   const { slug } = useParams<{ slug: string }>();
   const navigate = useNavigate();
   const { role } = useAuth();
+  const isMobile = useIsMobile();
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 12;
   const [filters, setFilters] = useState<FilterOptions>({ sortBy: "newest", priceRange: [0, 1000] });
@@ -89,8 +91,8 @@ const CategoryProductsPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Header />
-        <main className="container mx-auto px-4 pb-8">
+        {!isMobile && <Header />}
+        <main className={`container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
           <h1 className="text-3xl font-bold mb-8">Cargando...</h1>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {Array.from({ length: 8 }).map((_, i) => (
@@ -98,16 +100,16 @@ const CategoryProductsPage = () => {
             ))}
           </div>
         </main>
-        <Footer />
+        {!isMobile && <Footer />}
       </div>
     );
   }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <Header />
+      {!isMobile && <Header />}
 
-      <main className="container mx-auto px-4 pb-8">
+      <main className={`container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
         {/* Breadcrumb */}
         <div className="mb-6">
           <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -317,7 +319,7 @@ const CategoryProductsPage = () => {
         </div>
       </main>
 
-      <Footer />
+      {!isMobile && <Footer />}
     </div>
   );
 };

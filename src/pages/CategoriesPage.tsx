@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
 import { usePublicCategories, Category } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
-import MobileCategoryHeader from "@/components/categories/MobileCategoryHeader";
 import CategorySidebar from "@/components/categories/CategorySidebar";
 import SubcategoryGrid from "@/components/categories/SubcategoryGrid";
-
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -109,13 +107,6 @@ const CategoriesPage = () => {
   if (isMobile) {
     return (
       <div className="min-h-screen bg-white flex flex-col">
-        {/* Mobile header with search and category tabs */}
-        <MobileCategoryHeader
-          categories={categories}
-          selectedCategory={selectedRootCategory}
-          onSelectCategory={setSelectedRootCategory}
-        />
-
         {/* Main content area with sidebar + subcategories */}
         <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 100px - 56px)" }}>
           {/* Left sidebar with subcategories of selected root */}

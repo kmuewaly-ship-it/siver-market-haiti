@@ -5,14 +5,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ShoppingCart, Trash2, Plus, Minus } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, totalPrice, clearCart } = useCart();
+  const isMobile = useIsMobile();
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 pb-8">
+      {!isMobile && <Header />}
+      <main className={`flex-1 container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
         <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
           <ShoppingCart className="h-8 w-8" />
           Mi Carrito
@@ -121,7 +123,7 @@ const CartPage = () => {
           </div>
         )}
       </main>
-      <Footer />
+      {!isMobile && <Footer />}
     </div>
   );
 };
