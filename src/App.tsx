@@ -76,6 +76,7 @@ const AppContent = () => {
             <Route path="/favoritos" element={<FavoritesPage />} />
             <Route path="/tendencias" element={<TrendsPage />} />
             <Route path="/busqueda" element={<SearchResultsPage />} />
+            <Route path="/tendencias" element={<TrendsPage />} />
             
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />

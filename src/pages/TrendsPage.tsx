@@ -84,7 +84,12 @@ const TrendsPage = () => {
           ) : (
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {trendingProducts.map((product) => (
-                <ProductCard key={product.id} product={product} />
+                <ProductCard key={product.id} product={{
+                  id: product.id,
+                  name: product.nombre,
+                  price: product.precio_sugerido_venta || product.precio_mayorista,
+                  image: product.imagen_principal || '/placeholder.svg',
+                }} />
               ))}
             </div>
           )}
@@ -154,7 +159,12 @@ const TrendsPage = () => {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {newArrivals.length > 0 ? (
                 newArrivals.map((product) => (
-                  <ProductCard key={product.id} product={product} />
+                  <ProductCard key={product.id} product={{
+                    id: product.id,
+                    name: product.nombre,
+                    price: product.precio_sugerido_venta || product.precio_mayorista,
+                    image: product.imagen_principal || '/placeholder.svg',
+                  }} />
                 ))
               ) : (
                 <div className="col-span-full text-center py-12 text-gray-500">
