@@ -1,17 +1,21 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, ShoppingBag, Search, Heart, User, Mail } from "lucide-react";
+import { Menu, X, ShoppingBag, Search, Heart, User, Mail, Camera, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { searchProductsByImage } from "@/services/api/imageSearch";
+import { toast } from "sonner";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openMobileCategory, setOpenMobileCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isImageSearching, setIsImageSearching] = useState(false);
   const isMobile = useIsMobile();
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
   const navigate = useNavigate();
@@ -54,6 +58,35 @@ const Header = () => {
     categories.filter((c) => c.parent_id === parentId);
 
   const accountLink = role === UserRole.SELLER ? "/seller/cuenta" : "/cuenta";
+
+  const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImageSearching(true);
+    toast.info("Cargando modelo de IA... Esto puede tomar unos segundos la primera vez.");
+
+    try {
+      const results = await searchProductsByImage(file);
+      if (results && results.length > 0) {
+        // Store results in sessionStorage and navigate
+        sessionStorage.setItem('imageSearchResults', JSON.stringify(results));
+        navigate('/productos?source=image');
+        toast.success(`Se encontraron ${results.length} productos similares`);
+      } else {
+        toast.info("No se encontraron productos similares");
+      }
+    } catch (error) {
+      console.error("Image search error:", error);
+      toast.error("Error al buscar por imagen");
+    } finally {
+      setIsImageSearching(false);
+      // Reset input
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
+  };
 
   if (isMobile) {
     return (
@@ -147,15 +180,36 @@ const Header = () => {
 
           {/* Search Bar - Desktop */}
           <div className="hidden md:flex flex-1 mx-8 max-w-md">
-            <div className="relative w-full">
+            <div className="relative w-full flex items-center">
               <Input
                 type="text"
                 placeholder="Buscar productos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-4 pr-10 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="pl-4 pr-20 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
               />
-              <div className="absolute right-3 top-1/2 transform -translate-y-1/2">
+              <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                {/* Camera icon for image search */}
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleImageSearch}
+                />
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isImageSearching}
+                  className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                >
+                  {isImageSearching ? (
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5" />
+                  )}
+                </button>
                 <Search className="w-5 h-5 text-gray-400" />
               </div>
             </div>

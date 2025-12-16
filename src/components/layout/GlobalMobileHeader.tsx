@@ -1,11 +1,12 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff } from "lucide-react";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { searchProductsByImage } from "@/services/api/imageSearch";
 
 interface SearchResult {
   id: string;
@@ -66,8 +67,10 @@ const GlobalMobileHeader = () => {
   const [showResults, setShowResults] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  const [isImageSearching, setIsImageSearching] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
@@ -254,6 +257,33 @@ const GlobalMobileHeader = () => {
     recognition.start();
   };
 
+  const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImageSearching(true);
+    toast.info("Cargando modelo de IA... Esto puede tomar unos segundos la primera vez.");
+
+    try {
+      const results = await searchProductsByImage(file);
+      if (results && results.length > 0) {
+        sessionStorage.setItem('imageSearchResults', JSON.stringify(results));
+        navigate('/productos?source=image');
+        toast.success(`Se encontraron ${results.length} productos similares`);
+      } else {
+        toast.info("No se encontraron productos similares");
+      }
+    } catch (error) {
+      console.error("Image search error:", error);
+      toast.error("Error al buscar por imagen");
+    } finally {
+      setIsImageSearching(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <header className="bg-white sticky top-0 z-40">
       {/* Top search bar */}
@@ -282,6 +312,27 @@ const GlobalMobileHeader = () => {
                 <X className="w-4 h-4" />
               </button>
             )}
+            {/* Camera/Image search button */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="hidden"
+              onChange={handleImageSearch}
+            />
+            <button
+              type="button"
+              onClick={() => imageInputRef.current?.click()}
+              disabled={isImageSearching}
+              className="p-1 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
+            >
+              {isImageSearching ? (
+                <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
+              ) : (
+                <Camera className="w-5 h-5" strokeWidth={1.5} />
+              )}
+            </button>
             {/* Voice search button */}
             {voiceSupported && (
               <button 
