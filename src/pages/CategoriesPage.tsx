@@ -30,8 +30,8 @@ const CategoriesPage = () => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-white">
-        <Header />
-        <main className="container mx-auto px-4 pb-8 pt-20">
+        {!isMobile && <Header />}
+        <main className="container mx-auto px-4 pb-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {Array.from({ length: 12 }).map((_, i) => (
               <Skeleton key={i} className="h-32" />
@@ -46,10 +46,9 @@ const CategoriesPage = () => {
   if (isMobile) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
-        <Header />
         
         {/* Mobile Layout Container */}
-        <div className="flex flex-1 overflow-hidden pt-16 h-[calc(100vh-60px)]">
+        <div className="flex flex-1 overflow-hidden min-h-0">
             {/* Sidebar */}
             <aside className="w-[100px] flex-shrink-0 bg-gray-50 overflow-y-auto border-r border-gray-100 pb-24 scrollbar-hide">
                 {/* Special Sections */}
@@ -173,7 +172,7 @@ const CategoriesPage = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="container mx-auto px-4 pb-8 pt-24">
+      <main className="container mx-auto px-4 pb-8">
         {/* Breadcrumb */}
         <div className="mb-8">
           <div className="flex items-center gap-2 text-sm text-gray-600">
