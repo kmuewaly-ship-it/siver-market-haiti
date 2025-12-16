@@ -118,16 +118,18 @@ const CategoriesPage = () => {
 
         {/* Main content area with sidebar + subcategories */}
         <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 100px - 56px)" }}>
-          {/* Left sidebar with parent categories */}
+          {/* Left sidebar with subcategories of selected root */}
           <CategorySidebar
-            categories={[]} // Force static items for now to match image
+            categories={subcategories}
             selectedCategory={selectedSubCategory}
             onSelectCategory={setSelectedSubCategory}
           />
 
-          {/* Right side with subcategories grid */}
+          {/* Right side with sub-subcategories grid */}
           <SubcategoryGrid
-            subcategories={[]} // Force mock items in grid
+            subcategories={selectedSubCategory && selectedSubCategory !== "just-for-you" 
+              ? categories.filter(c => c.parent_id === selectedSubCategory)
+              : subcategories}
             parentCategory={parentCategory}
           />
         </div>
