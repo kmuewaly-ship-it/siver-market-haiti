@@ -4,8 +4,11 @@ import HeroSection from "@/components/landing/HeroSection";
 import ProductCarousel from "@/components/landing/ProductCarousel";
 import ProductGrid from "@/components/landing/ProductGrid";
 import CategoryGrid from "@/components/landing/CategoryGrid";
+import { useIsMobile } from "@/hooks/use-mobile";
+import MobileBottomNav from "@/components/categories/MobileBottomNav";
 
 const Index = () => {
+  const isMobile = useIsMobile();
   // Datos de ejemplo - En la práctica, estos vendrían de tu base de datos
   const mockProducts = [
     {
@@ -136,6 +139,7 @@ const Index = () => {
         />
       </main>
       <Footer />
+      {isMobile && <MobileBottomNav />}
     </div>
   );
 };

@@ -11,18 +11,30 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const CategoriesPage = () => {
   const { data: categories = [], isLoading } = usePublicCategories();
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedRootCategory, setSelectedRootCategory] = useState<string | null>(null);
+  const [selectedSubCategory, setSelectedSubCategory] = useState<string | null>(null);
   const isMobile = useIsMobile();
 
-  // Auto-select first root category if none selected
+  // Auto-select "Women" or first root category if none selected
   useEffect(() => {
-    if (categories.length > 0 && !selectedCategory) {
-      const rootCategories = categories.filter((c) => !c.parent_id);
-      if (rootCategories.length > 0) {
-        setSelectedCategory(rootCategories[0].id);
+    if (categories.length > 0 && !selectedRootCategory) {
+      // Try to find "Women" or "Mujer" first
+      const womenCategory = categories.find(c => c.name.toLowerCase().includes('women') || c.name.toLowerCase().includes('mujer'));
+      if (womenCategory) {
+        setSelectedRootCategory(womenCategory.id);
+      } else {
+        const rootCategories = categories.filter((c) => !c.parent_id);
+        if (rootCategories.length > 0) {
+          setSelectedRootCategory(rootCategories[0].id);
+        }
       }
     }
-  }, [categories, selectedCategory]);
+  }, [categories, selectedRootCategory]);
+
+  // Reset subcategory when root changes
+  useEffect(() => {
+    setSelectedSubCategory("just-for-you");
+  }, [selectedRootCategory]);
 
   // Get subcategories of selected parent
   const getSubcategories = (parentId: string | null): Category[] => {
@@ -32,11 +44,11 @@ const CategoriesPage = () => {
 
   // Get selected parent category object
   const getParentCategory = (): Category | null => {
-    if (!selectedCategory) return null;
-    return categories.find((c) => c.id === selectedCategory) || null;
+    if (!selectedRootCategory) return null;
+    return categories.find((c) => c.id === selectedRootCategory) || null;
   };
 
-  const subcategories = getSubcategories(selectedCategory);
+  const subcategories = getSubcategories(selectedRootCategory);
   const parentCategory = getParentCategory();
 
   // Loading skeleton
@@ -100,22 +112,22 @@ const CategoriesPage = () => {
         {/* Mobile header with search and category tabs */}
         <MobileCategoryHeader
           categories={categories}
-          selectedCategory={selectedCategory}
-          onSelectCategory={setSelectedCategory}
+          selectedCategory={selectedRootCategory}
+          onSelectCategory={setSelectedRootCategory}
         />
 
         {/* Main content area with sidebar + subcategories */}
         <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 100px - 56px)" }}>
           {/* Left sidebar with parent categories */}
           <CategorySidebar
-            categories={categories}
-            selectedCategory={selectedCategory}
-            onSelectCategory={setSelectedCategory}
+            categories={[]} // Force static items for now to match image
+            selectedCategory={selectedSubCategory}
+            onSelectCategory={setSelectedSubCategory}
           />
 
           {/* Right side with subcategories grid */}
           <SubcategoryGrid
-            subcategories={subcategories}
+            subcategories={[]} // Force mock items in grid
             parentCategory={parentCategory}
           />
         </div>

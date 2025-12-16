@@ -32,40 +32,45 @@ const CategorySidebar = ({
   selectedCategory, 
   onSelectCategory 
 }: CategorySidebarProps) => {
-  // Get root categories (no parent)
-  const rootCategories = categories.filter((c) => !c.parent_id);
-
-  // Use actual categories if available, otherwise use static items
-  const displayItems = rootCategories.length > 0 
-    ? rootCategories 
-    : staticItems.map((name, i) => ({ id: `static-${i}`, name, slug: name.toLowerCase().replace(/\s+/g, '-') }));
+  // If categories passed are subcategories (have parent_id), use them directly
+  // If they are root categories, filter them?
+  // Actually, let's just use the passed categories if they are not empty, otherwise static.
+  
+  const displayItems = categories.length > 0
+    ? categories
+    : staticItems.map((name, i) => ({ id: name.toLowerCase().replace(/\s+/g, '-'), name, slug: name.toLowerCase().replace(/\s+/g, '-') }));
 
   return (
-    <aside className="w-[140px] flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto">
-      {/* "Just for You" header */}
-      <div className="px-2 py-3 sticky top-0 bg-white z-10">
-        <div className="flex items-center gap-1.5">
-          <div className="w-1 h-4 bg-red-500 rounded-sm" />
-          <span className="text-sm font-semibold text-gray-900">Just for You</span>
-        </div>
-      </div>
+    <aside className="w-[100px] flex-shrink-0 bg-gray-50 overflow-y-auto pb-20 scrollbar-hide">
+      {/* "Just for You" header/item */}
+      <button
+        onClick={() => onSelectCategory("just-for-you")}
+        className={cn(
+          "w-full text-center px-2 py-4 text-[12px] leading-tight transition-colors border-l-4",
+          selectedCategory === "just-for-you"
+            ? "text-black font-bold bg-white border-black"
+            : "text-gray-600 hover:text-gray-900 border-transparent"
+        )}
+      >
+        Just for You
+      </button>
 
       {/* Category list */}
-      <nav className="pb-4">
+      <nav>
         {displayItems.map((item, index) => {
           const itemId = typeof item === 'string' ? `static-${index}` : item.id;
           const itemName = typeof item === 'string' ? item : item.name;
           const isSelected = selectedCategory === itemId;
-          
+
           return (
             <button
               key={itemId}
               onClick={() => onSelectCategory(itemId)}
               className={cn(
-                "w-full text-left px-3 py-2.5 text-[13px] leading-tight transition-colors",
-                isSelected 
-                  ? "text-gray-900 font-medium bg-gray-50" 
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                "w-full text-center px-2 py-4 text-[12px] leading-tight transition-colors border-l-4",
+                isSelected
+                  ? "text-black font-bold bg-white border-black"
+                  : "text-gray-600 hover:text-gray-900 border-transparent"
               )}
             >
               {itemName}
