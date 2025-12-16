@@ -4,7 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import MobileCategoryHeader from "@/components/categories/MobileCategoryHeader";
 import CategorySidebar from "@/components/categories/CategorySidebar";
 import SubcategoryGrid from "@/components/categories/SubcategoryGrid";
-import MobileBottomNav from "@/components/categories/MobileBottomNav";
+
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -132,8 +132,8 @@ const CategoriesPage = () => {
           />
         </div>
 
-        {/* Bottom navigation */}
-        <MobileBottomNav />
+        {/* Spacer for bottom nav */}
+        <div className="h-14" />
       </div>
     );
   }
@@ -153,8 +153,8 @@ const CategoriesPage = () => {
             return (
               <div key={category.id} className="space-y-4">
                 <button
-                  onClick={() => setSelectedCategory(
-                    selectedCategory === category.id ? null : category.id
+                  onClick={() => setSelectedRootCategory(
+                    selectedRootCategory === category.id ? null : category.id
                   )}
                   className="w-full text-left p-4 bg-card border border-border rounded-lg hover:border-destructive transition-colors"
                 >
@@ -167,7 +167,7 @@ const CategoriesPage = () => {
                 </button>
 
                 {/* Show subcategories if selected */}
-                {selectedCategory === category.id && subs.length > 0 && (
+                {selectedRootCategory === category.id && subs.length > 0 && (
                   <div className="grid grid-cols-2 gap-2 pl-2">
                     {subs.map((sub) => (
                       <a

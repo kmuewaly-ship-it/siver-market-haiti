@@ -43,6 +43,7 @@ import SellerCartPage from "./pages/seller/SellerCartPage";
 import SellerFavoritesPage from "./pages/seller/SellerFavoritesPage";
 import { PageLoader } from "./components/ui/PageLoader";
 import { NavigationLoader } from "./components/ui/NavigationLoader";
+import MobileBottomNav from "./components/categories/MobileBottomNav";
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -190,6 +191,7 @@ const AppContent = () => {
             {/* ========== 404 CATCH-ALL ========== */}
             <Route path="*" element={<NotFound />} />
           </Routes>
+      <MobileBottomNav />
     </>
   );
 };
