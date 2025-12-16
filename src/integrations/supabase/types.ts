@@ -473,6 +473,41 @@ export type Database = {
           },
         ]
       }
+      product_views: {
+        Row: {
+          id: string
+          product_id: string
+          session_id: string | null
+          source: string | null
+          user_id: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          product_id: string
+          session_id?: string | null
+          source?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          product_id?: string
+          session_id?: string | null
+          source?: string | null
+          user_id?: string | null
+          viewed_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
           categoria_id: string | null
@@ -864,6 +899,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_trending_products: {
+        Args: { days_back?: number; limit_count?: number }
+        Returns: {
+          product_data: Json
+          product_id: string
+          view_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

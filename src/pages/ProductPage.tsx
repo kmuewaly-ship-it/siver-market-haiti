@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useTrackProductView } from "@/hooks/useTrendingProducts";
 import {
   Star,
   Heart,
@@ -57,12 +58,14 @@ const ProductPage = () => {
   const navigate = useNavigate();
   const { role } = useAuth();
   const isMobile = useIsMobile();
+  const { trackView } = useTrackProductView();
   const [product, setProduct] = useState<ProductDetail | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [selectedColor, setSelectedColor] = useState<string>("");
   const [selectedSize, setSelectedSize] = useState<string>("");
+  const [viewTracked, setViewTracked] = useState(false);
 
   useEffect(() => {
     // Mock data - En producción, vendría de Supabase
@@ -122,6 +125,15 @@ const ProductPage = () => {
       setIsLoading(false);
     }, 500);
   }, [sku]);
+
+  // Track product view
+  useEffect(() => {
+    if (product && !viewTracked) {
+      // In production, use actual product ID from database
+      trackView(product.sku, "product_page");
+      setViewTracked(true);
+    }
+  }, [product, viewTracked, trackView]);
 
   if (isLoading || !product) {
     return (
