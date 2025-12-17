@@ -43,6 +43,7 @@ import SellerAccountPage from "./pages/seller/SellerAccountPage";
 import SellerProfilePage from "./pages/seller/SellerProfilePage";
 import SellerCartPage from "./pages/seller/SellerCartPage";
 import SellerFavoritesPage from "./pages/seller/SellerFavoritesPage";
+import SellerInventarioB2C from "./pages/seller/SellerInventarioB2C";
 import { PageLoader } from "./components/ui/PageLoader";
 import { NavigationLoader } from "./components/ui/NavigationLoader";
 import MobileBottomNav from "./components/categories/MobileBottomNav";
@@ -159,6 +160,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
                   <SellerCatalogo />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/seller/inventario" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
+                  <SellerInventarioB2C />
                 </ProtectedRoute>
               } 
             />

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Home, LogOut, ShoppingBag, ChevronLeft, Package, Heart, User, Store } from "lucide-react";
+import { ShoppingCart, Home, LogOut, ShoppingBag, ChevronLeft, Package, Heart, User, Store, LayoutGrid } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -30,6 +30,12 @@ export function SellerSidebar() {
       url: "/seller/adquisicion-lotes",
       icon: ShoppingCart,
       badge: "B2B"
+    },
+    {
+      title: "Inventario B2C",
+      url: "/seller/inventario",
+      icon: LayoutGrid,
+      badge: "Nuevo"
     },
     {
       title: "Mi Catálogo",
