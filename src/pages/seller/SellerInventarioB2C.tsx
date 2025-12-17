@@ -6,8 +6,9 @@ import { InventarioStats } from "@/components/seller/inventory/InventarioStats";
 import { InventarioTable } from "@/components/seller/inventory/InventarioTable";
 import { PublicacionDialog } from "@/components/seller/inventory/PublicacionDialog";
 import { StockAdjustDialog } from "@/components/seller/inventory/StockAdjustDialog";
+import { SellerBulkPriceDialog } from "@/components/seller/inventory/SellerBulkPriceDialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Package, AlertCircle } from "lucide-react";
+import { RefreshCw, Package, AlertCircle, DollarSign } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function SellerInventarioB2C() {
@@ -27,6 +28,7 @@ export default function SellerInventarioB2C() {
   const [selectedItem, setSelectedItem] = useState<SellerCatalogItem | null>(null);
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
+  const [isBulkPriceOpen, setIsBulkPriceOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const stats = getStats();
@@ -101,14 +103,25 @@ export default function SellerInventarioB2C() {
               Administra tus productos para venta al público
             </p>
           </div>
-          <Button 
-            variant="outline" 
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-          >
-            <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-            Actualizar
-          </Button>
+          <div className="flex gap-2">
+            {items.length > 0 && (
+              <Button 
+                variant="outline" 
+                onClick={() => setIsBulkPriceOpen(true)}
+              >
+                <DollarSign className="h-4 w-4 mr-2" />
+                Actualizar Precios
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              Actualizar
+            </Button>
+          </div>
         </div>
 
         {/* No Store Alert */}
@@ -162,6 +175,13 @@ export default function SellerInventarioB2C() {
           onOpenChange={setIsStockDialogOpen}
           item={selectedItem}
           onSave={handleSaveStock}
+        />
+
+        <SellerBulkPriceDialog
+          open={isBulkPriceOpen}
+          onOpenChange={setIsBulkPriceOpen}
+          items={items}
+          onSuccess={refetch}
         />
       </div>
     </SellerLayout>
