@@ -8,15 +8,23 @@ import SearchFilterB2B from '@/components/b2b/SearchFilterB2B';
 import ProductCardB2B from '@/components/b2b/ProductCardB2B';
 import CartSidebarB2B from '@/components/b2b/CartSidebarB2B';
 import { B2BFilters, ProductB2BCard } from '@/types/b2b';
+import { supabase } from '@/integrations/supabase/client';
+
+interface Category {
+  id: string;
+  nombre: string;
+}
 
 const SellerAcquisicionLotes = () => {
   const { user, isLoading } = useAuth();
   const { cart, addItem, updateQuantity, removeItem } = useCartB2B();
   
   const [products, setProducts] = useState<ProductB2BCard[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductB2BCard[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const itemsPerPage = 12;
   const [filters, setFilters] = useState<B2BFilters>({
     searchQuery: '',
@@ -25,61 +33,54 @@ const SellerAcquisicionLotes = () => {
     sortBy: 'newest',
   });
 
-  // Mock products - Estos vendrían del backend
+  // Fetch real products from Supabase
   useEffect(() => {
-    const mockProducts: ProductB2BCard[] = [
-      {
-        id: '1',
-        sku: 'TSHIRT-001',
-        nombre: 'Camiseta Básica Blanca - Talla M',
-        precio_b2b: 2.5,
-        moq: 50,
-        stock_fisico: 500,
-        imagen_principal: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=300&h=300&fit=crop',
-        categoria_id: 'cat1',
-      },
-      {
-        id: '2',
-        sku: 'JEANS-001',
-        nombre: 'Pantalón Vaquero Azul - Talla 32',
-        precio_b2b: 8.5,
-        moq: 30,
-        stock_fisico: 200,
-        imagen_principal: 'https://images.unsplash.com/photo-1542272604-787c62d465d1?w=300&h=300&fit=crop',
-        categoria_id: 'cat1',
-      },
-      {
-        id: '3',
-        sku: 'SHOES-001',
-        nombre: 'Zapatillas Deportivas Negras',
-        precio_b2b: 12.0,
-        moq: 20,
-        stock_fisico: 150,
-        imagen_principal: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=300&h=300&fit=crop',
-        categoria_id: 'cat2',
-      },
-      {
-        id: '4',
-        sku: 'DRESS-001',
-        nombre: 'Vestido Casual Floral',
-        precio_b2b: 6.0,
-        moq: 25,
-        stock_fisico: 75,
-        imagen_principal: 'https://images.unsplash.com/photo-1595777707802-a89fbc6ce338?w=300&h=300&fit=crop',
-        categoria_id: 'cat1',
-      },
-      {
-        id: '5',
-        sku: 'ACC-001',
-        nombre: 'Correa de Cuero Marrón',
-        precio_b2b: 3.5,
-        moq: 100,
-        stock_fisico: 0,
-        imagen_principal: 'https://images.unsplash.com/photo-1535632066927-ab7c9ab60908?w=300&h=300&fit=crop',
-        categoria_id: 'cat3',
-      },
-    ];
-    setProducts(mockProducts);
+    const fetchProducts = async () => {
+      setIsLoadingProducts(true);
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, sku_interno, nombre, precio_mayorista, moq, stock_fisico, imagen_principal, categoria_id')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      if (error) {
+        console.error('Error fetching products:', error);
+      } else if (data) {
+        const mapped: ProductB2BCard[] = data.map((p) => ({
+          id: p.id,
+          sku: p.sku_interno,
+          nombre: p.nombre,
+          precio_b2b: p.precio_mayorista,
+          moq: p.moq,
+          stock_fisico: p.stock_fisico,
+          imagen_principal: p.imagen_principal || '/placeholder.svg',
+          categoria_id: p.categoria_id || '',
+        }));
+        setProducts(mapped);
+      }
+      setIsLoadingProducts(false);
+    };
+
+    fetchProducts();
+  }, []);
+
+  // Fetch real categories from Supabase
+  useEffect(() => {
+    const fetchCategories = async () => {
+      const { data, error } = await supabase
+        .from('categories')
+        .select('id, name')
+        .eq('is_visible_public', true)
+        .order('sort_order', { ascending: true });
+
+      if (error) {
+        console.error('Error fetching categories:', error);
+      } else if (data) {
+        setCategories(data.map((c) => ({ id: c.id, nombre: c.name })));
+      }
+    };
+
+    fetchCategories();
   }, []);
 
   // Aplicar filtros
@@ -143,18 +144,13 @@ const SellerAcquisicionLotes = () => {
     setCurrentPage(1);
   }, [filters]);
 
-  const categories = [
-    { id: 'cat1', nombre: 'Ropa' },
-    { id: 'cat2', nombre: 'Zapatos' },
-    { id: 'cat3', nombre: 'Accesorios' },
-  ];
 
-  if (isLoading) {
+  if (isLoading || isLoadingProducts) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
-          <p>Cargando...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Cargando catálogo...</p>
         </div>
       </div>
     );
