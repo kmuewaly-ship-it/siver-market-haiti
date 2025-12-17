@@ -5,34 +5,40 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 
 const MobileBottomNav = () => {
+  // Mobile navigation component
   const location = useLocation();
   const { role } = useAuth();
   
-  // Hide on admin and seller routes
-  const isAdminRoute = location.pathname.startsWith('/admin');
-  const isSellerRoute = location.pathname.startsWith('/seller');
-  const isLoginRoute = location.pathname === '/login';
+  // Hide on admin routes
+  const isAdminRoute = location.pathname.startsWith("/admin");
+  const isLoginRoute = location.pathname === "/login";
   
-  if (isAdminRoute || isSellerRoute || isLoginRoute) {
+  if (isAdminRoute || isLoginRoute) {
     return null;
   }
   
   const accountLink = role === UserRole.SELLER ? "/seller/cuenta" : "/cuenta";
+  const cartLink = role === UserRole.SELLER ? "/seller/carrito" : "/carrito";
+  
+  // If seller, "Categorías" should link to B2B catalog or open filter
+  // For now, let"s point it to the B2B catalog page if user is seller
+  const categoriesLink = role === UserRole.SELLER ? "/seller/adquisicion-lotes" : "/categorias";
   
   const navItems = [
-    { href: "/", icon: Home, label: "Acheter" },
-    { href: "/categorias", icon: LayoutGrid, label: "CatÃ©gories" },
-    { href: "/tendencias", icon: Sparkles, label: "Tendances", hasDot: true },
-    { href: "/carrito", icon: ShoppingBag, label: "Panier", badge: "99+" },
-    { href: accountLink, icon: User, label: "Moi" },
+    { href: "/", icon: Home, label: "Inicio" },
+    { href: categoriesLink, icon: LayoutGrid, label: "Categorías" },
+    { href: "/tendencias", icon: Sparkles, label: "Tendencias", hasDot: true },
+    { href: cartLink, icon: ShoppingBag, label: "Carrito", badge: "99+" },
+    { href: accountLink, icon: User, label: "Cuenta" },
   ];
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 md:hidden">
+    <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-white border-t border-gray-200 lg:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
       <div className="flex items-center justify-around h-14 px-1">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href || 
-            (item.href === "/categorias" && location.pathname.startsWith("/categoria"));
+            (item.href === "/categorias" && location.pathname.startsWith("/categoria")) ||
+            (item.href === "/seller/adquisicion-lotes" && location.pathname === "/seller/adquisicion-lotes");
           
           const IconComponent = item.icon;
           
