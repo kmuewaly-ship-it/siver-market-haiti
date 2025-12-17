@@ -11,7 +11,8 @@ import {
   FolderTree,
   ShoppingCart,
   Image as ImageIcon,
-  Truck
+  Truck,
+  ClipboardList
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -34,6 +35,7 @@ import {
 
 const mainNavItems = [
   { title: "Dashboard", url: "/admin", icon: LayoutDashboard },
+  { title: "Pedidos B2B", url: "/admin/pedidos", icon: ClipboardList },
   { title: "Conciliación B2B", url: "/admin/conciliacion", icon: CreditCard },
   { title: "Catálogo", url: "/admin/catalogo", icon: Package },
   { title: "Categorías", url: "/admin/categorias", icon: FolderTree },
