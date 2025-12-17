@@ -12,7 +12,8 @@ import {
   ShoppingCart,
   Image as ImageIcon,
   Truck,
-  ClipboardList
+  ClipboardList,
+  Calculator
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -40,6 +41,7 @@ const mainNavItems = [
   { title: "Catálogo", url: "/admin/catalogo", icon: Package },
   { title: "Categorías", url: "/admin/categorias", icon: FolderTree },
   { title: "Proveedores", url: "/admin/proveedores", icon: Truck },
+  { title: "Config. Precios", url: "/admin/precios", icon: Calculator },
   { title: "Vendedores", url: "/admin/vendedores", icon: Users },
   { title: "Banners", url: "/admin/banners", icon: ImageIcon },
   { title: "Puntos de Recogida", url: "/admin/puntos", icon: MapPin },

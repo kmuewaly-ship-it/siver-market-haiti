@@ -36,6 +36,7 @@ import AdminVendedores from "./pages/admin/AdminVendedores";
 import AdminBanners from "./pages/admin/AdminBanners";
 import AdminProveedores from "./pages/admin/AdminProveedores";
 import AdminPedidos from "./pages/admin/AdminPedidos";
+import AdminPreciosConfig from "./pages/admin/AdminPreciosConfig";
 
 // Seller Pages
 import SellerAcquisicionLotes from "./pages/seller/SellerAcquisicionLotes";
@@ -152,6 +153,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
                   <AdminPedidos />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/precios" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
+                  <AdminPreciosConfig />
                 </ProtectedRoute>
               } 
             />

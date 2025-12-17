@@ -257,6 +257,42 @@ export type Database = {
           },
         ]
       }
+      dynamic_expenses: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          nombre_gasto: string
+          operacion: string
+          sort_order: number | null
+          tipo: string
+          updated_at: string | null
+          valor: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nombre_gasto: string
+          operacion: string
+          sort_order?: number | null
+          tipo: string
+          updated_at?: string | null
+          valor?: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          nombre_gasto?: string
+          operacion?: string
+          sort_order?: number | null
+          tipo?: string
+          updated_at?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
       inventory_movements: {
         Row: {
           change_amount: number
@@ -435,6 +471,33 @@ export type Database = {
           },
         ]
       }
+      price_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
       product_price_history: {
         Row: {
           campo_modificado: string
@@ -511,6 +574,7 @@ export type Database = {
       products: {
         Row: {
           categoria_id: string | null
+          costo_base_excel: number | null
           created_at: string
           descripcion_corta: string | null
           descripcion_larga: string | null
@@ -534,6 +598,7 @@ export type Database = {
         }
         Insert: {
           categoria_id?: string | null
+          costo_base_excel?: number | null
           created_at?: string
           descripcion_corta?: string | null
           descripcion_larga?: string | null
@@ -557,6 +622,7 @@ export type Database = {
         }
         Update: {
           categoria_id?: string | null
+          costo_base_excel?: number | null
           created_at?: string
           descripcion_corta?: string | null
           descripcion_larga?: string | null
@@ -924,6 +990,7 @@ export type Database = {
         }
         Returns: {
           categoria_id: string | null
+          costo_base_excel: number | null
           created_at: string
           descripcion_corta: string | null
           descripcion_larga: string | null
