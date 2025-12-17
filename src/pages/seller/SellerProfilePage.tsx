@@ -30,7 +30,7 @@ const SellerProfilePage = () => {
     <SellerLayout>
       <div className="min-h-screen bg-gray-50/50 pb-12 w-full font-sans">
         {/* Hero Section */}
-        <div className="relative h-64 w-full overflow-hidden">
+        <div className="relative h-48 md:h-64 w-full overflow-hidden">
             <div className="absolute inset-0 bg-gradient-to-br from-[#071d7f] via-[#0a2a9f] to-[#051560]" />
             <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] mix-blend-overlay" />
             
@@ -38,11 +38,11 @@ const SellerProfilePage = () => {
             <div className="absolute top-0 right-0 -mt-20 -mr-20 w-96 h-96 bg-white/5 rounded-full blur-3xl" />
             <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-72 h-72 bg-blue-400/10 rounded-full blur-2xl" />
 
-            <div className="container mx-auto px-6 h-full flex items-end pb-8 relative z-10">
+            <div className="container mx-auto px-4 md:px-6 h-full flex items-end pb-6 md:pb-8 relative z-10">
                 <div className="flex flex-col md:flex-row md:items-end gap-6 w-full">
                     <div className="relative">
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full blur opacity-30"></div>
-                        <Avatar className="h-32 w-32 border-4 border-white shadow-2xl relative">
+                            <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-2xl relative">
                             <AvatarFallback className="text-4xl font-bold bg-white text-[#071d7f]">
                                 {user?.name?.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
@@ -52,7 +52,7 @@ const SellerProfilePage = () => {
                     <div className="mb-2 text-white flex-1">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                             <div>
-                                <h1 className="text-4xl font-bold tracking-tight text-white drop-shadow-md">
+                                <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white drop-shadow-md">
                                     {user?.name}
                                 </h1>
                                 <p className="text-blue-100/80 flex items-center gap-2 mt-2 text-lg">

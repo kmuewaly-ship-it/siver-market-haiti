@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 import { useCartB2B } from '@/hooks/useCartB2B';
 import { SellerLayout } from '@/components/seller/SellerLayout';
@@ -9,6 +9,10 @@ import ProductCardB2B from '@/components/b2b/ProductCardB2B';
 import CartSidebarB2B from '@/components/b2b/CartSidebarB2B';
 import { B2BFilters, ProductB2BCard } from '@/types/b2b';
 import { supabase } from '@/integrations/supabase/client';
+import { useIsMobile } from '@/hooks/use-mobile';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Button } from "@/components/ui/button";
+import { Filter, SlidersHorizontal, ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Category {
   id: string;
@@ -18,7 +22,8 @@ interface Category {
 const SellerAcquisicionLotes = () => {
   const { user, isLoading } = useAuth();
   const { cart, addItem, updateQuantity, removeItem } = useCartB2B();
-  
+  const isMobile = useIsMobile();
+
   const [products, setProducts] = useState<ProductB2BCard[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<ProductB2BCard[]>([]);
@@ -160,33 +165,59 @@ const SellerAcquisicionLotes = () => {
     <SellerLayout>
       <div className="min-h-screen bg-gray-50">
         <Header />
-        
-        <main className="container mx-auto px-4 pb-8">
+
+        <main className="container mx-auto px-4 pb-8 pt-4 md:pt-0">
           {/* Encabezado */}
-          <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          <div className="mb-6 md:mb-8">
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">
               Catálogo de Adquisición B2B
             </h1>
-            <p className="text-gray-600">
+            <p className="text-sm md:text-base text-gray-600">
               Bienvenido, {user?.name}. Busca y selecciona productos al por mayor.
             </p>
           </div>
 
-        {/* Filtros */}
-        <SearchFilterB2B
-          filters={filters}
-          onFiltersChange={setFilters}
-          categories={categories}
-        />
+        {/* Filtros - Mobile vs Desktop */}
+        {isMobile ? (
+          <div className="mb-6">
+            <Sheet>
+              <SheetTrigger asChild>
+                <Button variant="outline" className="w-full flex items-center justify-center gap-2 h-12 text-base">
+                  <SlidersHorizontal className="w-5 h-5" />
+                  Filtrar y Ordenar
+                  {(filters.category || filters.searchQuery || filters.stockStatus !== 'all') && (
+                    <span className="ml-1 w-2 h-2 bg-blue-600 rounded-full" />
+                  )}
+                </Button>
+              </SheetTrigger>
+              <SheetContent side="bottom" className="h-[85vh] overflow-y-auto rounded-t-xl">
+                <SheetHeader className="mb-4">
+                  <SheetTitle>Filtros de Búsqueda</SheetTitle>
+                </SheetHeader>
+                <SearchFilterB2B
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  categories={categories}
+                />
+              </SheetContent>
+            </Sheet>
+          </div>
+        ) : (
+          <SearchFilterB2B
+            filters={filters}
+            onFiltersChange={setFilters}
+            categories={categories}
+          />
+        )}
 
         {/* Resultados */}
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-bold text-gray-900">
-              Productos ({filteredProducts.length} encontrados)
+              Productos ({filteredProducts.length})
             </h2>
             <div className="text-sm text-gray-600">
-              Mostrando {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} de {filteredProducts.length}
+              {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} de {filteredProducts.length}
             </div>
           </div>
 
@@ -198,7 +229,7 @@ const SellerAcquisicionLotes = () => {
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {paginatedProducts.map((product) => (
                   <ProductCardB2B
                     key={product.id}
@@ -211,37 +242,41 @@ const SellerAcquisicionLotes = () => {
 
               {/* Paginación */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-2 mt-8">
+                <div className="flex items-center justify-center gap-2 mt-8 overflow-x-auto pb-2">
                   <button
                     onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
                     disabled={currentPage === 1}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
                   >
-                    ← Anterior
+                    <ChevronLeft className="w-4 h-4" />
                   </button>
 
                   <div className="flex gap-1">
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                      <button
-                        key={page}
-                        onClick={() => setCurrentPage(page)}
-                        className={`px-3 py-2 rounded-lg transition ${
-                          currentPage === page
-                            ? 'bg-blue-600 text-white'
-                            : 'border border-gray-300 hover:bg-gray-50'
-                        }`}
-                      >
-                        {page}
-                      </button>
-                    ))}
+                    {isMobile ? (
+                      // Mobile Pagination (Simplified)
+                      <span className="px-3 py-2 text-sm font-medium">
+                        Página {currentPage} de {totalPages}
+                      </span>
+                    ) : (
+                      // Desktop Pagination (Full)
+                      Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                        <button
+                          key={page}
+                          onClick={() => setCurrentPage(page)}
+                          className={px-3 py-2 rounded-lg transition text-sm }
+                        >
+                          {page}
+                        </button>
+                      ))
+                    )}
                   </div>
 
                   <button
                     onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
                     disabled={currentPage === totalPages}
-                    className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
+                    className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition text-sm"
                   >
-                    Siguiente →
+                    <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               )}
