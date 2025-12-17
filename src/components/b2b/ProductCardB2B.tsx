@@ -1,19 +1,21 @@
-import { useState } from 'react';
-import { ShoppingCart, AlertCircle, Check } from 'lucide-react';
+﻿import { useState, MouseEvent } from 'react';
+import { ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck } from 'lucide-react';
 import { ProductB2BCard, CartItemB2B } from '@/types/b2b';
+import { Button } from '@/components/ui/button';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 interface ProductCardB2BProps {
   product: ProductB2BCard;
   onAddToCart: (item: CartItemB2B) => void;
   cartItem?: CartItemB2B;
+  whatsappNumber?: string;
 }
 
-const ProductCardB2B = ({ product, onAddToCart, cartItem }: ProductCardB2BProps) => {
+const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "50312345678" }: ProductCardB2BProps) => {
   const [cantidad, setCantidad] = useState(product.moq);
-  const [error, setError] = useState<string | null>(null);
+  const isMobile = useIsMobile();
 
   const subtotal = cantidad * product.precio_b2b;
-  const isInvalid = cantidad < product.moq || cantidad > product.stock_fisico;
   const isOutOfStock = product.stock_fisico === 0;
 
   // Calcular descuentos según cantidad
@@ -27,33 +29,11 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem }: ProductCardB2BProps)
 
   const discountPercent = getDiscount();
   const discountedPrice = product.precio_b2b * (1 - discountPercent);
-  const finalSubtotal = cantidad * discountedPrice;
-  const savings = subtotal - finalSubtotal;
 
-  const getStockStatus = () => {
-    if (isOutOfStock) return 'Agotado';
-    if (product.stock_fisico < product.moq * 2) return 'Stock bajo';
-    return `${product.stock_fisico} unidades`;
-  };
-
-  const getStockColor = () => {
-    if (isOutOfStock) return 'text-red-600 bg-red-50';
-    if (product.stock_fisico < product.moq * 2) return 'text-amber-600 bg-amber-50';
-    return 'text-green-600 bg-green-50';
-  };
-
-  const handleAddToCart = () => {
-    setError(null);
-
-    if (cantidad < product.moq) {
-      setError(`MOQ mínimo: ${product.moq} unidades`);
-      return;
-    }
-
-    if (cantidad > product.stock_fisico) {
-      setError(`Stock disponible: ${product.stock_fisico} unidades`);
-      return;
-    }
+  const handleAddToCart = (e: MouseEvent) => {
+    e.stopPropagation(); // Prevent card click if we add that later
+    
+    if (cantidad < product.moq || cantidad > product.stock_fisico) return;
 
     onAddToCart({
       productId: product.id,
@@ -63,155 +43,160 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem }: ProductCardB2BProps)
       moq: product.moq,
       stock_fisico: product.stock_fisico,
       cantidad,
-      subtotal,
+      subtotal: cantidad * discountedPrice,
     });
 
     // Reset cantidad a MOQ
     setCantidad(product.moq);
   };
 
-  return (
-    <div className={`bg-white rounded-lg border-2 overflow-hidden hover:shadow-xl transition ${
-      cartItem ? 'border-green-500 shadow-lg' : 'border-gray-200'
-    }`}>
-      {/* Badge en carrito */}
-      {cartItem && (
-        <div className="absolute top-2 right-2 z-10 bg-green-500 text-white rounded-full p-2">
-          <Check className="w-4 h-4" />
-        </div>
-      )}
+  const handleWhatsApp = (e: MouseEvent) => {
+    e.stopPropagation();
+    const text = `Hola, estoy interesado en el siguiente producto:\n\n*${product.nombre}*\nSKU: ${product.sku}\nPrecio: $${discountedPrice.toFixed(2)}\nCantidad: ${cantidad}\n\nLink/Imagen: ${product.imagen_principal}`;
+    window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`, '_blank');
+  };
 
-      {/* Imagen */}
-      <div className="relative h-48 bg-gray-100 overflow-hidden">
+  return (
+    <div className={`group bg-white rounded-lg border hover:shadow-lg transition-all duration-300 flex flex-col h-full overflow-hidden ${
+      cartItem ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'
+    }`}>
+      {/* Image Section */}
+      <div className="relative aspect-square bg-gray-100 overflow-hidden">
         <img
           src={product.imagen_principal}
           alt={product.nombre}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
         />
-        {isOutOfStock && (
-          <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
-            <span className="bg-red-500 text-white px-4 py-2 rounded">Agotado</span>
-          </div>
-        )}
         
-        {/* Descuento Badge */}
-        {discountPercent > 0 && (
-          <div className="absolute top-2 left-2 bg-red-500 text-white px-3 py-1 rounded-lg font-bold text-sm">
-            -{(discountPercent * 100).toFixed(0)}%
+        {/* Badges Overlay */}
+        <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {discountPercent > 0 && (
+            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+              -{Math.round(discountPercent * 100)}%
+            </span>
+          )}
+          {cartItem && (
+            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
+              <Check className="w-3 h-3" /> En carrito
+            </span>
+          )}
+        </div>
+
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
+            <span className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold">Agotado</span>
           </div>
         )}
       </div>
 
-      {/* Contenido */}
-      <div className="p-4">
-        {/* SKU */}
-        <p className="text-xs text-gray-500 mb-1">SKU: {product.sku}</p>
-
-        {/* Nombre */}
-        <h3 className="text-sm font-bold text-gray-900 mb-3 line-clamp-2">
+      {/* Content Section */}
+      <div className="p-3 flex flex-col flex-1">
+        {/* Title */}
+        <h3 className="text-sm text-gray-700 line-clamp-2 mb-1 leading-snug min-h-[2.5em]" title={product.nombre}>
           {product.nombre}
         </h3>
 
-        {/* Precios - Mejorado */}
-        <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-lg border border-blue-200">
-          <p className="text-xs text-gray-600 mb-1">Precio Mayorista</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-2xl font-bold text-blue-600">
+        {/* Price */}
+        <div className="mt-1">
+          <div className="flex items-baseline gap-1.5">
+            <span className="text-lg font-bold text-gray-900">
               ${discountedPrice.toFixed(2)}
-            </p>
+            </span>
             {discountPercent > 0 && (
-              <p className="text-sm text-gray-500 line-through">
+              <span className="text-xs text-gray-400 line-through">
                 ${product.precio_b2b.toFixed(2)}
-              </p>
+              </span>
             )}
           </div>
-          {discountPercent > 0 && (
-            <p className="text-xs text-green-600 font-semibold mt-1">
-              ¡Ahorras ${savings.toFixed(2)}!
-            </p>
-          )}
         </div>
 
-        {/* MOQ y Stock */}
-        <div className="grid grid-cols-2 gap-2 mb-4">
-          <div className="p-2 bg-amber-50 rounded border border-amber-200">
-            <p className="text-xs text-gray-600">MOQ</p>
-            <p className="text-lg font-bold text-amber-600">{product.moq}</p>
-          </div>
-          <div className={`p-2 rounded border ${getStockColor()} border-opacity-30`}>
-            <p className="text-xs text-gray-600">Stock</p>
-            <p className={`text-lg font-bold ${getStockColor()}`}>{getStockStatus()}</p>
-          </div>
+        {/* Min Order */}
+        <div className="flex items-center justify-between mt-1">
+          <p className="text-xs text-gray-500">Min. order: {product.moq} pieces</p>
         </div>
 
-        {/* Información de descuentos */}
-        {!isOutOfStock && (
-          <div className="mb-4 p-2 bg-indigo-50 rounded text-xs text-indigo-700 border border-indigo-200">
-            <p className="font-semibold mb-1">Descuentos por volumen:</p>
-            <div className="space-y-1 text-xs">
-              <p>• {product.moq * 2}+ = 5% descuento</p>
-              <p>• {product.moq * 3}+ = 10% descuento</p>
-              <p>• {product.moq * 5}+ = 15% descuento</p>
-              <p>• {product.moq * 10}+ = 20% descuento</p>
-            </div>
+        {/* Trust Badges (Mock) */}
+        <div className="flex items-center gap-2 mt-2 mb-3">
+          <div className="flex items-center gap-0.5 text-[10px] font-bold text-gray-700 bg-gray-100 px-1 rounded">
+            <ShieldCheck className="w-3 h-3 text-orange-500" />
+            Verified
           </div>
-        )}
+          <span className="text-[10px] text-gray-400">3 yrs  CN</span>
+        </div>
 
-        {/* Campo de Cantidad */}
-        <div className="mb-4">
-          <label className="block text-xs font-medium text-gray-700 mb-2">
-            Cantidad
-          </label>
-          <div className="flex items-center gap-2">
+        {/* Spacer to push actions to bottom */}
+        <div className="flex-1"></div>
+
+        {/* Actions Row */}
+        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
+          {/* Quantity Selector - Compact */}
+          <div className="flex items-center border border-gray-200 rounded-md h-8 bg-white">
             <button
               onClick={() => setCantidad(Math.max(product.moq, cantidad - 1))}
-              disabled={isOutOfStock}
-              className="px-3 py-2 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50"
+              disabled={isOutOfStock || cantidad <= product.moq}
+              className="px-2 h-full text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center justify-center"
             >
-              −
+              -
             </button>
             <input
               type="number"
-              min={product.moq}
-              max={product.stock_fisico}
               value={cantidad}
-              onChange={(e) => setCantidad(parseInt(e.target.value) || product.moq)}
+              onChange={(e) => setCantidad(Math.max(product.moq, parseInt(e.target.value) || product.moq))}
+              className="w-10 text-center text-xs border-none p-0 h-full focus:ring-0"
               disabled={isOutOfStock}
-              className="flex-1 px-3 py-2 border border-gray-300 rounded text-center disabled:opacity-50"
             />
             <button
               onClick={() => setCantidad(Math.min(product.stock_fisico, cantidad + 1))}
-              disabled={isOutOfStock}
-              className="px-3 py-2 border border-gray-300 rounded hover:bg-gray-100 disabled:opacity-50"
+              disabled={isOutOfStock || cantidad >= product.stock_fisico}
+              className="px-2 h-full text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center justify-center"
             >
               +
             </button>
           </div>
-        </div>
 
-        {/* Subtotal */}
-        <div className="mb-4 p-2 bg-gray-50 rounded text-center border-2 border-gray-200">
-          <p className="text-xs text-gray-600">Total por Compra</p>
-          <p className="text-xl font-bold text-gray-900">${finalSubtotal.toFixed(2)}</p>
-        </div>
-
-        {/* Error */}
-        {error && (
-          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded flex gap-2">
-            <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
-            <p className="text-xs text-red-700">{error}</p>
+          {/* Action Buttons */}
+          <div className="flex gap-2 flex-1 justify-end">
+            {isMobile ? (
+              <>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="h-8 w-8 rounded-full border-green-600 text-green-600 hover:bg-green-50"
+                  onClick={handleWhatsApp}
+                >
+                  <MessageCircle className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  className="h-8 w-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                >
+                  <ShoppingCart className="h-4 w-4" />
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs border-green-600 text-green-600 hover:bg-green-50"
+                  onClick={handleWhatsApp}
+                >
+                  Contactar
+                </Button>
+                <Button
+                  size="sm"
+                  className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                  onClick={handleAddToCart}
+                  disabled={isOutOfStock}
+                >
+                  Agregar
+                </Button>
+              </>
+            )}
           </div>
-        )}
-
-        {/* Botón Agregar al Carrito */}
-        <button
-          onClick={handleAddToCart}
-          disabled={isOutOfStock || isInvalid}
-          className="w-full flex items-center justify-center gap-2 py-2 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded font-medium transition disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <ShoppingCart className="w-4 h-4" />
-          Añadir al Carrito
-        </button>
+        </div>
       </div>
     </div>
   );

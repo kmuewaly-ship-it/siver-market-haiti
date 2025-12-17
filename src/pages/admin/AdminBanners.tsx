@@ -1,11 +1,13 @@
-import { useState, useRef } from "react";
+﻿import { useState, useRef, useEffect } from "react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAdminBanners, AdminBanner } from "@/hooks/useAdminBanners";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -43,6 +45,8 @@ import {
   EyeOff,
   Loader2,
   Upload,
+  Smartphone,
+  Save
 } from "lucide-react";
 
 const TARGET_OPTIONS = [
@@ -53,11 +57,28 @@ const TARGET_OPTIONS = [
 
 const AdminBanners = () => {
   const { banners, loading, createBanner, updateBanner, deleteBanner, uploadBannerImage } = useAdminBanners();
+  const { toast } = useToast();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<AdminBanner | null>(null);
   const [uploading, setUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // B2B Hero Config State
+  const [b2bFeaturedIds, setB2bFeaturedIds] = useState("");
+
+  useEffect(() => {
+    const savedIds = localStorage.getItem("admin_b2b_featured_ids");
+    if (savedIds) setB2bFeaturedIds(savedIds);
+  }, []);
+
+  const handleSaveB2B = () => {
+    localStorage.setItem("admin_b2b_featured_ids", b2bFeaturedIds);
+    toast({
+      title: "Configuración guardada",
+      description: "Los productos destacados del Hero B2B han sido actualizados.",
+    });
+  };
 
   const [formData, setFormData] = useState({
     title: "",
@@ -162,13 +183,46 @@ const AdminBanners = () => {
 
   return (
     <AdminLayout title="Banners Promocionales" subtitle="Gestiona los banners del panel de vendedores">
-      <div className="space-y-6">
-        {/* Header */}
+      <div className="space-y-8">
+        {/* B2B Hero Configuration */}
+        <Card className="border-orange-200 bg-orange-50/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Smartphone className="h-5 w-5 text-orange-600" />
+              <CardTitle>Carrusel de Productos Destacados B2B (Móvil)</CardTitle>
+            </div>
+            <CardDescription>
+              Configura qué productos aparecen en el carrusel superior de la versión móvil de "Comprar Lotes".
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="b2b_ids">IDs de Productos (separados por coma)</Label>
+                <Textarea
+                  id="b2b_ids"
+                  placeholder="Ej: 1, 2, 5"
+                  value={b2bFeaturedIds}
+                  onChange={(e) => setB2bFeaturedIds(e.target.value)}
+                  className="font-mono text-sm"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Ingresa los IDs de los productos que deseas destacar. Estos aparecerán en el slider horizontal en móviles.
+                </p>
+              </div>
+              <Button onClick={handleSaveB2B} className="bg-orange-600 hover:bg-orange-700">
+                <Save className="w-4 h-4 mr-2" />
+                Guardar Configuración B2B
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Banners Promocionales</h1>
+            <h2 className="text-2xl font-bold text-foreground">Banners Generales</h2>
             <p className="text-muted-foreground mt-1">
-              Gestiona los banners que se muestran en el panel de vendedores
+              Banners de imagen para la plataforma
             </p>
           </div>
           <Button onClick={openCreateDialog}>
