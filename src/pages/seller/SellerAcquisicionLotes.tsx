@@ -4,6 +4,7 @@ import { useCartB2B } from "@/hooks/useCartB2B";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import GlobalMobileHeader from "@/components/layout/GlobalMobileHeader";
 import SearchFilterB2B from "@/components/b2b/SearchFilterB2B";
 import ProductCardB2B from "@/components/b2b/ProductCardB2B";
 import CartSidebarB2B from "@/components/b2b/CartSidebarB2B";
@@ -12,24 +13,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Filter, ChevronLeft, ChevronRight, Menu } from "lucide-react";
-import { useSidebar } from "@/components/ui/sidebar";
+import { Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import FeaturedProductsCarousel from "@/components/b2b/FeaturedProductsCarousel";
-
-// Component that uses useSidebar - must be rendered inside SidebarProvider
-const MobileHeaderB2B = () => {
-  const { toggleSidebar } = useSidebar();
-  
-  return (
-    <div className="flex items-center justify-between mb-6">
-      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="-ml-2">
-        <Menu className="h-6 w-6" />
-      </Button>
-      <h1 className="text-lg font-bold text-gray-900">Adquisición B2B</h1>
-      <div className="w-10" />
-    </div>
-  );
-};
 
 const SellerAcquisicionLotesContent = () => {
   const { user, isLoading } = useAuth();
@@ -202,11 +187,9 @@ const SellerAcquisicionLotesContent = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {!isMobile && <Header />}
+      {isMobile ? <GlobalMobileHeader forceShow /> : <Header />}
       
       <main className="container mx-auto px-4 pb-24 pt-4">
-        {/* Mobile Header */}
-        {isMobile && <MobileHeaderB2B />}
 
         {/* Hero Carousel (Mobile Only) */}
         {isMobile && featuredProducts.length > 0 && (
