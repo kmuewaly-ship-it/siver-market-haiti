@@ -3,7 +3,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ShoppingCart, Trash2, Plus, Minus, Package, ChevronRight, Check } from "lucide-react";
+import { ShoppingCart, Trash2, Plus, Minus, Package } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -52,93 +52,60 @@ const SellerCartPage = () => {
 
               {/* Cart Items */}
               <div className="flex-1 overflow-auto">
-                {items.map((item, index) => (
-                  <div key={item.productId} className="border-b last:border-b-0">
-                    {/* Seller Header */}
-                    <div className="px-4 py-2 flex items-center gap-2 bg-muted/30">
-                      <div className="h-4 w-4 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Check className="h-2.5 w-2.5 text-primary" />
-                      </div>
-                      <span className="text-xs font-medium uppercase text-muted-foreground">
-                        SIVER MARKET 509
-                      </span>
-                      <ChevronRight className="h-3 w-3 ml-auto text-muted-foreground" />
-                    </div>
-                    
-                    {/* Product Row */}
-                    <div className="p-4 flex gap-3">
-                      {/* Product Image with Stock Badge */}
-                      <div className="relative w-20 h-20 flex-shrink-0">
-                        <div className="w-full h-full rounded-lg bg-muted flex items-center justify-center overflow-hidden">
-                          <Package className="h-8 w-8 text-muted-foreground/50" />
+                {items.map((item) => (
+                  <div key={item.productId} className="border-b last:border-b-0 px-3 py-2">
+                    <div className="flex items-center gap-3">
+                      {/* Product Image */}
+                      <div className="relative w-14 h-14 flex-shrink-0">
+                        <div className="w-full h-full rounded-md bg-muted flex items-center justify-center overflow-hidden">
+                          <Package className="h-6 w-6 text-muted-foreground/50" />
                         </div>
-                        {/* Stock Badge */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-orange-500/90 text-white text-[10px] py-0.5 text-center rounded-b-lg">
-                          {item.stock_fisico} restante
+                        <div className="absolute -bottom-1 left-0 right-0 bg-orange-500 text-white text-[8px] py-0.5 text-center rounded-sm">
+                          {item.stock_fisico} left
                         </div>
                       </div>
                       
-                      {/* Product Details */}
+                      {/* Product Info */}
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm font-medium line-clamp-1 mb-1">
-                          {item.nombre}
-                        </h3>
-                        <p className="text-xs text-muted-foreground mb-1">
-                          SKU: {item.sku}
-                        </p>
-                        <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
-                          <span className="text-green-600">✓ Entrega en 2-8 días</span>
-                        </div>
-                        
-                        {/* Price */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-primary font-bold">
-                            ${item.precio_b2b.toFixed(2)}
-                          </span>
-                          <span className="text-xs text-muted-foreground line-through">
-                            ${(item.precio_b2b * 1.25).toFixed(2)}
-                          </span>
+                        <h3 className="text-xs font-medium line-clamp-1">{item.nombre}</h3>
+                        <p className="text-[10px] text-muted-foreground">{item.sku}</p>
+                        <div className="flex items-center gap-1 mt-1">
+                          <span className="text-xs font-bold text-primary">${item.precio_b2b.toFixed(2)}</span>
+                          <span className="text-[10px] text-muted-foreground line-through">${(item.precio_b2b * 1.25).toFixed(2)}</span>
                         </div>
                       </div>
                       
-                      {/* Quantity Controls */}
-                      <div className="flex flex-col items-end justify-between">
+                      {/* Quantity & Delete */}
+                      <div className="flex items-center gap-2">
+                        <div className="flex items-center border rounded">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => updateQuantity(item.productId, Math.max(item.moq, item.cantidad - 1))}
+                            disabled={item.cantidad <= item.moq}
+                          >
+                            <Minus className="h-3 w-3" />
+                          </Button>
+                          <span className="w-6 text-center text-xs">{item.cantidad}</span>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() => updateQuantity(item.productId, item.cantidad + 1)}
+                            disabled={item.cantidad >= item.stock_fisico}
+                          >
+                            <Plus className="h-3 w-3" />
+                          </Button>
+                        </div>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 text-destructive"
                           onClick={() => removeItem(item.productId)}
                         >
-                          <Trash2 className="h-3.5 w-3.5" />
+                          <Trash2 className="h-3 w-3" />
                         </Button>
-                        
-                        <div className="flex items-center border rounded-md">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-none"
-                            onClick={() =>
-                              updateQuantity(item.productId, Math.max(item.moq, item.cantidad - 1))
-                            }
-                            disabled={item.cantidad <= item.moq}
-                          >
-                            <Minus className="h-3 w-3" />
-                          </Button>
-                          <span className="w-8 text-center text-sm font-medium">
-                            {item.cantidad}
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-7 w-7 rounded-none"
-                            onClick={() =>
-                              updateQuantity(item.productId, item.cantidad + 1)
-                            }
-                            disabled={item.cantidad >= item.stock_fisico}
-                          >
-                            <Plus className="h-3 w-3" />
-                          </Button>
-                        </div>
                       </div>
                     </div>
                   </div>
