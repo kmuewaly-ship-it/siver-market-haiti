@@ -1,9 +1,10 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useBuyerOrders, BuyerOrder, BuyerOrderStatus } from "@/hooks/useBuyerOrders";
+import { useCart } from "@/hooks/useCart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -11,9 +12,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useToast } from "@/hooks/use-toast";
 import { 
   Package, ShoppingBag, Truck, CheckCircle, XCircle, Clock, 
-  ExternalLink, ChevronRight, ArrowLeft, MapPin, Calendar
+  ExternalLink, ChevronRight, ArrowLeft, MapPin, Calendar, RefreshCw
 } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -100,7 +102,17 @@ const OrderCard = ({ order, onClick }: { order: BuyerOrder; onClick: () => void 
   );
 };
 
-const OrderDetailDialog = ({ order, open, onClose }: { order: BuyerOrder | null; open: boolean; onClose: () => void }) => {
+const OrderDetailDialog = ({ 
+  order, 
+  open, 
+  onClose, 
+  onReorder 
+}: { 
+  order: BuyerOrder | null; 
+  open: boolean; 
+  onClose: () => void;
+  onReorder: (order: BuyerOrder) => void;
+}) => {
   if (!order) return null;
   
   const status = statusConfig[order.status] || statusConfig.draft;
@@ -241,6 +253,16 @@ const OrderDetailDialog = ({ order, open, onClose }: { order: BuyerOrder | null;
               <p className="text-sm text-muted-foreground">{order.notes}</p>
             </div>
           )}
+
+          {/* Reorder Button */}
+          <Button 
+            onClick={() => onReorder(order)}
+            className="w-full bg-gradient-to-r from-primary to-blue-600 hover:from-primary/90 hover:to-blue-700"
+            size="lg"
+          >
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Volver a Comprar
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
@@ -250,10 +272,39 @@ const OrderDetailDialog = ({ order, open, onClose }: { order: BuyerOrder | null;
 const MyPurchasesPage = () => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const { addItem } = useCart();
   const [statusFilter, setStatusFilter] = useState<BuyerOrderStatus | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<BuyerOrder | null>(null);
   
   const { data: orders, isLoading } = useBuyerOrders(statusFilter);
+
+  const handleReorder = (order: BuyerOrder) => {
+    if (!order.order_items_b2b || order.order_items_b2b.length === 0) {
+      toast({ title: "No hay productos para agregar", variant: "destructive" });
+      return;
+    }
+
+    order.order_items_b2b.forEach(item => {
+      for (let i = 0; i < item.cantidad; i++) {
+        addItem({
+          id: item.product_id || item.sku,
+          name: item.nombre,
+          price: item.precio_unitario,
+          image: '',
+          sku: item.sku,
+        });
+      }
+    });
+
+    toast({ 
+      title: "Productos agregados al carrito", 
+      description: `${order.order_items_b2b.length} productos añadidos` 
+    });
+    setSelectedOrder(null);
+    navigate('/carrito');
+  };
 
   if (!user) {
     return (
@@ -363,7 +414,8 @@ const MyPurchasesPage = () => {
       <OrderDetailDialog 
         order={selectedOrder} 
         open={!!selectedOrder} 
-        onClose={() => setSelectedOrder(null)} 
+        onClose={() => setSelectedOrder(null)}
+        onReorder={handleReorder}
       />
     </div>
   );

@@ -3,6 +3,7 @@ import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +21,7 @@ import {
   DollarSign,
   ShoppingCart,
   AlertCircle,
-  Users
+  MapPin
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -33,13 +34,28 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; icon: Re
   cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
 };
 
+const carrierOptions = [
+  { value: 'DHL', label: 'DHL', url: 'https://www.dhl.com/en/express/tracking.html?AWB=' },
+  { value: 'FedEx', label: 'FedEx', url: 'https://www.fedex.com/fedextrack/?trknbr=' },
+  { value: 'UPS', label: 'UPS', url: 'https://www.ups.com/track?tracknum=' },
+  { value: 'USPS', label: 'USPS', url: 'https://tools.usps.com/go/TrackConfirmAction?tLabels=' },
+  { value: 'Estafeta', label: 'Estafeta', url: 'https://rastreo3.estafeta.com/Tracking/searchByGet?wayBillType=1&wayBill=' },
+  { value: 'other', label: 'Otra paquetería', url: '' },
+];
+
 const AdminPedidos = () => {
-  const { useAllOrders, useOrderStats, updateOrderStatus, cancelOrder } = useOrders();
+  const { useAllOrders, useOrderStats, updateOrderStatus, updateOrderTracking, cancelOrder } = useOrders();
   
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<OrderStatus | ''>('');
+  
+  // Tracking form state
+  const [trackingCarrier, setTrackingCarrier] = useState('');
+  const [trackingNumber, setTrackingNumber] = useState('');
+  const [customCarrierUrl, setCustomCarrierUrl] = useState('');
+  const [estimatedDelivery, setEstimatedDelivery] = useState('');
 
   const { data: orders, isLoading } = useAllOrders({ status: statusFilter, search: searchTerm });
   const { data: stats } = useOrderStats();
@@ -60,6 +76,45 @@ const AdminPedidos = () => {
       setSelectedOrder(null);
       setNewStatus('');
     }
+  };
+
+  const handleUpdateTracking = async () => {
+    if (selectedOrder && trackingCarrier && trackingNumber) {
+      const carrierOption = carrierOptions.find(c => c.value === trackingCarrier);
+      const carrierUrl = trackingCarrier === 'other' ? customCarrierUrl : carrierOption?.url || '';
+      
+      await updateOrderTracking.mutateAsync({
+        orderId: selectedOrder.id,
+        carrier: trackingCarrier === 'other' ? 'Otro' : trackingCarrier,
+        trackingNumber,
+        carrierUrl,
+        estimatedDelivery: estimatedDelivery || undefined,
+      });
+      
+      setSelectedOrder(null);
+      resetTrackingForm();
+    }
+  };
+
+  const resetTrackingForm = () => {
+    setTrackingCarrier('');
+    setTrackingNumber('');
+    setCustomCarrierUrl('');
+    setEstimatedDelivery('');
+  };
+
+  const handleOpenOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setNewStatus(order.status as OrderStatus);
+    // Pre-fill tracking info if exists
+    const metadata = order.metadata as any;
+    if (metadata?.carrier) {
+      const matchingCarrier = carrierOptions.find(c => c.value === metadata.carrier);
+      setTrackingCarrier(matchingCarrier ? metadata.carrier : 'other');
+      if (!matchingCarrier) setCustomCarrierUrl(metadata.carrier_url || '');
+    }
+    if (metadata?.tracking_number) setTrackingNumber(metadata.tracking_number);
+    if (metadata?.estimated_delivery) setEstimatedDelivery(metadata.estimated_delivery);
   };
 
   const handleCancelOrder = async (orderId: string) => {
@@ -244,10 +299,7 @@ const AdminPedidos = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
-                              setSelectedOrder(order);
-                              setNewStatus(order.status as OrderStatus);
-                            }}
+                            onClick={() => handleOpenOrder(order)}
                           >
                             <Eye className="h-4 w-4" />
                           </Button>
@@ -323,6 +375,79 @@ const AdminPedidos = () => {
                   </Button>
                 </div>
               </div>
+
+              {/* Tracking Info Section */}
+              {(selectedOrder.status === 'paid' || selectedOrder.status === 'shipped') && (
+                <div className="p-4 bg-purple-500/10 rounded-lg space-y-4 border border-purple-500/20">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-5 w-5 text-purple-500" />
+                    <p className="font-medium text-purple-500">Información de Envío</p>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="carrier">Paquetería</Label>
+                      <Select value={trackingCarrier} onValueChange={setTrackingCarrier}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccionar paquetería" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {carrierOptions.map((carrier) => (
+                            <SelectItem key={carrier.value} value={carrier.value}>
+                              {carrier.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="trackingNumber">Número de Guía</Label>
+                      <Input
+                        id="trackingNumber"
+                        placeholder="Ej: 1234567890"
+                        value={trackingNumber}
+                        onChange={(e) => setTrackingNumber(e.target.value)}
+                      />
+                    </div>
+                    
+                    {trackingCarrier === 'other' && (
+                      <div className="space-y-2 md:col-span-2">
+                        <Label htmlFor="customUrl">URL de rastreo (opcional)</Label>
+                        <Input
+                          id="customUrl"
+                          placeholder="https://..."
+                          value={customCarrierUrl}
+                          onChange={(e) => setCustomCarrierUrl(e.target.value)}
+                        />
+                      </div>
+                    )}
+                    
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="estimatedDelivery">Fecha estimada de entrega (opcional)</Label>
+                      <Input
+                        id="estimatedDelivery"
+                        placeholder="Ej: 25 de Diciembre, 2024"
+                        value={estimatedDelivery}
+                        onChange={(e) => setEstimatedDelivery(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                  
+                  <Button
+                    onClick={handleUpdateTracking}
+                    disabled={!trackingCarrier || !trackingNumber || updateOrderTracking.isPending}
+                    className="w-full bg-purple-600 hover:bg-purple-700"
+                  >
+                    {updateOrderTracking.isPending ? (
+                      <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                    ) : (
+                      <Truck className="h-4 w-4 mr-2" />
+                    )}
+                    Guardar y Marcar como Enviado
+                  </Button>
+                </div>
+              )}
 
               {/* Order Items */}
               <div>

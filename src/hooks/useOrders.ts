@@ -151,10 +151,56 @@ export const useOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
       queryClient.invalidateQueries({ queryKey: ['all-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
       toast({ title: 'Estado del pedido actualizado' });
     },
     onError: (error: Error) => {
       toast({ title: 'Error al actualizar pedido', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Update order tracking info
+  const updateOrderTracking = useMutation({
+    mutationFn: async ({ 
+      orderId, 
+      carrier, 
+      trackingNumber, 
+      carrierUrl,
+      estimatedDelivery 
+    }: { 
+      orderId: string; 
+      carrier: string; 
+      trackingNumber: string;
+      carrierUrl?: string;
+      estimatedDelivery?: string;
+    }) => {
+      const { data, error } = await supabase
+        .from('orders_b2b')
+        .update({ 
+          metadata: {
+            carrier,
+            tracking_number: trackingNumber,
+            carrier_url: carrierUrl || null,
+            estimated_delivery: estimatedDelivery || null,
+          },
+          status: 'shipped',
+          updated_at: new Date().toISOString() 
+        })
+        .eq('id', orderId)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['all-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+      toast({ title: 'Información de envío actualizada' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al actualizar envío', description: error.message, variant: 'destructive' });
     },
   });
 
@@ -216,6 +262,7 @@ export const useOrders = () => {
     useOrder,
     useOrderStats,
     updateOrderStatus,
+    updateOrderTracking,
     cancelOrder,
   };
 };
