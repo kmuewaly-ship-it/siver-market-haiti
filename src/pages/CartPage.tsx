@@ -1,7 +1,7 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle } from "lucide-react";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, Store } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -87,6 +87,13 @@ const CartPage = () => {
                               {item.name}
                             </p>
                             <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                            {/* Store Badge */}
+                            {item.storeName && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 text-blue-600 rounded text-[10px] font-medium mt-1">
+                                <Store className="w-3 h-3" />
+                                {item.storeName}
+                              </span>
+                            )}
                           </div>
                           <button
                             onClick={() => removeItem(item.id)}
