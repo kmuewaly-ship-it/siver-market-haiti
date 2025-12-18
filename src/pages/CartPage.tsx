@@ -89,7 +89,7 @@ const CartPage = () => {
               <p className="text-gray-600 font-medium mb-2">Tu carrito está vacío</p>
               <p className="text-xs text-gray-500 mb-4">¡Explora nuestros productos y encuentra algo que te guste!</p>
               <Button asChild style={{ backgroundColor: '#071d7f' }} className="text-white hover:opacity-90">
-                <Link to="/marketplace">Ir a comprar</Link>
+                <Link to="/">Ir a comprar</Link>
               </Button>
             </div>
           ) : (

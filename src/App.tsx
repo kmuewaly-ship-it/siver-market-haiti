@@ -41,8 +41,7 @@ import AdminPedidos from "./pages/admin/AdminPedidos";
 import AdminPreciosConfig from "./pages/admin/AdminPreciosConfig";
 import AdminApprovals from "./pages/admin/AdminApprovals";
 import AdminCotizaciones from "./pages/admin/AdminCotizaciones";
-
-// Seller Pages
+import AdminReembolsos from "./pages/admin/AdminReembolsos";
 
 // Seller Pages
 import SellerAcquisicionLotes from "./pages/seller/SellerAcquisicionLotes";
@@ -189,6 +188,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
                   <AdminCotizaciones />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/reembolsos" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
+                  <AdminReembolsos />
                 </ProtectedRoute>
               } 
             />

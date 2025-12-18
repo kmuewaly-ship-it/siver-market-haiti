@@ -591,10 +591,10 @@ const MyPurchasesPage = () => {
               <p className="text-muted-foreground mb-4">
                 Explora nuestro catálogo y encuentra productos increíbles
               </p>
-              <Link to="/marketplace">
+              <Link to="/">
                 <Button>
                   <ShoppingBag className="h-4 w-4 mr-2" />
-                  Ir al Marketplace
+                  Ir a la Tienda
                 </Button>
               </Link>
             </CardContent>

@@ -30,7 +30,7 @@ const ProductCarousel = ({
   products,
   itemsPerView = 5,
   isLoading = false,
-  linkTo = "/marketplace",
+  linkTo = "/",
 }: ProductCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 

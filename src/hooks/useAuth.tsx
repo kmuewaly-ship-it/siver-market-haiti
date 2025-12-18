@@ -130,7 +130,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
               // Páginas públicas donde NO queremos redirigir (si ya estaba ahí)
               // Usamos validación más estricta para evitar que '/' coincida con todo
-              const publicPagesPrefixes = ['/marketplace', '/tienda/', '/producto/'];
+              const publicPagesPrefixes = ['/tienda/', '/producto/'];
               const isPublicPage = currentPath === '/' || publicPagesPrefixes.some(page => currentPath.startsWith(page));
 
               if (isPublicPage) {
