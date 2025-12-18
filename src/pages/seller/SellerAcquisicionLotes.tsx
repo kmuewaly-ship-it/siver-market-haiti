@@ -185,21 +185,9 @@ const SellerAcquisicionLotesContent = () => {
     );
   }
 
-  const handleCategoryFromHeader = (categoryId: string | null) => {
-    setFilters({ ...filters, category: categoryId });
-  };
-
   return (
     <div className="min-h-screen bg-gray-50">
-      {isMobile ? (
-        <GlobalMobileHeader 
-          forceShow 
-          onCategorySelect={handleCategoryFromHeader}
-          selectedCategoryId={filters.category}
-        />
-      ) : (
-        <Header />
-      )}
+      {isMobile ? <GlobalMobileHeader forceShow /> : <Header />}
       
       <main className="container mx-auto px-4 pb-24 pt-4">
 
