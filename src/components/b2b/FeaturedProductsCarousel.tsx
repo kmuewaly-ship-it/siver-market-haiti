@@ -14,15 +14,10 @@ const FeaturedProductsCarousel = ({ products }: FeaturedProductsCarouselProps) =
   if (products.length === 0) return null;
 
   return (
-    <div className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100 py-4 mb-4">
+    <div className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100 py-2 mb-2">
       <div className="container mx-auto px-4">
-        <h3 className="text-sm font-bold text-gray-900 mb-3 flex items-center gap-2">
-          <span className="w-1 h-4 bg-orange-500 rounded-full"></span>
-          Destacados B2B
-        </h3>
-        
         <div className="overflow-hidden" ref={emblaRef}>
-          <div className="flex gap-4">
+          <div className="flex gap-3">
             {products.map((product) => (
               <div className="flex-[0_0_40%] min-w-[140px] max-w-[160px]" key={product.id}>
                 <Card className="h-full border-none shadow-sm hover:shadow-md transition-shadow bg-white">
