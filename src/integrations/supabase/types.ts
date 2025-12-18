@@ -594,6 +594,54 @@ export type Database = {
           },
         ]
       }
+      pending_quotes: {
+        Row: {
+          admin_notes: string | null
+          cart_snapshot: Json
+          created_at: string
+          id: string
+          quote_number: string
+          responded_at: string | null
+          seller_id: string
+          seller_notes: string | null
+          status: string
+          total_amount: number
+          total_quantity: number
+          updated_at: string
+          whatsapp_sent_at: string | null
+        }
+        Insert: {
+          admin_notes?: string | null
+          cart_snapshot: Json
+          created_at?: string
+          id?: string
+          quote_number: string
+          responded_at?: string | null
+          seller_id: string
+          seller_notes?: string | null
+          status?: string
+          total_amount?: number
+          total_quantity?: number
+          updated_at?: string
+          whatsapp_sent_at?: string | null
+        }
+        Update: {
+          admin_notes?: string | null
+          cart_snapshot?: Json
+          created_at?: string
+          id?: string
+          quote_number?: string
+          responded_at?: string | null
+          seller_id?: string
+          seller_notes?: string | null
+          status?: string
+          total_amount?: number
+          total_quantity?: number
+          updated_at?: string
+          whatsapp_sent_at?: string | null
+        }
+        Relationships: []
+      }
       price_settings: {
         Row: {
           created_at: string | null

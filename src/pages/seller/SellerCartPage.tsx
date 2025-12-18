@@ -1,15 +1,102 @@
+import { useState } from "react";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Trash2, Package, AlertCircle } from "lucide-react";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const SellerCartPage = () => {
+  const { user } = useAuth();
   const { cart, removeItem, updateQuantity, clearCart } = useCartB2B();
   const items = cart.items;
   const { subtotal, totalQuantity } = { subtotal: cart.subtotal, totalQuantity: cart.totalQuantity };
   const isMobile = useIsMobile();
+  const [isNegotiating, setIsNegotiating] = useState(false);
+
+  const handleNegotiateViaWhatsApp = async () => {
+    if (!user?.id || items.length === 0) {
+      toast.error('El carrito está vacío');
+      return;
+    }
+
+    setIsNegotiating(true);
+
+    try {
+      // Get admin WhatsApp number from settings
+      const { data: settingsData } = await supabase
+        .from('price_settings')
+        .select('value')
+        .eq('key', 'admin_whatsapp')
+        .maybeSingle();
+
+      const adminWhatsApp = settingsData?.value?.toString() || '50937000000';
+
+      // Save quote to database
+      const cartSnapshot = {
+        items: items.map(item => ({
+          productId: item.productId,
+          sku: item.sku,
+          nombre: item.nombre,
+          cantidad: item.cantidad,
+          precio_b2b: item.precio_b2b,
+          subtotal: item.subtotal,
+        })),
+        totalItems: items.length,
+        totalQuantity: totalQuantity,
+        subtotal: subtotal,
+      };
+
+      const { data: quote, error } = await supabase
+        .from('pending_quotes' as any)
+        .insert({
+          seller_id: user.id,
+          cart_snapshot: cartSnapshot,
+          total_amount: subtotal,
+          total_quantity: totalQuantity,
+          whatsapp_sent_at: new Date().toISOString(),
+        })
+        .select('quote_number')
+        .single() as { data: { quote_number: string } | null; error: any };
+
+      if (error) throw error;
+
+      const quoteNumber = quote?.quote_number || 'N/A';
+
+      // Generate WhatsApp message
+      const itemsList = items
+        .map((item, index) => `${index + 1}. ${item.nombre} x ${item.cantidad} uds - $${item.subtotal.toFixed(2)}`)
+        .join('\n');
+
+      const message = `📱 *Nuevo Pedido para Negociación - Siver Market*
+
+👤 *Seller:* ${user.name || user.email}
+🆔 *Cotización:* ${quoteNumber}
+
+📦 *Detalle del pedido:*
+${itemsList}
+
+💰 *Total estimado:* $${subtotal.toFixed(2)}
+📊 *Total unidades:* ${totalQuantity}
+
+Me gustaría negociar condiciones para este pedido. Quedo atento.`;
+
+      // Open WhatsApp
+      const encodedMessage = encodeURIComponent(message);
+      const whatsappUrl = `https://wa.me/${adminWhatsApp}?text=${encodedMessage}`;
+      
+      window.open(whatsappUrl, '_blank');
+      toast.success('Cotización guardada. Abriendo WhatsApp...');
+    } catch (error) {
+      console.error('Error al crear cotización:', error);
+      toast.error('Error al procesar la solicitud');
+    } finally {
+      setIsNegotiating(false);
+    }
+  };
 
   return (
     <SellerLayout>
@@ -172,7 +259,27 @@ const SellerCartPage = () => {
                   Proceder al Checkout
                 </Link>
 
-                {/* Botón Continuar comprando */}
+                {/* Botón Negociar por WhatsApp */}
+                <button
+                  onClick={handleNegotiateViaWhatsApp}
+                  disabled={isNegotiating}
+                  className="w-full py-3 rounded-lg font-bold text-center transition flex items-center justify-center gap-2 shadow-lg hover:opacity-90 disabled:opacity-50"
+                  style={{ backgroundColor: '#25D366', color: 'white' }}
+                >
+                  {isNegotiating ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Procesando...
+                    </>
+                  ) : (
+                    <>
+                      <MessageCircle className="w-5 h-5" />
+                      Negociar por WhatsApp
+                    </>
+                  )}
+                </button>
+
+                {/* Botón Vaciar carrito */}
                 <Button
                   variant="outline"
                   onClick={clearCart}
