@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { ShoppingBag, Search, Heart, User, Camera, Loader2, Mic, MicOff, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCategories } from "@/hooks/useCategories";
@@ -7,6 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { searchProductsByImage } from "@/services/api/imageSearch";
 
 interface SearchResult {
   id: string;
@@ -77,17 +78,20 @@ const SellerDesktopHeader = ({
   const [showResults, setShowResults] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  const [isImageSearching, setIsImageSearching] = useState(false);
   
   const searchRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const catBarRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
+  const imageInputRef = useRef<HTMLInputElement>(null);
   
   const [hasOverflow, setHasOverflow] = useState(false);
   const [headerHeight, setHeaderHeight] = useState(0);
 
   const { data: categories = [] } = useCategories();
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   // Root categories
   const rootCategories = categories.filter((c) => !c.parent_id);
@@ -276,6 +280,33 @@ const SellerDesktopHeader = ({
     recognition.start();
   };
 
+  const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsImageSearching(true);
+    toast.info("Cargando modelo de IA... Esto puede tomar unos segundos la primera vez.");
+
+    try {
+      const results = await searchProductsByImage(file);
+      if (results && results.length > 0) {
+        sessionStorage.setItem('imageSearchResults', JSON.stringify(results));
+        navigate('/seller/adquisicion-lotes?source=image');
+        toast.success(`Se encontraron ${results.length} productos similares`);
+      } else {
+        toast.info("No se encontraron productos similares");
+      }
+    } catch (error) {
+      console.error("Image search error:", error);
+      toast.error("Error al buscar por imagen");
+    } finally {
+      setIsImageSearching(false);
+      if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+      }
+    }
+  };
+
   return (
     <>
       <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
@@ -325,6 +356,26 @@ const SellerDesktopHeader = ({
                       <X className="w-4 h-4" />
                     </button>
                   )}
+                  {/* Camera/Image search button */}
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageSearch}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => imageInputRef.current?.click()}
+                    disabled={isImageSearching}
+                    className="text-gray-400 hover:text-green-500 transition-colors disabled:opacity-50"
+                  >
+                    {isImageSearching ? (
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                    ) : (
+                      <Camera className="w-5 h-5" />
+                    )}
+                  </button>
                   {voiceSupported && (
                     <button
                       type="button"
