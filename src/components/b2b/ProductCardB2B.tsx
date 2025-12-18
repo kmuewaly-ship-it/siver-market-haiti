@@ -82,6 +82,28 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
           )}
         </div>
 
+        {/* Mobile Action Buttons on Image */}
+        {isMobile && !isOutOfStock && (
+          <div className="absolute top-2 right-2 flex flex-col gap-2">
+            <Button
+              size="icon"
+              variant="outline"
+              className="h-8 w-8 rounded-full border-green-600 text-green-600 bg-white/90 hover:bg-green-50 shadow-sm"
+              onClick={handleWhatsApp}
+            >
+              <MessageCircle className="h-4 w-4" />
+            </Button>
+            <Button
+              size="icon"
+              className="h-8 w-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+            >
+              <ShoppingCart className="h-4 w-4" />
+            </Button>
+          </div>
+        )}
+
         {isOutOfStock && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
             <span className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold">Agotado</span>
@@ -154,48 +176,27 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
             </button>
           </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-2 flex-1 justify-end">
-            {isMobile ? (
-              <>
-                <Button
-                  size="icon"
-                  variant="outline"
-                  className="h-8 w-8 rounded-full border-green-600 text-green-600 hover:bg-green-50"
-                  onClick={handleWhatsApp}
-                >
-                  <MessageCircle className="h-4 w-4" />
-                </Button>
-                <Button
-                  size="icon"
-                  className="h-8 w-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className="h-8 text-xs border-green-600 text-green-600 hover:bg-green-50"
-                  onClick={handleWhatsApp}
-                >
-                  Contactar
-                </Button>
-                <Button
-                  size="sm"
-                  className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
-                  onClick={handleAddToCart}
-                  disabled={isOutOfStock}
-                >
-                  Agregar
-                </Button>
-              </>
-            )}
-          </div>
+          {/* Desktop Action Buttons */}
+          {!isMobile && (
+            <div className="flex gap-2 flex-1 justify-end">
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs border-green-600 text-green-600 hover:bg-green-50"
+                onClick={handleWhatsApp}
+              >
+                Contactar
+              </Button>
+              <Button
+                size="sm"
+                className="h-8 text-xs bg-blue-600 hover:bg-blue-700"
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+              >
+                Agregar
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>
