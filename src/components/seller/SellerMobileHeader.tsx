@@ -3,7 +3,7 @@ import { Link } from "react-router-dom";
 import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCategories } from "@/hooks/useCategories";
-import { useIsMobile } from "@/hooks/use-mobile";
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -78,7 +78,7 @@ const SellerMobileHeader = ({
   const [voiceSupported, setVoiceSupported] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
-  const isMobile = useIsMobile();
+  
   const { data: categories = [] } = useCategories();
 
   // Check for Web Speech API support
@@ -140,9 +140,7 @@ const SellerMobileHeader = ({
     return () => clearTimeout(debounce);
   }, [searchQuery]);
 
-  if (!isMobile) {
-    return null;
-  }
+  // Header shown on all screen sizes
 
   // Get root categories (no parent)
   const rootCategories = categories.filter((c) => !c.parent_id);
