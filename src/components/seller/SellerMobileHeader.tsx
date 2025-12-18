@@ -313,11 +313,10 @@ const SellerMobileHeader = ({
           <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
             <input
               type="text"
-              placeholder="Buscar productos B2B..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
-              className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-500 px-4 py-2 outline-none"
+              className="flex-1 bg-transparent text-sm text-gray-700 px-3 py-2 outline-none min-w-0"
             />
             {searchQuery && (
               <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600">
