@@ -93,7 +93,7 @@ export function SellerSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup className="mt-auto">
+        <SidebarGroup className="mt-4">
           <SidebarGroupContent>
             <SidebarMenu>
               <SidebarMenuItem>
@@ -109,7 +109,7 @@ export function SellerSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-2 pt-0 pb-2 flex-shrink-0">
+      <SidebarFooter className="p-2 flex-shrink-0 mt-auto">
         <div className={`flex items-center gap-2 p-2 rounded-xl bg-muted/30 border border-border/50 transition-all duration-300 ${isCollapsed ? "justify-center p-2 bg-transparent border-0" : ""}`}>
           <Avatar className="h-9 w-9 border-2 border-background shadow-sm">
             <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} />
