@@ -60,7 +60,11 @@ declare global {
   }
 }
 
-const GlobalMobileHeader = () => {
+interface GlobalMobileHeaderProps {
+  forceShow?: boolean;
+}
+
+const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -76,7 +80,7 @@ const GlobalMobileHeader = () => {
   const isMobile = useIsMobile();
   const { data: categories = [] } = usePublicCategories();
 
-  // Hide on admin, seller, and login routes
+  // Hide on admin, seller, and login routes (unless forceShow)
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isSellerRoute = location.pathname.startsWith('/seller');
   const isLoginRoute = location.pathname === '/login';
@@ -140,7 +144,7 @@ const GlobalMobileHeader = () => {
     return () => clearTimeout(debounce);
   }, [searchQuery]);
 
-  if (!isMobile || isAdminRoute || isSellerRoute || isLoginRoute) {
+  if (!isMobile || isAdminRoute || isLoginRoute || (isSellerRoute && !forceShow)) {
     return null;
   }
 
