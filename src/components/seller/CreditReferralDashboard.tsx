@@ -118,27 +118,89 @@ export const CreditReferralDashboard = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Historial de Movimientos</CardTitle>
+                <CardTitle className="text-lg flex items-center gap-2">
+                  <DollarSign className="h-5 w-5" />
+                  Historial de Movimientos
+                </CardTitle>
+                <CardDescription>
+                  Detalle de todas las transacciones de crédito
+                </CardDescription>
               </CardHeader>
               <CardContent>
                 {movements && movements.length > 0 ? (
                   <div className="space-y-3">
-                    {movements.map((mov) => (
-                      <div key={mov.id} className="flex items-center justify-between py-2 border-b last:border-0">
-                        <div>
-                          <p className="font-medium">{mov.description || mov.movement_type}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {new Date(mov.created_at).toLocaleDateString()}
-                          </p>
+                    {movements.map((mov) => {
+                      const isDebit = mov.amount > 0; // Uso de crédito (aumenta deuda)
+                      const isCredit = mov.amount < 0; // Pago o bono (reduce deuda)
+                      
+                      const getTypeInfo = (type: string) => {
+                        switch (type) {
+                          case 'purchase':
+                            return { label: 'Compra B2B', icon: CreditCard, color: 'text-orange-600 bg-orange-50' };
+                          case 'payment':
+                            return { label: 'Pago Recibido', icon: CheckCircle, color: 'text-green-600 bg-green-50' };
+                          case 'referral_bonus':
+                            return { label: 'Bono Referido', icon: Gift, color: 'text-blue-600 bg-blue-50' };
+                          case 'adjustment':
+                            return { label: 'Ajuste Admin', icon: TrendingUp, color: 'text-purple-600 bg-purple-50' };
+                          default:
+                            return { label: type, icon: DollarSign, color: 'text-gray-600 bg-gray-50' };
+                        }
+                      };
+                      
+                      const typeInfo = getTypeInfo(mov.movement_type);
+                      const TypeIcon = typeInfo.icon;
+                      
+                      return (
+                        <div 
+                          key={mov.id} 
+                          className="flex items-start gap-4 p-3 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        >
+                          <div className={`p-2 rounded-full ${typeInfo.color}`}>
+                            <TypeIcon className="h-4 w-4" />
+                          </div>
+                          
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-medium text-sm">{typeInfo.label}</p>
+                              <span className={`font-bold ${isCredit ? 'text-green-600' : 'text-red-600'}`}>
+                                {isCredit ? '-' : '+'}${Math.abs(mov.amount).toFixed(2)}
+                              </span>
+                            </div>
+                            
+                            {mov.description && (
+                              <p className="text-sm text-muted-foreground mt-0.5 truncate">
+                                {mov.description}
+                              </p>
+                            )}
+                            
+                            <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3 w-3" />
+                                {new Date(mov.created_at).toLocaleString('es-ES', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </span>
+                              <span className="text-muted-foreground/60">|</span>
+                              <span>
+                                Saldo: ${mov.balance_before.toFixed(2)} → ${mov.balance_after.toFixed(2)}
+                              </span>
+                            </div>
+                          </div>
                         </div>
-                        <span className={mov.amount < 0 ? 'text-green-600' : 'text-red-600'}>
-                          {mov.amount < 0 ? '-' : '+'}${Math.abs(mov.amount).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
-                  <p className="text-muted-foreground text-center py-4">Sin movimientos</p>
+                  <div className="text-center py-8 text-muted-foreground">
+                    <DollarSign className="h-12 w-12 mx-auto mb-3 opacity-50" />
+                    <p>Sin movimientos de crédito</p>
+                    <p className="text-sm">Tus transacciones aparecerán aquí</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
