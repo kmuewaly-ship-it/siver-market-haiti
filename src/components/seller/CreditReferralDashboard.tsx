@@ -1,9 +1,13 @@
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Progress } from "@/components/ui/progress";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { 
   CreditCard, 
   Users, 
@@ -15,16 +19,19 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
-  DollarSign
+  DollarSign,
+  Filter,
+  Loader2,
+  ChevronDown
 } from "lucide-react";
 import { useKYC } from "@/hooks/useKYC";
-import { useSellerCredits } from "@/hooks/useSellerCredits";
+import { useSellerCredits, useCreditMovements, MovementFilters } from "@/hooks/useSellerCredits";
 import { useReferrals } from "@/hooks/useReferrals";
 import { toast } from "sonner";
 
 export const CreditReferralDashboard = () => {
   const { isVerified, isUnverified, isPending } = useKYC();
-  const { credit, movements, availableCredit, hasActiveCredit } = useSellerCredits();
+  const { credit, availableCredit, hasActiveCredit } = useSellerCredits();
   const { 
     referralLink, 
     myReferrals, 
@@ -34,12 +41,33 @@ export const CreditReferralDashboard = () => {
     totalEarned 
   } = useReferrals();
 
+  // Movement filters state
+  const [movementType, setMovementType] = useState<string>('all');
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+
+  const filters: MovementFilters = {
+    type: movementType !== 'all' ? movementType : undefined,
+    startDate: startDate ? new Date(startDate) : undefined,
+    endDate: endDate ? new Date(endDate) : undefined,
+  };
+
+  const { movements, isLoading: movementsLoading, isFetchingMore, hasMore, loadMore } = useCreditMovements(filters);
+
   const copyReferralLink = () => {
     if (referralLink) {
       navigator.clipboard.writeText(referralLink);
       toast.success('Link copiado al portapapeles');
     }
   };
+
+  const clearFilters = () => {
+    setMovementType('all');
+    setStartDate('');
+    setEndDate('');
+  };
+
+  const hasActiveFilters = movementType !== 'all' || startDate || endDate;
 
   if (!isVerified) {
     return (
@@ -118,19 +146,68 @@ export const CreditReferralDashboard = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Historial de Movimientos
-                </CardTitle>
-                <CardDescription>
-                  Detalle de todas las transacciones de crédito
-                </CardDescription>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <DollarSign className="h-5 w-5" />
+                      Historial de Movimientos
+                    </CardTitle>
+                    <CardDescription>
+                      Detalle de todas las transacciones de crédito
+                    </CardDescription>
+                  </div>
+                  {hasActiveFilters && (
+                    <Button variant="ghost" size="sm" onClick={clearFilters}>
+                      Limpiar filtros
+                    </Button>
+                  )}
+                </div>
+
+                {/* Filters */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-4 border-t mt-4">
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Tipo</Label>
+                    <Select value={movementType} onValueChange={setMovementType}>
+                      <SelectTrigger className="h-9 mt-1">
+                        <SelectValue placeholder="Todos" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Todos</SelectItem>
+                        <SelectItem value="purchase">Compras</SelectItem>
+                        <SelectItem value="payment">Pagos</SelectItem>
+                        <SelectItem value="referral_bonus">Bonos Referidos</SelectItem>
+                        <SelectItem value="adjustment">Ajustes</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Desde</Label>
+                    <Input
+                      type="date"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      className="h-9 mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs text-muted-foreground">Hasta</Label>
+                    <Input
+                      type="date"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      className="h-9 mt-1"
+                    />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent>
-                {movements && movements.length > 0 ? (
+                {movementsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                  </div>
+                ) : movements && movements.length > 0 ? (
                   <div className="space-y-3">
                     {movements.map((mov) => {
-                      const isDebit = mov.amount > 0; // Uso de crédito (aumenta deuda)
                       const isCredit = mov.amount < 0; // Pago o bono (reduce deuda)
                       
                       const getTypeInfo = (type: string) => {
@@ -194,12 +271,34 @@ export const CreditReferralDashboard = () => {
                         </div>
                       );
                     })}
+
+                    {/* Load More Button */}
+                    {hasMore && (
+                      <Button
+                        variant="outline"
+                        className="w-full mt-4"
+                        onClick={loadMore}
+                        disabled={isFetchingMore}
+                      >
+                        {isFetchingMore ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Cargando...
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown className="h-4 w-4 mr-2" />
+                            Cargar más
+                          </>
+                        )}
+                      </Button>
+                    )}
                   </div>
                 ) : (
                   <div className="text-center py-8 text-muted-foreground">
                     <DollarSign className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                    <p>Sin movimientos de crédito</p>
-                    <p className="text-sm">Tus transacciones aparecerán aquí</p>
+                    <p>{hasActiveFilters ? 'Sin resultados para estos filtros' : 'Sin movimientos de crédito'}</p>
+                    <p className="text-sm">{hasActiveFilters ? 'Intenta con otros criterios de búsqueda' : 'Tus transacciones aparecerán aquí'}</p>
                   </div>
                 )}
               </CardContent>

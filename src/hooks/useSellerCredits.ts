@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
@@ -28,6 +29,12 @@ export interface CreditMovement {
   created_at: string;
 }
 
+export interface MovementFilters {
+  type?: string;
+  startDate?: Date;
+  endDate?: Date;
+}
+
 export const useSellerCredits = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
@@ -49,24 +56,6 @@ export const useSellerCredits = () => {
     enabled: !!user?.id,
   });
 
-  const { data: movements } = useQuery({
-    queryKey: ['credit-movements', user?.id],
-    queryFn: async () => {
-      if (!user?.id) return [];
-      
-      const { data, error } = await supabase
-        .from('credit_movements')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(50);
-      
-      if (error) throw error;
-      return data as CreditMovement[];
-    },
-    enabled: !!user?.id,
-  });
-
   const availableCredit = credit ? credit.credit_limit - credit.balance_debt : 0;
   const hasActiveCredit = credit?.is_active ?? false;
 
@@ -78,11 +67,86 @@ export const useSellerCredits = () => {
 
   return {
     credit,
-    movements,
     isLoading,
     availableCredit,
     hasActiveCredit,
     calculateMaxCreditForCart,
+  };
+};
+
+// Hook for paginated movements with filters
+export const useCreditMovements = (filters: MovementFilters = {}, pageSize = 10) => {
+  const { user } = useAuth();
+  const [page, setPage] = useState(0);
+  const [allMovements, setAllMovements] = useState<CreditMovement[]>([]);
+  const [hasMore, setHasMore] = useState(true);
+
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ['credit-movements', user?.id, filters, page],
+    queryFn: async () => {
+      if (!user?.id) return [];
+      
+      let query = supabase
+        .from('credit_movements')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .range(page * pageSize, (page + 1) * pageSize - 1);
+      
+      // Apply filters
+      if (filters.type && filters.type !== 'all') {
+        query = query.eq('movement_type', filters.type);
+      }
+      
+      if (filters.startDate) {
+        query = query.gte('created_at', filters.startDate.toISOString());
+      }
+      
+      if (filters.endDate) {
+        const endOfDay = new Date(filters.endDate);
+        endOfDay.setHours(23, 59, 59, 999);
+        query = query.lte('created_at', endOfDay.toISOString());
+      }
+      
+      const { data, error } = await query;
+      
+      if (error) throw error;
+      return data as CreditMovement[];
+    },
+    enabled: !!user?.id,
+  });
+
+  // Update allMovements when data changes
+  useEffect(() => {
+    if (data) {
+      if (page === 0) {
+        setAllMovements(data);
+      } else {
+        setAllMovements(prev => [...prev, ...data]);
+      }
+      setHasMore(data.length === pageSize);
+    }
+  }, [data, page, pageSize]);
+
+  // Reset when filters change
+  useEffect(() => {
+    setPage(0);
+    setAllMovements([]);
+    setHasMore(true);
+  }, [filters.type, filters.startDate?.getTime(), filters.endDate?.getTime()]);
+
+  const loadMore = () => {
+    if (hasMore && !isFetching) {
+      setPage(p => p + 1);
+    }
+  };
+
+  return {
+    movements: allMovements,
+    isLoading: isLoading && page === 0,
+    isFetchingMore: isFetching && page > 0,
+    hasMore,
+    loadMore,
   };
 };
 
