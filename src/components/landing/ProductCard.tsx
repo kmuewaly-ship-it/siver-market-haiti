@@ -1,5 +1,7 @@
 import { Heart } from "lucide-react";
 import { useState } from "react";
+import { useSmartCart } from "@/hooks/useSmartCart";
+import { Badge } from "@/components/ui/badge";
 
 interface Product {
   id: string;
@@ -9,6 +11,10 @@ interface Product {
   image: string;
   discount?: number;
   badge?: string;
+  sku?: string;
+  b2bPrice?: number;
+  moq?: number;
+  stock?: number;
 }
 
 interface ProductCardProps {
@@ -17,10 +23,24 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
+  const { addToCart, isSeller } = useSmartCart();
 
   const discountPercentage = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
     : product.discount || 0;
+
+  const handleAddToCart = () => {
+    addToCart({
+      id: product.id,
+      name: product.name,
+      sku: product.sku || product.id,
+      price: product.price,
+      b2bPrice: product.b2bPrice,
+      moq: product.moq || 1,
+      stock: product.stock || 100,
+      image: product.image,
+    });
+  };
 
   return (
     <div className="bg-white rounded-lg overflow-hidden hover:shadow-lg transition group">
@@ -66,18 +86,38 @@ const ProductCard = ({ product }: ProductCardProps) => {
         </h3>
 
         <div className="space-y-1">
-          <div className="text-lg font-bold text-red-500">
-            ${product.price.toFixed(2)}
-          </div>
-          {product.originalPrice && (
-            <div className="text-sm text-gray-500 line-through">
-              ${product.originalPrice.toFixed(2)}
-            </div>
+          {isSeller && product.b2bPrice ? (
+            <>
+              <div className="text-lg font-bold text-blue-600">
+                ${product.b2bPrice.toFixed(2)} <span className="text-xs font-normal text-gray-500">B2B</span>
+              </div>
+              {product.moq && (
+                <div className="text-xs text-gray-500">MOQ: {product.moq} unidades</div>
+              )}
+            </>
+          ) : (
+            <>
+              <div className="text-lg font-bold text-red-500">
+                ${product.price.toFixed(2)}
+              </div>
+              {product.originalPrice && (
+                <div className="text-sm text-gray-500 line-through">
+                  ${product.originalPrice.toFixed(2)}
+                </div>
+              )}
+            </>
           )}
         </div>
 
-        <button className="w-full mt-3 bg-red-500 hover:bg-red-600 text-white py-2 rounded-lg text-sm font-medium transition">
-          Agregar al Carrito
+        <button 
+          onClick={handleAddToCart}
+          className={`w-full mt-3 py-2 rounded-lg text-sm font-medium transition ${
+            isSeller 
+              ? "bg-blue-600 hover:bg-blue-700 text-white" 
+              : "bg-red-500 hover:bg-red-600 text-white"
+          }`}
+        >
+          {isSeller ? `Agregar Lote (MOQ: ${product.moq || 1})` : "Agregar al Carrito"}
         </button>
       </div>
     </div>

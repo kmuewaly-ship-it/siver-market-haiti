@@ -62,9 +62,11 @@ declare global {
 
 interface GlobalMobileHeaderProps {
   forceShow?: boolean;
+  onCategorySelect?: (categoryId: string | null) => void;
+  selectedCategoryId?: string | null;
 }
 
-const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
+const GlobalMobileHeader = ({ forceShow = false, onCategorySelect, selectedCategoryId }: GlobalMobileHeaderProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -151,20 +153,33 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
   // Get root categories (no parent)
   const rootCategories = categories.filter((c) => !c.parent_id);
 
-  // Determine selected category from route
+  // Determine selected category from route or prop
   const isCategoriesPage = location.pathname === '/categorias';
   const categorySlug = location.pathname.startsWith('/categoria/') 
     ? location.pathname.split('/categoria/')[1] 
     : null;
   
-  const selectedCategory = categorySlug 
-    ? categories.find(c => c.slug === categorySlug)?.id || null
-    : null;
+  // Use prop if provided, otherwise derive from route
+  const selectedCategory = selectedCategoryId !== undefined 
+    ? selectedCategoryId
+    : categorySlug 
+      ? categories.find(c => c.slug === categorySlug)?.id || null
+      : null;
 
-  const handleCategorySelect = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    if (category) {
-      navigate(`/categoria/${category.slug}`);
+  const handleCategorySelect = (categoryId: string | null) => {
+    // If callback provided, use it (for B2B filtering)
+    if (onCategorySelect) {
+      onCategorySelect(categoryId);
+      return;
+    }
+    // Otherwise navigate (B2C behavior)
+    if (categoryId) {
+      const category = categories.find(c => c.id === categoryId);
+      if (category) {
+        navigate(`/categoria/${category.slug}`);
+      }
+    } else {
+      navigate("/categorias");
     }
   };
 
@@ -419,14 +434,13 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
         </Link>
       </div>
 
-      {/* Category tabs - horizontal scroll with black background */}
       <div className="flex items-center gap-4 px-3 py-2.5 overflow-x-auto scrollbar-hide bg-black">
         {/* "All" tab */}
         <button
-          onClick={() => navigate("/categorias")}
+          onClick={() => handleCategorySelect(null)}
           className={cn(
             "text-sm font-medium whitespace-nowrap pb-0.5 transition-colors",
-            isCategoriesPage && !selectedCategory
+            (onCategorySelect ? !selectedCategoryId : (isCategoriesPage && !selectedCategory))
               ? "text-white border-b-2 border-white" 
               : "text-gray-400 hover:text-white"
           )}
@@ -440,7 +454,7 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
             onClick={() => handleCategorySelect(category.id)}
             className={cn(
               "text-sm font-medium whitespace-nowrap pb-0.5 transition-colors",
-              selectedCategory === category.id 
+              (onCategorySelect ? selectedCategoryId : selectedCategory) === category.id 
                 ? "text-white border-b-2 border-white" 
                 : "text-gray-400 hover:text-white"
             )}
