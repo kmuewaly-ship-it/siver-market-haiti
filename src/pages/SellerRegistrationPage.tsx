@@ -8,7 +8,8 @@ import { toast } from "sonner";
 import { z } from "zod";
 
 const sellerRegistrationSchema = z.object({
-  businessName: z.string().min(2, "El nombre del negocio debe tener al menos 2 caracteres").max(100),     
+  storeName: z.string().min(2, "El nombre de la tienda debe tener al menos 2 caracteres").max(100),
+  storeDescription: z.string().max(300, "La descripción no puede exceder 300 caracteres").optional(),
   email: z.string().email("Email inválido").max(255),
   phone: z.string().min(8, "Teléfono debe tener al menos 8 dígitos").max(20),
   country: z.string().min(1, "Selecciona un país"),
@@ -24,7 +25,8 @@ const SellerRegistrationPage = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
-    businessName: "",
+    storeName: "",
+    storeDescription: "",
     email: "",
     phone: "",
     country: "",
@@ -59,9 +61,9 @@ const SellerRegistrationPage = () => {
         email: formData.email,
         password: formData.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/login`,
+          emailRedirectTo: `${window.location.origin}/seller/onboarding`,
           data: {
-            full_name: formData.businessName,
+            full_name: formData.storeName,
           },
         },
       });
@@ -84,8 +86,8 @@ const SellerRegistrationPage = () => {
       const { error: sellerError } = await supabase.from("sellers").insert({
         user_id: authData.user.id,
         email: formData.email,
-        name: formData.businessName,
-        business_name: formData.businessName,
+        name: formData.storeName,
+        business_name: formData.storeName,
         phone: formData.phone,
         is_verified: false,
       });
@@ -96,22 +98,25 @@ const SellerRegistrationPage = () => {
         return;
       }
 
-      // 3. Create store record (NEW)
-      const slug = formData.businessName
+      // 3. Create store record with name and description
+      const slug = formData.storeName
         .toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/(^-|-$)/g, "") + "-" + Math.floor(Math.random() * 1000);
 
       const { error: storeError } = await supabase.from("stores").insert({
         owner_user_id: authData.user.id,
-        name: formData.businessName,
+        name: formData.storeName,
+        description: formData.storeDescription || null,
         slug: slug,
         is_active: true,
       });
 
       if (storeError) {
         console.error("Store creation error:", storeError);
-        // Don't block registration if store creation fails, but log it
+        // Don't block registration if store creation fails
       }
 
       // 4. Assign seller role
@@ -124,8 +129,8 @@ const SellerRegistrationPage = () => {
         console.error("Role assignment error:", roleError);
       }
 
-      toast.success("Registro exitoso! Tu cuenta está pendiente de verificación por un administrador.");
-      navigate("/login");
+      toast.success("¡Registro exitoso! Ahora configura tu tienda.");
+      navigate("/seller/onboarding");
     } catch (error) {
       console.error("Registration error:", error);
       toast.error("Error al procesar el registro");
@@ -227,21 +232,40 @@ const SellerRegistrationPage = () => {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nombre del Negocio *
+                  Nombre de tu Tienda *
                 </label>
                 <Input
                   type="text"
-                  placeholder="Ej: Mi Empresa S.A."
-                  value={formData.businessName}
+                  placeholder="Ej: Boutique Fashion Haiti"
+                  value={formData.storeName}
                   onChange={(e) =>
-                    setFormData({ ...formData, businessName: e.target.value })
+                    setFormData({ ...formData, storeName: e.target.value })
                   }
                   required
                   className="w-full"
                   disabled={isLoading}
                 />
-                {errors.businessName && (
-                  <p className="text-red-500 text-sm mt-1">{errors.businessName}</p>
+                {errors.storeName && (
+                  <p className="text-red-500 text-sm mt-1">{errors.storeName}</p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Descripción de tu Tienda
+                </label>
+                <Input
+                  type="text"
+                  placeholder="Ej: Ropa y accesorios de moda para toda la familia"
+                  value={formData.storeDescription}
+                  onChange={(e) =>
+                    setFormData({ ...formData, storeDescription: e.target.value })
+                  }
+                  className="w-full"
+                  disabled={isLoading}
+                />
+                {errors.storeDescription && (
+                  <p className="text-red-500 text-sm mt-1">{errors.storeDescription}</p>
                 )}
               </div>
 

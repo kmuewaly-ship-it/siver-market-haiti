@@ -48,6 +48,7 @@ import SellerCartPage from "./pages/seller/SellerCartPage";
 import SellerFavoritesPage from "./pages/seller/SellerFavoritesPage";
 import SellerInventarioB2C from "./pages/seller/SellerInventarioB2C";
 import SellerPedidosPage from "./pages/seller/SellerPedidosPage";
+import SellerOnboardingPage from "./pages/seller/SellerOnboardingPage";
 import { PageLoader } from "./components/ui/PageLoader";
 import { NavigationLoader } from "./components/ui/NavigationLoader";
 import MobileBottomNav from "./components/categories/MobileBottomNav";
@@ -89,6 +90,9 @@ const AppContent = () => {
             
             {/* Seller Registration Landing Page */}
             <Route path="/registro-vendedor" element={<SellerRegistrationPage />} />
+            
+            {/* Seller Onboarding (no auth required, just registered) */}
+            <Route path="/seller/onboarding" element={<SellerOnboardingPage />} />
             
             {/* ========== ADMIN ROUTES ========== */}
             <Route path="/admin/login" element={<AdminLogin />} />
