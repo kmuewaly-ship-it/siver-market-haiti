@@ -196,7 +196,7 @@ const SellerAcquisicionLotesContent = () => {
         {!isMobile && <div className="mb-8">
             
             <p className="text-gray-600">
-              Bienvenido, {user?.name}. Busca y selecciona productos al por mayor.
+              Bienvenido, {user?.name}
             </p>
           </div>}
 
