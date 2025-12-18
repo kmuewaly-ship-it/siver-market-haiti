@@ -2,9 +2,9 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { SellerLayout } from "@/components/seller/SellerLayout";
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import SellerMobileHeader from "@/components/seller/SellerMobileHeader";
-import SellerDesktopHeader from "@/components/seller/SellerDesktopHeader";
 import SearchFilterB2B from "@/components/b2b/SearchFilterB2B";
 import ProductCardB2B from "@/components/b2b/ProductCardB2B";
 import CartSidebarB2B from "@/components/b2b/CartSidebarB2B";
@@ -15,7 +15,6 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
 import { Filter, ChevronLeft, ChevronRight } from "lucide-react";
 import FeaturedProductsCarousel from "@/components/b2b/FeaturedProductsCarousel";
-
 const SellerAcquisicionLotesContent = () => {
   const {
     user,
@@ -184,7 +183,7 @@ const SellerAcquisicionLotesContent = () => {
     });
   };
   return <div className="min-h-screen bg-gray-50">
-      {isMobile ? <SellerMobileHeader selectedCategoryId={filters.category} onCategorySelect={handleCategorySelect} onSearch={handleHeaderSearch} /> : <SellerDesktopHeader selectedCategoryId={filters.category} onCategorySelect={handleCategorySelect} onSearch={handleHeaderSearch} />}
+      {isMobile ? <SellerMobileHeader selectedCategoryId={filters.category} onCategorySelect={handleCategorySelect} onSearch={handleHeaderSearch} /> : <Header />}
       
       <main className="container mx-auto px-4 pb-24 pt-4">
 
@@ -195,9 +194,7 @@ const SellerAcquisicionLotesContent = () => {
 
         {/* Encabezado Desktop */}
         {!isMobile && <div className="mb-8">
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">
-              Catálogo de Adquisición B2B
-            </h1>
+            
             <p className="text-gray-600">
               Bienvenido, {user?.name}. Busca y selecciona productos al por mayor.
             </p>
