@@ -14,6 +14,48 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_approval_requests: {
+        Row: {
+          admin_comments: string | null
+          amount: number | null
+          created_at: string
+          id: string
+          metadata: Json | null
+          request_type: Database["public"]["Enums"]["approval_request_type"]
+          requester_id: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["approval_status"]
+          updated_at: string
+        }
+        Insert: {
+          admin_comments?: string | null
+          amount?: number | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          request_type: Database["public"]["Enums"]["approval_request_type"]
+          requester_id: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          updated_at?: string
+        }
+        Update: {
+          admin_comments?: string | null
+          amount?: number | null
+          created_at?: string
+          id?: string
+          metadata?: Json | null
+          request_type?: Database["public"]["Enums"]["approval_request_type"]
+          requester_id?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["approval_status"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
       admin_banners: {
         Row: {
           created_at: string
@@ -257,6 +299,42 @@ export type Database = {
           },
         ]
       }
+      credit_movements: {
+        Row: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at: string
+          description: string | null
+          id: string
+          movement_type: string
+          reference_id: string | null
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          balance_after: number
+          balance_before: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          movement_type: string
+          reference_id?: string | null
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          balance_after?: number
+          balance_before?: number
+          created_at?: string
+          description?: string | null
+          id?: string
+          movement_type?: string
+          reference_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       dynamic_expenses: {
         Row: {
           created_at: string | null
@@ -356,6 +434,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      kyc_verifications: {
+        Row: {
+          admin_comments: string | null
+          created_at: string
+          fiscal_document_url: string | null
+          id: string
+          id_back_url: string | null
+          id_front_url: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["verification_status"]
+          submitted_at: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          admin_comments?: string | null
+          created_at?: string
+          fiscal_document_url?: string | null
+          id?: string
+          id_back_url?: string | null
+          id_front_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          admin_comments?: string | null
+          created_at?: string
+          fiscal_document_url?: string | null
+          id?: string
+          id_back_url?: string | null
+          id_front_url?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["verification_status"]
+          submitted_at?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       order_items_b2b: {
         Row: {
@@ -691,6 +814,90 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      referral_settings: {
+        Row: {
+          bonus_per_referral: number
+          created_at: string
+          credit_increase_amount: number
+          id: string
+          referrals_for_credit_increase: number
+          updated_at: string
+        }
+        Insert: {
+          bonus_per_referral?: number
+          created_at?: string
+          credit_increase_amount?: number
+          id?: string
+          referrals_for_credit_increase?: number
+          updated_at?: string
+        }
+        Update: {
+          bonus_per_referral?: number
+          created_at?: string
+          credit_increase_amount?: number
+          id?: string
+          referrals_for_credit_increase?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      referrals: {
+        Row: {
+          bonus_amount: number | null
+          bonus_approved: boolean | null
+          created_at: string
+          first_purchase_at: string | null
+          first_purchase_completed: boolean
+          id: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+        }
+        Insert: {
+          bonus_amount?: number | null
+          bonus_approved?: boolean | null
+          created_at?: string
+          first_purchase_at?: string | null
+          first_purchase_completed?: boolean
+          id?: string
+          referral_code: string
+          referred_id: string
+          referrer_id: string
+        }
+        Update: {
+          bonus_amount?: number | null
+          bonus_approved?: boolean | null
+          created_at?: string
+          first_purchase_at?: string | null
+          first_purchase_completed?: boolean
+          id?: string
+          referral_code?: string
+          referred_id?: string
+          referrer_id?: string
+        }
+        Relationships: []
+      }
       seller_catalog: {
         Row: {
           descripcion: string | null
@@ -766,6 +973,45 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      seller_credits: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          balance_debt: number
+          created_at: string
+          credit_limit: number
+          id: string
+          is_active: boolean
+          max_cart_percentage: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          balance_debt?: number
+          created_at?: string
+          credit_limit?: number
+          id?: string
+          is_active?: boolean
+          max_cart_percentage?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          balance_debt?: number
+          created_at?: string
+          credit_limit?: number
+          id?: string
+          is_active?: boolean
+          max_cart_percentage?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       seller_statuses: {
         Row: {
@@ -1022,9 +1268,20 @@ export type Database = {
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "seller"
+      approval_request_type:
+        | "kyc_verification"
+        | "referral_bonus"
+        | "credit_limit_increase"
+        | "credit_activation"
+      approval_status: "pending" | "approved" | "rejected"
       payment_method: "stripe" | "moncash" | "transfer"
       payment_status: "pending" | "verified" | "rejected"
       stock_status: "in_stock" | "low_stock" | "out_of_stock"
+      verification_status:
+        | "unverified"
+        | "pending_verification"
+        | "verified"
+        | "rejected"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1153,9 +1410,22 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["admin", "moderator", "user", "seller"],
+      approval_request_type: [
+        "kyc_verification",
+        "referral_bonus",
+        "credit_limit_increase",
+        "credit_activation",
+      ],
+      approval_status: ["pending", "approved", "rejected"],
       payment_method: ["stripe", "moncash", "transfer"],
       payment_status: ["pending", "verified", "rejected"],
       stock_status: ["in_stock", "low_stock", "out_of_stock"],
+      verification_status: [
+        "unverified",
+        "pending_verification",
+        "verified",
+        "rejected",
+      ],
     },
   },
 } as const

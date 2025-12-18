@@ -37,6 +37,9 @@ import AdminBanners from "./pages/admin/AdminBanners";
 import AdminProveedores from "./pages/admin/AdminProveedores";
 import AdminPedidos from "./pages/admin/AdminPedidos";
 import AdminPreciosConfig from "./pages/admin/AdminPreciosConfig";
+import AdminApprovals from "./pages/admin/AdminApprovals";
+
+// Seller Pages
 
 // Seller Pages
 import SellerAcquisicionLotes from "./pages/seller/SellerAcquisicionLotes";
@@ -49,6 +52,7 @@ import SellerFavoritesPage from "./pages/seller/SellerFavoritesPage";
 import SellerInventarioB2C from "./pages/seller/SellerInventarioB2C";
 import SellerPedidosPage from "./pages/seller/SellerPedidosPage";
 import SellerOnboardingPage from "./pages/seller/SellerOnboardingPage";
+import SellerKYCPage from "./pages/seller/SellerKYCPage";
 import { PageLoader } from "./components/ui/PageLoader";
 import { NavigationLoader } from "./components/ui/NavigationLoader";
 import MobileBottomNav from "./components/categories/MobileBottomNav";
@@ -168,6 +172,14 @@ const AppContent = () => {
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/admin/aprobaciones" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
+                  <AdminApprovals />
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/admin" element={<AdminLogin />} />
             
             {/* ========== SELLER ROUTES (B2B) ========== */}
@@ -204,6 +216,14 @@ const AppContent = () => {
               } 
             />
             <Route 
+              path="/seller/kyc" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
+                  <SellerKYCPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route
               path="/seller/pedidos" 
               element={
                 <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>

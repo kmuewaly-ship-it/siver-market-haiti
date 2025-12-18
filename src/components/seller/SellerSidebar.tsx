@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Home, LogOut, ShoppingBag, ChevronLeft, Package, Heart, User, Store, LayoutGrid, ClipboardList } from "lucide-react";
+import { ShoppingCart, Home, LogOut, ShoppingBag, ChevronLeft, Package, Heart, User, Store, LayoutGrid, ClipboardList, Shield } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -41,6 +41,11 @@ export function SellerSidebar() {
     title: "Lista de Deseos",
     url: "/seller/favoritos",
     icon: Heart
+  }, {
+    title: "Créditos y KYC",
+    url: "/seller/kyc",
+    icon: Shield,
+    badge: "Nuevo"
   }, {
     title: "Mi Cuenta",
     url: "/seller/cuenta",
