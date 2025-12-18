@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useEffect, useMemo } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
@@ -8,7 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useTrackProductView } from "@/hooks/useTrendingProducts";
-import { useSellerProduct } from "@/hooks/useSellerProducts";
+import { useSellerProduct, useSellerProducts } from "@/hooks/useSellerProducts";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -38,6 +38,7 @@ const ProductPage = () => {
   const { toast } = useToast();
   
   const { data: product, isLoading } = useSellerProduct(sku);
+  const { data: allProducts } = useSellerProducts(50);
   
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
@@ -58,6 +59,18 @@ const ProductPage = () => {
   };
 
   const images = getImages();
+
+  // Get related products from same category
+  const relatedProducts = useMemo(() => {
+    if (!product || !allProducts) return [];
+    
+    const categoryId = product.source_product?.categoria_id;
+    if (!categoryId) return allProducts.filter(p => p.id !== product.id).slice(0, 6);
+    
+    return allProducts
+      .filter(p => p.id !== product.id && p.source_product?.categoria_id === categoryId)
+      .slice(0, 6);
+  }, [product, allProducts]);
 
   // Track product view
   useEffect(() => {
@@ -86,6 +99,27 @@ const ProductPage = () => {
     toast({
       title: "Producto agregado",
       description: `${product.nombre} (x${quantity}) se agregó al carrito`,
+    });
+  };
+
+  const handleAddRelatedToCart = (relatedProduct: typeof allProducts[0]) => {
+    const imgs = relatedProduct.images as any;
+    const mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : '';
+    
+    addItem({
+      id: relatedProduct.id,
+      name: relatedProduct.nombre,
+      price: relatedProduct.precio_venta,
+      image: mainImage,
+      sku: relatedProduct.sku,
+      storeId: relatedProduct.store?.id,
+      storeName: relatedProduct.store?.name,
+      storeWhatsapp: relatedProduct.store?.whatsapp || undefined,
+    });
+    
+    toast({
+      title: "Añadido al carrito",
+      description: relatedProduct.nombre,
     });
   };
 
@@ -130,11 +164,22 @@ const ProductPage = () => {
 
       <main className={`container mx-auto px-4 py-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
+        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6 flex-wrap">
           <button onClick={() => navigate("/")} className="hover:text-blue-600">
             Inicio
           </button>
           <ChevronRight className="w-4 h-4" />
+          {product.source_product?.category && (
+            <>
+              <Link 
+                to={`/categoria/${product.source_product.category.slug}`}
+                className="hover:text-blue-600"
+              >
+                {product.source_product.category.name}
+              </Link>
+              <ChevronRight className="w-4 h-4" />
+            </>
+          )}
           {product.store && (
             <>
               <button 
@@ -209,16 +254,26 @@ const ProductPage = () => {
 
           {/* Info del Producto */}
           <div className="bg-white rounded-lg p-6">
-            {/* Store Badge */}
-            {product.store && (
-              <button 
-                onClick={() => navigate(`/tienda/${product.store?.id}`)}
-                className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium mb-3 hover:bg-blue-100 transition"
-              >
-                <StoreIcon className="w-4 h-4" />
-                {product.store.name}
-              </button>
-            )}
+            {/* Category & Store Badge */}
+            <div className="flex flex-wrap gap-2 mb-3">
+              {product.source_product?.category && (
+                <Link 
+                  to={`/categoria/${product.source_product.category.slug}`}
+                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 transition"
+                >
+                  {product.source_product.category.name}
+                </Link>
+              )}
+              {product.store && (
+                <button 
+                  onClick={() => navigate(`/tienda/${product.store?.id}`)}
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium hover:bg-blue-100 transition"
+                >
+                  <StoreIcon className="w-4 h-4" />
+                  {product.store.name}
+                </button>
+              )}
+            </div>
 
             {/* Nombre */}
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{product.nombre}</h1>
@@ -379,6 +434,63 @@ const ProductPage = () => {
             </div>
           </div>
         </div>
+
+        {/* Productos Relacionados */}
+        {relatedProducts.length > 0 && (
+          <div className="bg-white rounded-lg p-6">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              {product.source_product?.category 
+                ? `Más en ${product.source_product.category.name}` 
+                : 'Productos Relacionados'}
+            </h2>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+              {relatedProducts.map(relatedProduct => {
+                const imgs = relatedProduct.images as any;
+                const mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : '';
+                
+                return (
+                  <div key={relatedProduct.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition group">
+                    <Link to={`/producto/${relatedProduct.sku}`}>
+                      <div className="aspect-square bg-gray-100 overflow-hidden">
+                        {mainImage ? (
+                          <img 
+                            src={mainImage} 
+                            alt={relatedProduct.nombre}
+                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-8 w-8 text-gray-300" />
+                          </div>
+                        )}
+                      </div>
+                    </Link>
+                    <div className="p-2">
+                      <Link to={`/producto/${relatedProduct.sku}`}>
+                        <h3 className="text-xs font-medium text-gray-900 line-clamp-2 hover:text-blue-600 transition">
+                          {relatedProduct.nombre}
+                        </h3>
+                      </Link>
+                      <p className="text-sm font-bold text-blue-600 mt-1">
+                        ${relatedProduct.precio_venta.toFixed(2)}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full mt-2 h-7 text-xs"
+                        onClick={() => handleAddRelatedToCart(relatedProduct)}
+                        disabled={relatedProduct.stock <= 0}
+                      >
+                        <ShoppingCart className="h-3 w-3 mr-1" />
+                        Agregar
+                      </Button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </main>
 
       {!isMobile && <Footer />}

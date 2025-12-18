@@ -1,26 +1,36 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useSellerProducts } from "@/hooks/useSellerProducts";
+import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useCart } from "@/hooks/useCart";
 import { useToast } from "@/hooks/use-toast";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ShoppingCart, Store, Search, Package, Heart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { ShoppingCart, Store, Search, Package, Grid3X3, X } from "lucide-react";
 
 const MarketplacePage = () => {
   const isMobile = useIsMobile();
   const { data: products, isLoading } = useSellerProducts(100);
+  const { data: categories = [] } = usePublicCategories();
   const { addItem } = useCart();
   const { toast } = useToast();
   
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStore, setSelectedStore] = useState<string>("all");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [sortBy, setSortBy] = useState<string>("newest");
+
+  // Get root categories
+  const rootCategories = useMemo(() => 
+    categories.filter(c => !c.parent_id), 
+    [categories]
+  );
 
   // Get unique stores from products
   const stores = products 
@@ -32,22 +42,41 @@ const MarketplacePage = () => {
     : [];
 
   // Filter and sort products
-  const filteredProducts = products?.filter(product => {
-    const matchesSearch = product.nombre.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStore = selectedStore === "all" || product.store?.id === selectedStore;
-    return matchesSearch && matchesStore;
-  }).sort((a, b) => {
-    switch (sortBy) {
-      case "price-asc":
-        return a.precio_venta - b.precio_venta;
-      case "price-desc":
-        return b.precio_venta - a.precio_venta;
-      case "name":
-        return a.nombre.localeCompare(b.nombre);
-      default: // newest
-        return 0;
-    }
-  }) || [];
+  const filteredProducts = useMemo(() => {
+    if (!products) return [];
+    
+    return products.filter(product => {
+      const matchesSearch = product.nombre.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStore = selectedStore === "all" || product.store?.id === selectedStore;
+      
+      // Category filter - check if product category matches selected or is child of selected
+      let matchesCategory = selectedCategory === "all";
+      if (!matchesCategory && product.source_product?.categoria_id) {
+        const productCategoryId = product.source_product.categoria_id;
+        // Check direct match
+        if (productCategoryId === selectedCategory) {
+          matchesCategory = true;
+        } else {
+          // Check if it's a child category
+          const childCategories = categories.filter(c => c.parent_id === selectedCategory);
+          matchesCategory = childCategories.some(c => c.id === productCategoryId);
+        }
+      }
+      
+      return matchesSearch && matchesStore && matchesCategory;
+    }).sort((a, b) => {
+      switch (sortBy) {
+        case "price-asc":
+          return a.precio_venta - b.precio_venta;
+        case "price-desc":
+          return b.precio_venta - a.precio_venta;
+        case "name":
+          return a.nombre.localeCompare(b.nombre);
+        default:
+          return 0;
+      }
+    });
+  }, [products, searchQuery, selectedStore, selectedCategory, sortBy, categories]);
 
   const handleAddToCart = (product: typeof products[0]) => {
     const images = product.images as any;
@@ -72,6 +101,15 @@ const MarketplacePage = () => {
     });
   };
 
+  const clearFilters = () => {
+    setSearchQuery("");
+    setSelectedStore("all");
+    setSelectedCategory("all");
+    setSortBy("newest");
+  };
+
+  const hasActiveFilters = searchQuery || selectedStore !== "all" || selectedCategory !== "all";
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {!isMobile && <Header />}
@@ -87,8 +125,31 @@ const MarketplacePage = () => {
           </p>
         </div>
 
+        {/* Category Pills */}
+        <div className="mb-4 overflow-x-auto scrollbar-hide">
+          <div className="flex gap-2 min-w-max pb-2">
+            <Badge 
+              variant={selectedCategory === "all" ? "default" : "outline"}
+              className="cursor-pointer px-3 py-1.5 text-sm"
+              onClick={() => setSelectedCategory("all")}
+            >
+              Todos
+            </Badge>
+            {rootCategories.map(category => (
+              <Badge
+                key={category.id}
+                variant={selectedCategory === category.id ? "default" : "outline"}
+                className="cursor-pointer px-3 py-1.5 text-sm whitespace-nowrap"
+                onClick={() => setSelectedCategory(category.id)}
+              >
+                {category.name}
+              </Badge>
+            ))}
+          </div>
+        </div>
+
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-3 mb-6">
+        <div className="flex flex-col md:flex-row gap-3 mb-4">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
@@ -127,15 +188,24 @@ const MarketplacePage = () => {
           </Select>
         </div>
 
-        {/* Results count */}
-        {!isLoading && (
-          <p className="text-sm text-muted-foreground mb-4">
+        {/* Active filters & Results count */}
+        <div className="flex items-center justify-between mb-4 flex-wrap gap-2">
+          <p className="text-sm text-muted-foreground">
             {filteredProducts.length} productos encontrados
+            {selectedCategory !== "all" && rootCategories.find(c => c.id === selectedCategory) && (
+              <span> en <strong>{rootCategories.find(c => c.id === selectedCategory)?.name}</strong></span>
+            )}
             {selectedStore !== "all" && stores.find(s => s.id === selectedStore) && (
-              <span> en <strong>{stores.find(s => s.id === selectedStore)?.name}</strong></span>
+              <span> de <strong>{stores.find(s => s.id === selectedStore)?.name}</strong></span>
             )}
           </p>
-        )}
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-muted-foreground">
+              <X className="h-4 w-4 mr-1" />
+              Limpiar filtros
+            </Button>
+          )}
+        </div>
 
         {/* Products Grid */}
         {isLoading ? (
@@ -155,11 +225,16 @@ const MarketplacePage = () => {
           <div className="text-center py-16">
             <Package className="w-16 h-16 text-muted-foreground/50 mx-auto mb-4" />
             <p className="text-lg font-medium text-foreground mb-2">No hay productos disponibles</p>
-            <p className="text-muted-foreground text-sm">
-              {searchQuery || selectedStore !== "all" 
+            <p className="text-muted-foreground text-sm mb-4">
+              {hasActiveFilters 
                 ? "Intenta ajustar los filtros de búsqueda" 
                 : "Los vendedores aún no han publicado productos"}
             </p>
+            {hasActiveFilters && (
+              <Button variant="outline" onClick={clearFilters}>
+                Limpiar filtros
+              </Button>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
@@ -186,6 +261,13 @@ const MarketplacePage = () => {
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">
                           <Package className="h-12 w-12 text-muted-foreground/30" />
+                        </div>
+                      )}
+                      
+                      {/* Category Badge */}
+                      {product.source_product?.category && (
+                        <div className="absolute top-2 left-2 px-2 py-1 bg-primary/90 text-primary-foreground text-[10px] rounded">
+                          {product.source_product.category.name}
                         </div>
                       )}
                       
