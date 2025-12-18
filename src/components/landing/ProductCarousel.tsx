@@ -22,6 +22,7 @@ interface ProductCarouselProps {
   products: Product[];
   itemsPerView?: number;
   isLoading?: boolean;
+  linkTo?: string;
 }
 
 const ProductCarousel = ({
@@ -29,6 +30,7 @@ const ProductCarousel = ({
   products,
   itemsPerView = 5,
   isLoading = false,
+  linkTo = "/marketplace",
 }: ProductCarouselProps) => {
   const [currentIndex, setCurrentIndex] = useState(0);
 
@@ -82,7 +84,7 @@ const ProductCarousel = ({
         <h2 className="text-2xl md:text-3xl font-bold text-foreground">
           {title}
         </h2>
-        <a href="/marketplace" className="text-primary hover:text-primary/80 font-medium">
+        <a href={linkTo} className="text-primary hover:text-primary/80 font-medium">
           Ver Todo →
         </a>
       </div>

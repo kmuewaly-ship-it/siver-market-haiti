@@ -21,6 +21,14 @@ export interface SellerProduct {
     whatsapp: string | null;
     is_active: boolean;
   } | null;
+  source_product: {
+    categoria_id: string | null;
+    category: {
+      id: string;
+      name: string;
+      slug: string;
+    } | null;
+  } | null;
 }
 
 export const useSellerProduct = (sku: string | undefined) => {
@@ -39,6 +47,14 @@ export const useSellerProduct = (sku: string | undefined) => {
             logo,
             whatsapp,
             is_active
+          ),
+          source_product:products!seller_catalog_source_product_id_fkey(
+            categoria_id,
+            category:categories!products_categoria_id_fkey(
+              id,
+              name,
+              slug
+            )
           )
         `)
         .eq("sku", sku)
@@ -70,6 +86,14 @@ export const useSellerProducts = (limit = 20) => {
             logo,
             whatsapp,
             is_active
+          ),
+          source_product:products!seller_catalog_source_product_id_fkey(
+            categoria_id,
+            category:categories!products_categoria_id_fkey(
+              id,
+              name,
+              slug
+            )
           )
         `)
         .eq("is_active", true)
@@ -83,5 +107,60 @@ export const useSellerProducts = (limit = 20) => {
 
       return data as SellerProduct[];
     },
+  });
+};
+
+export const useSellerProductsByCategory = (categoryId: string | undefined, limit = 20) => {
+  return useQuery({
+    queryKey: ["seller-products-category", categoryId, limit],
+    queryFn: async () => {
+      if (!categoryId) return [];
+
+      // First get products with this category from products table
+      const { data: productIds, error: productError } = await supabase
+        .from("products")
+        .select("id")
+        .eq("categoria_id", categoryId)
+        .eq("is_active", true);
+
+      if (productError || !productIds?.length) {
+        return [];
+      }
+
+      const ids = productIds.map(p => p.id);
+
+      const { data, error } = await supabase
+        .from("seller_catalog")
+        .select(`
+          *,
+          store:stores!seller_catalog_seller_store_id_fkey(
+            id,
+            name,
+            logo,
+            whatsapp,
+            is_active
+          ),
+          source_product:products!seller_catalog_source_product_id_fkey(
+            categoria_id,
+            category:categories!products_categoria_id_fkey(
+              id,
+              name,
+              slug
+            )
+          )
+        `)
+        .eq("is_active", true)
+        .in("source_product_id", ids)
+        .limit(limit)
+        .order("imported_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching products by category:", error);
+        return [];
+      }
+
+      return data as SellerProduct[];
+    },
+    enabled: !!categoryId,
   });
 };
