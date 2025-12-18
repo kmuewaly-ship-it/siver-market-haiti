@@ -25,6 +25,7 @@ import FavoritesPage from "./pages/FavoritesPage";
 import SearchResultsPage from "./pages/SearchResultsPage";
 import TrendsPage from "./pages/TrendsPage";
 import LoginPage from "./pages/LoginPage";
+import MarketplacePage from "./pages/MarketplacePage";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -77,7 +78,7 @@ const AppContent = () => {
       <Routes>
             {/* ========== PUBLIC ROUTES (B2C) ========== */}
             <Route path="/" element={<Index />} />
-            <Route path="/marketplace" element={<Index />} />
+            <Route path="/marketplace" element={<MarketplacePage />} />
             <Route path="/categorias" element={<CategoriesPage />} />
             <Route path="/categoria/:slug" element={<CategoryProductsPage />} />
             <Route path="/tienda/:storeId" element={<StoreProfilePage />} />
