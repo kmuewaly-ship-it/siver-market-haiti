@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera } from "lucide-react";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -301,7 +301,7 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
         </button>
 
         {/* Search input with dropdown */}
-        <div ref={searchRef} className="flex-1 relative">
+        <div ref={searchRef} className="flex-1 max-w-[55%] relative">
           <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
             <input
               type="text"
@@ -416,6 +416,14 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
         <Link to="/favoritos" className="relative flex-shrink-0">
           <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
           <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+        </Link>
+
+        {/* Cart */}
+        <Link to="/carrito" className="relative flex-shrink-0">
+          <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+            0
+          </span>
         </Link>
       </div>
 

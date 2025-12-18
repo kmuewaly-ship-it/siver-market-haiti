@@ -235,7 +235,7 @@ const Header = () => {
             </button>
 
             {/* Search input - pill style */}
-            <div className="flex-1 flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
+            <div className="flex-1 max-w-[50%] flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
               <input
                 type="text"
                 placeholder="Buscar productos..."
@@ -284,6 +284,14 @@ const Header = () => {
             <Link to="/favoritos" className="relative flex-shrink-0">
               <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+            </Link>
+
+            {/* Cart */}
+            <Link to="/carrito" className="relative flex-shrink-0">
+              <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                0
+              </span>
             </Link>
           </div>
 
