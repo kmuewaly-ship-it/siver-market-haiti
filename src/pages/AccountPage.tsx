@@ -142,15 +142,15 @@ const AccountPage = () => {
             {/* Right Column: Actions */}
             <div className="md:col-span-8 lg:col-span-9 space-y-8">
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    <button className="flex flex-col items-start p-6 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left">
+                    <Link to="/mis-compras" className="flex flex-col items-start p-6 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left">
                         <div className="p-3 rounded-xl bg-blue-50 text-[#071d7f] group-hover:bg-[#071d7f] group-hover:text-white transition-colors mb-4 shadow-sm">
                             <Package className="h-6 w-6" />
                         </div>
-                        <h4 className="font-bold text-lg text-gray-900 group-hover:text-[#071d7f] transition-colors">Mis Pedidos</h4>
+                        <h4 className="font-bold text-lg text-gray-900 group-hover:text-[#071d7f] transition-colors">Mis Compras</h4>
                         <p className="text-sm text-gray-500 mt-2 leading-relaxed">
-                            Rastrea tus compras y ver historial.
+                            Ver historial y estado de tus compras.
                         </p>
-                    </button>
+                    </Link>
 
                     <button className="flex flex-col items-start p-6 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left">
                         <div className="p-3 rounded-xl bg-blue-50 text-[#071d7f] group-hover:bg-[#071d7f] group-hover:text-white transition-colors mb-4 shadow-sm">

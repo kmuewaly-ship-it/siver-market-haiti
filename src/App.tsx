@@ -26,6 +26,7 @@ import SearchResultsPage from "./pages/SearchResultsPage";
 import TrendsPage from "./pages/TrendsPage";
 import LoginPage from "./pages/LoginPage";
 import MarketplacePage from "./pages/MarketplacePage";
+import MyPurchasesPage from "./pages/MyPurchasesPage";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -84,6 +85,7 @@ const AppContent = () => {
             <Route path="/tienda/:storeId" element={<StoreProfilePage />} />
             <Route path="/producto/:sku" element={<ProductPage />} />
             <Route path="/cuenta" element={<AccountPage />} />
+            <Route path="/mis-compras" element={<MyPurchasesPage />} />
             <Route path="/carrito" element={<CartPage />} />
             <Route path="/favoritos" element={<FavoritesPage />} />
             <Route path="/tendencias" element={<TrendsPage />} />
