@@ -7,6 +7,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { searchProductsByImage } from "@/services/api/imageSearch";
+import { useCartB2B } from "@/hooks/useCartB2B";
 
 interface SearchResult {
   id: string;
@@ -84,6 +85,8 @@ const SellerMobileHeader = ({
   const navigate = useNavigate();
   
   const { data: categories = [] } = useCategories();
+  const { cart } = useCartB2B();
+  const cartCount = cart.totalQuantity;
 
   // Check for Web Speech API support
   useEffect(() => {
@@ -414,9 +417,11 @@ const SellerMobileHeader = ({
         {/* Cart B2B */}
         <Link to="/seller/carrito" className="relative flex-shrink-0">
           <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-green-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-            0
-          </span>
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-green-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
         </Link>
       </div>
 

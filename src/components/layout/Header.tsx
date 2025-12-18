@@ -9,6 +9,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { searchProductsByImage } from "@/services/api/imageSearch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/hooks/useCart";
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -64,6 +65,8 @@ const Header = () => {
   const isMobile = useIsMobile();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const { totalItems } = useCart();
+  const cartCount = totalItems();
 
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
   const navigate = useNavigate();
@@ -289,9 +292,11 @@ const Header = () => {
             {/* Cart */}
             <Link to="/carrito" className="relative flex-shrink-0">
               <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-                0
-              </span>
+              {cartCount > 0 && (
+                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
             </Link>
           </div>
 

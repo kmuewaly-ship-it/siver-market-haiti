@@ -7,6 +7,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { searchProductsByImage } from "@/services/api/imageSearch";
+import { useCart } from "@/hooks/useCart";
 
 interface SearchResult {
   id: string;
@@ -79,7 +80,8 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const { data: categories = [] } = usePublicCategories();
-
+  const { totalItems } = useCart();
+  const cartCount = totalItems();
   // Hide on admin, seller, and login routes (unless forceShow)
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isSellerRoute = location.pathname.startsWith('/seller');
@@ -421,9 +423,11 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
         {/* Cart */}
         <Link to="/carrito" className="relative flex-shrink-0">
           <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
-            0
-          </span>
+          {cartCount > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              {cartCount > 99 ? '99+' : cartCount}
+            </span>
+          )}
         </Link>
       </div>
 
