@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { SellerLayout } from "@/components/seller/SellerLayout";
-
+import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import SellerMobileHeader from "@/components/seller/SellerMobileHeader";
 import SearchFilterB2B from "@/components/b2b/SearchFilterB2B";
@@ -183,7 +183,7 @@ const SellerAcquisicionLotesContent = () => {
     });
   };
   return <div className="min-h-screen bg-gray-50">
-      <SellerMobileHeader selectedCategoryId={filters.category} onCategorySelect={handleCategorySelect} onSearch={handleHeaderSearch} />
+      {isMobile ? <SellerMobileHeader selectedCategoryId={filters.category} onCategorySelect={handleCategorySelect} onSearch={handleHeaderSearch} /> : <Header />}
       
       <main className="container mx-auto px-4 pb-24 pt-4">
 
