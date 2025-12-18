@@ -62,11 +62,23 @@ const Header = () => {
   const [isImageSearching, setIsImageSearching] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
+  const [cartBounce, setCartBounce] = useState(false);
   const isMobile = useIsMobile();
   const imageInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+  const prevCartCountRef = useRef<number>(0);
   const { totalItems } = useCart();
   const cartCount = totalItems();
+
+  // Bounce animation when cart count increases
+  useEffect(() => {
+    if (cartCount > prevCartCountRef.current && prevCartCountRef.current !== 0) {
+      setCartBounce(true);
+      const timer = setTimeout(() => setCartBounce(false), 400);
+      return () => clearTimeout(timer);
+    }
+    prevCartCountRef.current = cartCount;
+  }, [cartCount]);
 
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
   const navigate = useNavigate();
@@ -238,7 +250,7 @@ const Header = () => {
             </button>
 
             {/* Search input - pill style */}
-            <div className="flex-1 max-w-[50%] flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
+            <div className="flex-1 max-w-[55%] flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
               <input
                 type="text"
                 placeholder="Buscar productos..."
@@ -293,7 +305,10 @@ const Header = () => {
             <Link to="/carrito" className="relative flex-shrink-0">
               <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
               {cartCount > 0 && (
-                <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                <span className={cn(
+                  "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
+                  cartBounce && "animate-cart-bounce"
+                )}>
                   {cartCount > 99 ? '99+' : cartCount}
                 </span>
               )}

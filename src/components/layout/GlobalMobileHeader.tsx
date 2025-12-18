@@ -73,15 +73,28 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [isImageSearching, setIsImageSearching] = useState(false);
+  const [cartBounce, setCartBounce] = useState(false);
   const searchRef = useRef<HTMLDivElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const prevCartCountRef = useRef<number>(0);
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useIsMobile();
   const { data: categories = [] } = usePublicCategories();
   const { totalItems } = useCart();
   const cartCount = totalItems();
+
+  // Bounce animation when cart count increases
+  useEffect(() => {
+    if (cartCount > prevCartCountRef.current && prevCartCountRef.current !== 0) {
+      setCartBounce(true);
+      const timer = setTimeout(() => setCartBounce(false), 400);
+      return () => clearTimeout(timer);
+    }
+    prevCartCountRef.current = cartCount;
+  }, [cartCount]);
+
   // Hide on admin, seller, and login routes (unless forceShow)
   const isAdminRoute = location.pathname.startsWith('/admin');
   const isSellerRoute = location.pathname.startsWith('/seller');
@@ -303,7 +316,7 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
         </button>
 
         {/* Search input with dropdown */}
-        <div ref={searchRef} className="flex-1 max-w-[55%] relative">
+        <div ref={searchRef} className="flex-1 max-w-[60%] relative">
           <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
             <input
               type="text"
@@ -424,7 +437,10 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
         <Link to="/carrito" className="relative flex-shrink-0">
           <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
           {cartCount > 0 && (
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+            <span className={cn(
+              "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
+              cartBounce && "animate-cart-bounce"
+            )}>
               {cartCount > 99 ? '99+' : cartCount}
             </span>
           )}
