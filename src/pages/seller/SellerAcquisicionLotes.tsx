@@ -16,20 +16,32 @@ import { Filter, ChevronLeft, ChevronRight, Menu } from "lucide-react";
 import { useSidebar } from "@/components/ui/sidebar";
 import FeaturedProductsCarousel from "@/components/b2b/FeaturedProductsCarousel";
 
-import MobileBottomNav from "@/components/categories/MobileBottomNav";
+// Component that uses useSidebar - must be rendered inside SidebarProvider
+const MobileHeaderB2B = () => {
+  const { toggleSidebar } = useSidebar();
+  
+  return (
+    <div className="flex items-center justify-between mb-6">
+      <Button variant="ghost" size="icon" onClick={toggleSidebar} className="-ml-2">
+        <Menu className="h-6 w-6" />
+      </Button>
+      <h1 className="text-lg font-bold text-gray-900">Adquisici√≥n B2B</h1>
+      <div className="w-10" />
+    </div>
+  );
+};
 
-const SellerAcquisicionLotes = () => {
+const SellerAcquisicionLotesContent = () => {
   const { user, isLoading } = useAuth();
   const { cart, addItem, updateQuantity, removeItem } = useCartB2B();
   const isMobile = useIsMobile();
   const { toast } = useToast();
-  const { toggleSidebar } = useSidebar();
 
   const handleAddToCart = (item: CartItemB2B) => {
     addItem(item);
     toast({
       title: "Producto agregado",
-      description: `${item.nombre} (${item.cantidad} unidades) se ha aÒadido al carrito.`,
+      description: `${item.nombre} (${item.cantidad} unidades) se ha a√±adido al carrito.`,
     });
   };
   
@@ -46,20 +58,19 @@ const SellerAcquisicionLotes = () => {
     sortBy: "newest",
   });
 
-  const [whatsappNumber, setWhatsappNumber] = useState("50369596772"); // Default
+  const [whatsappNumber, setWhatsappNumber] = useState("50369596772");
 
   useEffect(() => {
     const saved = localStorage.getItem("admin_whatsapp_b2b");
     if (saved) setWhatsappNumber(saved);
   }, []);
 
-  // Mock products - Estos vendrÌan del backend
   useEffect(() => {
     const mockProducts: ProductB2BCard[] = [
       {
         id: "1",
         sku: "TSHIRT-001",
-        nombre: "Camiseta B·sica Blanca - Talla M",
+        nombre: "Camiseta B√°sica Blanca - Talla M",
         precio_b2b: 2.5,
         moq: 50,
         stock_fisico: 500,
@@ -69,7 +80,7 @@ const SellerAcquisicionLotes = () => {
       {
         id: "2",
         sku: "JEANS-001",
-        nombre: "PantalÛn Vaquero Azul - Talla 32",
+        nombre: "Pantal√≥n Vaquero Azul - Talla 32",
         precio_b2b: 8.5,
         moq: 30,
         stock_fisico: 200,
@@ -99,7 +110,7 @@ const SellerAcquisicionLotes = () => {
       {
         id: "5",
         sku: "ACC-001",
-        nombre: "Correa de Cuero MarrÛn",
+        nombre: "Correa de Cuero Marr√≥n",
         precio_b2b: 3.5,
         moq: 100,
         stock_fisico: 0,
@@ -109,23 +120,19 @@ const SellerAcquisicionLotes = () => {
     ];
     setProducts(mockProducts);
 
-    // Load featured products
     const savedIds = localStorage.getItem("admin_b2b_featured_ids");
     if (savedIds) {
       const ids = savedIds.split(",").map(id => id.trim());
       const featured = mockProducts.filter(p => ids.includes(p.id));
       setFeaturedProducts(featured);
     } else {
-      // Default featured if none set
       setFeaturedProducts(mockProducts.slice(0, 3));
     }
   }, []);
 
-  // Aplicar filtros
   useEffect(() => {
     let result = [...products];
 
-    // B˙squeda
     if (filters.searchQuery) {
       const query = filters.searchQuery.toLowerCase();
       result = result.filter(
@@ -135,12 +142,10 @@ const SellerAcquisicionLotes = () => {
       );
     }
 
-    // CategorÌa
     if (filters.category) {
       result = result.filter((p) => p.categoria_id === filters.category);
     }
 
-    // Stock
     if (filters.stockStatus !== "all") {
       if (filters.stockStatus === "in_stock") {
         result = result.filter((p) => p.stock_fisico > 0);
@@ -151,7 +156,6 @@ const SellerAcquisicionLotes = () => {
       }
     }
 
-    // Ordenamiento
     result.sort((a, b) => {
       switch (filters.sortBy) {
         case "price_asc":
@@ -163,20 +167,18 @@ const SellerAcquisicionLotes = () => {
         case "moq_desc":
           return b.moq - a.moq;
         default:
-          return 0; // newest logic would go here
+          return 0;
       }
     });
 
     setFilteredProducts(result);
   }, [products, filters]);
 
-  // PaginaciÛn
   const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
-  // Reset a p·gina 1 cuando cambian los filtros
   useEffect(() => {
     setCurrentPage(1);
   }, [filters]);
@@ -199,45 +201,36 @@ const SellerAcquisicionLotes = () => {
   }
 
   return (
-    <SellerLayout>
-      <div className="min-h-screen bg-gray-50">
-        {!isMobile && <Header />}
-        
-        <main className="container mx-auto px-4 pb-24 pt-4">
-          {/* Mobile Header */}
-          {isMobile && (
-            <div className="flex items-center justify-between mb-6">
-              <Button variant="ghost" size="icon" onClick={toggleSidebar} className="-ml-2">
-                <Menu className="h-6 w-6" />
-              </Button>
-              <h1 className="text-lg font-bold text-gray-900">AdquisiciÛn B2B</h1>
-              <div className="w-10" /> {/* Spacer */}
-            </div>
-          )}
+    <div className="min-h-screen bg-gray-50">
+      {!isMobile && <Header />}
+      
+      <main className="container mx-auto px-4 pb-24 pt-4">
+        {/* Mobile Header */}
+        {isMobile && <MobileHeaderB2B />}
 
-          {/* Hero Carousel (Mobile Only) */}
-          {isMobile && featuredProducts.length > 0 && (
-            <div className="mb-6 -mx-4">
-              <FeaturedProductsCarousel products={featuredProducts} />
-            </div>
-          )}
+        {/* Hero Carousel (Mobile Only) */}
+        {isMobile && featuredProducts.length > 0 && (
+          <div className="mb-6 -mx-4">
+            <FeaturedProductsCarousel products={featuredProducts} />
+          </div>
+        )}
 
-          {/* Encabezado Desktop */}
-          {!isMobile && (
-            <div className="mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                Cat·logo de AdquisiciÛn B2B
-              </h1>
-              <p className="text-gray-600">
-                Bienvenido, {user?.name}. Busca y selecciona productos al por mayor.
-              </p>
-            </div>
-          )}
+        {/* Encabezado Desktop */}
+        {!isMobile && (
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Cat√°logo de Adquisici√≥n B2B
+            </h1>
+            <p className="text-gray-600">
+              Bienvenido, {user?.name}. Busca y selecciona productos al por mayor.
+            </p>
+          </div>
+        )}
 
         {/* Filtros */}
         {isMobile ? (
           <div className="mb-6">
-            {/* CategorÌas Horizontales */}
+            {/* Categor√≠as Horizontales */}
             <div className="flex gap-2 overflow-x-auto pb-4 mb-4 no-scrollbar">
               <button
                 onClick={() => setFilters({ ...filters, category: null })}
@@ -268,7 +261,7 @@ const SellerAcquisicionLotes = () => {
               <SheetTrigger asChild>
                 <Button variant="outline" className="w-full flex items-center gap-2">
                   <Filter className="h-4 w-4" />
-                  Filtros y B˙squeda
+                  Filtros y B√∫squeda
                 </Button>
               </SheetTrigger>
               <SheetContent side="bottom" className="h-[80vh] overflow-y-auto">
@@ -322,7 +315,7 @@ const SellerAcquisicionLotes = () => {
                 ))}
               </div>
 
-              {/* PaginaciÛn */}
+              {/* Paginaci√≥n */}
               {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2 mt-8">
                   <button
@@ -330,7 +323,7 @@ const SellerAcquisicionLotes = () => {
                     disabled={currentPage === 1}
                     className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
-                    {isMobile ? <ChevronLeft className="h-5 w-5" /> : "\u2190 Anterior"}
+                    {isMobile ? <ChevronLeft className="h-5 w-5" /> : "‚Üê Anterior"}
                   </button>
 
                   <div className="flex gap-1">
@@ -354,14 +347,14 @@ const SellerAcquisicionLotes = () => {
                     disabled={currentPage === totalPages}
                     className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition"
                   >
-                    {isMobile ? <ChevronRight className="h-5 w-5" /> : "Siguiente \u2192"}
+                    {isMobile ? <ChevronRight className="h-5 w-5" /> : "Siguiente ‚Üí"}
                   </button>
                 </div>
               )}
             </>
           )}
         </div>
-        </main>
+      </main>
 
       {/* Carrito Flotante */}
       <CartSidebarB2B
@@ -373,7 +366,14 @@ const SellerAcquisicionLotes = () => {
       />
 
       <Footer />
-      </div>
+    </div>
+  );
+};
+
+const SellerAcquisicionLotes = () => {
+  return (
+    <SellerLayout>
+      <SellerAcquisicionLotesContent />
     </SellerLayout>
   );
 };
