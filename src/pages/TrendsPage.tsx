@@ -22,7 +22,8 @@ const TrendsPage = () => {
   const isMobile = useIsMobile();
   const {
     role,
-    user
+    user,
+    isLoading: authLoading
   } = useAuth();
   const {
     data: categories,
@@ -33,7 +34,8 @@ const TrendsPage = () => {
     isLoading: trendingLoading
   } = useTrendingProducts(7, 20);
   
-  const isSeller = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
+  // Determinar si es seller o admin
+  const isSeller = Boolean(user && role && (role === UserRole.SELLER || role === UserRole.ADMIN));
   const isB2B = isSeller;
 
   // States for seller header
@@ -144,9 +146,13 @@ const TrendsPage = () => {
       moq: 1
     }));
   }, [trendingProducts]);
+  // Si auth está cargando, no renderizar header hasta que se sepa el rol
+  const showSellerHeader = !authLoading && isSeller;
+  const showClientHeader = !authLoading && !isSeller;
+
   return <div className="min-h-screen bg-gray-50">
       {/* Header según el rol */}
-      {isSeller ? (
+      {showSellerHeader ? (
         isMobile ? (
           <SellerMobileHeader
             selectedCategoryId={selectedCategoryId}
@@ -160,9 +166,9 @@ const TrendsPage = () => {
             onSearch={setSearchQuery}
           />
         )
-      ) : (
+      ) : showClientHeader ? (
         !isMobile && <Header />
-      )}
+      ) : null}
 
       {/* Featured Carousel - Mobile Only */}
       {isMobile && featuredProducts.length > 0 && <div className={isSeller ? "pt-2" : "pt-2"}>
