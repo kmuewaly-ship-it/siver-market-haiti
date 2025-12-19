@@ -310,7 +310,7 @@ const HeaderB2B = ({
             </Link>
 
             {/* Search input with history */}
-            <div ref={searchContainerRef} className="w-1/4 relative">
+            <div ref={searchContainerRef} className="flex-1 relative">
               <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
                 <input
                   type="text"
