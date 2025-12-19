@@ -174,8 +174,9 @@ export const useTrendingStores = (limit = 5) => {
         })
       );
 
-      // Filter stores that have at least 1 product
-      return storesWithData.filter(store => store.products.length > 0);
+      // Return all stores (even without products for now)
+      // Sort by followers and sales
+      return storesWithData.sort((a, b) => b.followers - a.followers);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
