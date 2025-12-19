@@ -282,7 +282,7 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                 {/* Botón Vaciar carrito */}
                 <button
                   onClick={clearCart}
-                  className="w-full text-xs text-muted-foreground hover:text-destructive transition-colors py-2"
+                  className="text-left text-xs text-muted-foreground hover:text-destructive transition-colors py-2"
                 >
                   Vaciar Carrito
                 </button>
