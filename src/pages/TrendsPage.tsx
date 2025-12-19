@@ -17,7 +17,6 @@ import FeaturedCarousel from "@/components/shared/FeaturedCarousel";
 import TrendingStoresSection from "@/components/trends/TrendingStoresSection";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
-
 const TrendsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -239,21 +238,7 @@ const TrendsPage = () => {
           <TrendingStoresSection />
 
           {/* Categories Section */}
-          <section>
-            <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Categorías en Tendencia</h2>
-            {categoriesLoading ? <div className="flex gap-4 overflow-x-auto pb-4">
-                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 w-32 rounded-full flex-shrink-0" />)}
-              </div> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {topCategories.map(cat => <div key={cat.id} onClick={() => navigate(`/categoria/${cat.slug}`)} className="group cursor-pointer flex flex-col items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 hover:shadow-lg transition-all hover:-translate-y-1">
-                    <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden group-hover:ring-2 group-hover:ring-red-500 transition-all">
-                      {cat.icon ? <img src={cat.icon} alt={cat.name} className="w-full h-full object-cover" /> : <span className="text-2xl font-bold text-gray-400">{cat.name.charAt(0)}</span>}
-                    </div>
-                    <span className="font-medium text-gray-900 group-hover:text-red-600 transition-colors text-center">
-                      {cat.name}
-                    </span>
-                  </div>)}
-              </div>}
-          </section>
+          
 
           {/* New Arrivals Section */}
           <section>
