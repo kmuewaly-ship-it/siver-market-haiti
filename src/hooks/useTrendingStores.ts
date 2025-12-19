@@ -9,30 +9,30 @@ export interface TrendingStoreProduct {
   imagen: string | null;
 }
 
+export interface StoreReview {
+  id: string;
+  user_id: string;
+  rating: number;
+  comment: string | null;
+  is_anonymous: boolean;
+  created_at: string;
+  user_name?: string;
+}
+
 export interface TrendingStore {
   id: string;
   name: string;
   slug: string | null;
   logo: string | null;
   products: TrendingStoreProduct[];
-  // Mock data for now (until followers/reviews tables are created)
   followers: number;
   salesCount: string;
   newProductsCount: number;
-  recentComment: {
+  recentReview: {
     author: string;
     text: string;
   } | null;
 }
-
-// Mock comments for demo purposes
-const mockComments = [
-  { author: "M***a", text: "Excelente calidad, muy recomendado! 🔥" },
-  { author: "J***s", text: "Llegó súper rápido, todo perfecto ❤️" },
-  { author: "A***z", text: "Me encantó, volveré a comprar seguro" },
-  { author: "L***a", text: "Los productos son increíbles, muy buena tienda" },
-  { author: "C***o", text: "Buena atención al cliente, recomendado 100%" },
-];
 
 export const useTrendingStores = (limit = 5) => {
   return useQuery({
@@ -47,16 +47,75 @@ export const useTrendingStores = (limit = 5) => {
 
       if (storesError) throw new Error(storesError.message);
 
-      // For each store, fetch their 4 most recent products
-      const storesWithProducts: TrendingStore[] = await Promise.all(
-        (stores || []).map(async (store, index) => {
+      // For each store, fetch their products, followers, and reviews
+      const storesWithData: TrendingStore[] = await Promise.all(
+        (stores || []).map(async (store) => {
+          // Fetch 4 most recent products
           const { data: products } = await supabase
             .from("seller_catalog")
-            .select("id, sku, nombre, precio_venta, images")
+            .select("id, sku, nombre, precio_venta, images, imported_at")
             .eq("seller_store_id", store.id)
             .eq("is_active", true)
             .order("imported_at", { ascending: false })
             .limit(4);
+
+          // Fetch followers count
+          const { count: followersCount } = await supabase
+            .from("store_followers")
+            .select("*", { count: "exact", head: true })
+            .eq("store_id", store.id);
+
+          // Fetch most recent review with user profile
+          const { data: reviews } = await supabase
+            .from("store_reviews")
+            .select("id, user_id, comment, is_anonymous, created_at")
+            .eq("store_id", store.id)
+            .not("comment", "is", null)
+            .order("created_at", { ascending: false })
+            .limit(1);
+
+          // Get user name for review if not anonymous
+          let recentReview: TrendingStore["recentReview"] = null;
+          if (reviews && reviews.length > 0) {
+            const review = reviews[0];
+            let authorName = "Usuario";
+            
+            if (!review.is_anonymous) {
+              const { data: profile } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("id", review.user_id)
+                .single();
+              
+              if (profile?.full_name) {
+                // Mask the name like "J***n"
+                const name = profile.full_name;
+                if (name.length > 2) {
+                  authorName = `${name.charAt(0)}***${name.charAt(name.length - 1)}`;
+                } else {
+                  authorName = `${name.charAt(0)}***`;
+                }
+              }
+            } else {
+              authorName = "Anónimo";
+            }
+
+            recentReview = {
+              author: authorName,
+              text: review.comment || "",
+            };
+          }
+
+          // Count new products (last 7 days)
+          const sevenDaysAgo = new Date();
+          sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+          
+          const { count: newProductsCount } = await supabase
+            .from("seller_catalog")
+            .select("*", { count: "exact", head: true })
+            .eq("seller_store_id", store.id)
+            .eq("is_active", true)
+            .gte("imported_at", sevenDaysAgo.toISOString());
 
           const formattedProducts: TrendingStoreProduct[] = (products || []).map(p => ({
             id: p.id,
@@ -68,10 +127,8 @@ export const useTrendingStores = (limit = 5) => {
               : null,
           }));
 
-          // Generate mock data for demo
-          const randomFollowers = Math.floor(Math.random() * 50 + 1) * 100;
+          // Generate sales count (this would ideally come from orders data)
           const randomSales = `${Math.floor(Math.random() * 100 + 1)}K+`;
-          const randomNewProducts = Math.floor(Math.random() * 20);
 
           return {
             id: store.id,
@@ -79,17 +136,104 @@ export const useTrendingStores = (limit = 5) => {
             slug: store.slug,
             logo: store.logo,
             products: formattedProducts,
-            followers: randomFollowers,
+            followers: followersCount || 0,
             salesCount: randomSales,
-            newProductsCount: randomNewProducts,
-            recentComment: mockComments[index % mockComments.length],
+            newProductsCount: newProductsCount || 0,
+            recentReview,
           };
         })
       );
 
       // Filter stores that have at least 1 product
-      return storesWithProducts.filter(store => store.products.length > 0);
+      return storesWithData.filter(store => store.products.length > 0);
     },
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
+};
+
+// Hook to follow/unfollow a store
+export const useStoreFollow = () => {
+  const followStore = async (storeId: string, userId: string) => {
+    const { error } = await supabase
+      .from("store_followers")
+      .insert({ store_id: storeId, user_id: userId });
+    
+    if (error && error.code !== "23505") throw error; // Ignore duplicate key error
+    return true;
+  };
+
+  const unfollowStore = async (storeId: string, userId: string) => {
+    const { error } = await supabase
+      .from("store_followers")
+      .delete()
+      .eq("store_id", storeId)
+      .eq("user_id", userId);
+    
+    if (error) throw error;
+    return true;
+  };
+
+  const checkIfFollowing = async (storeId: string, userId: string) => {
+    const { data, error } = await supabase
+      .from("store_followers")
+      .select("id")
+      .eq("store_id", storeId)
+      .eq("user_id", userId)
+      .single();
+    
+    if (error && error.code !== "PGRST116") throw error;
+    return !!data;
+  };
+
+  return { followStore, unfollowStore, checkIfFollowing };
+};
+
+// Hook to manage store reviews
+export const useStoreReviews = (storeId: string | undefined) => {
+  return useQuery({
+    queryKey: ["store-reviews", storeId],
+    queryFn: async () => {
+      if (!storeId) return [];
+
+      const { data, error } = await supabase
+        .from("store_reviews")
+        .select("*")
+        .eq("store_id", storeId)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data as StoreReview[];
+    },
+    enabled: !!storeId,
+  });
+};
+
+export const useSubmitReview = () => {
+  const submitReview = async (
+    storeId: string,
+    userId: string,
+    rating: number,
+    comment?: string,
+    isAnonymous = false
+  ) => {
+    const { data, error } = await supabase
+      .from("store_reviews")
+      .upsert(
+        {
+          store_id: storeId,
+          user_id: userId,
+          rating,
+          comment,
+          is_anonymous: isAnonymous,
+        },
+        { onConflict: "store_id,user_id" }
+      )
+      .select()
+      .single();
+
+    if (error) throw error;
+    return data;
+  };
+
+  return { submitReview };
 };

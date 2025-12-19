@@ -119,13 +119,13 @@ const TrendingStoreCard = ({ store }: TrendingStoreCardProps) => {
         }
       </div>
 
-      {/* Recent Comment */}
-      {store.recentComment && (
+      {/* Recent Review */}
+      {store.recentReview && (
         <div className="px-4 py-3 border-t border-border mt-2">
           <p className="text-sm text-muted-foreground line-clamp-1">
             <span className="text-orange-400 text-lg leading-none">"</span>
-            <span className="font-medium text-foreground">{store.recentComment.author}:</span>
-            {" "}{store.recentComment.text}
+            <span className="font-medium text-foreground">{store.recentReview.author}:</span>
+            {" "}{store.recentReview.text}
             <span className="text-orange-400 text-lg leading-none">"</span>
           </p>
         </div>
