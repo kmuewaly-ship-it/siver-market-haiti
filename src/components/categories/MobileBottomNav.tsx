@@ -3,11 +3,14 @@ import { Home, LayoutGrid, Sparkles, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
+import { useB2CCartSupabase } from "@/hooks/useB2CCartSupabase";
+import { useB2BCartSupabase } from "@/hooks/useB2BCartSupabase";
 
 const MobileBottomNav = () => {
-  // Mobile navigation component
   const location = useLocation();
   const { role } = useAuth();
+  const { cart: b2cCart } = useB2CCartSupabase();
+  const { cart: b2bCart } = useB2BCartSupabase();
   
   // Hide on admin routes
   const isAdminRoute = location.pathname.startsWith("/admin");
@@ -17,17 +20,21 @@ const MobileBottomNav = () => {
     return null;
   }
   
-  const accountLink = role === UserRole.SELLER ? "/seller/cuenta" : "/cuenta";
-  const cartLink = role === UserRole.SELLER ? "/seller/carrito" : "/carrito";
+  const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
+  const accountLink = isB2B ? "/seller/cuenta" : "/cuenta";
+  const cartLink = isB2B ? "/seller/carrito" : "/carrito";
   
-  // Categories always shows the normal categories page for all users
+  // Get cart count based on user type
+  const cartCount = isB2B ? b2bCart.totalItems : b2cCart.totalItems;
+  const cartBadge = cartCount > 0 ? (cartCount > 99 ? "99+" : cartCount.toString()) : undefined;
+  
   const categoriesLink = "/categorias";
   
   const navItems = [
     { href: "/", icon: Home, label: "Inicio" },
     { href: categoriesLink, icon: LayoutGrid, label: "Categorías" },
     { href: "/tendencias", icon: Sparkles, label: "Tendencias", hasDot: true },
-    { href: cartLink, icon: ShoppingBag, label: "Carrito", badge: "99+" },
+    { href: cartLink, icon: ShoppingBag, label: "Carrito", badge: cartBadge },
     { href: accountLink, icon: User, label: "Cuenta" },
   ];
 
