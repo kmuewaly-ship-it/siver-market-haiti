@@ -15,6 +15,7 @@ export interface B2BCartItem {
   size?: string;
   moq: number;
   stockDisponible: number;
+  imagen?: string;
 }
 
 export interface B2BCart {
@@ -72,17 +73,19 @@ export const useB2BCartSupabase = () => {
           (items || []).map(async (item) => {
             let moq = 1;
             let stockDisponible = 0;
+            let imagen: string | undefined = undefined;
             
             if (item.product_id) {
               const { data: product } = await supabase
                 .from('products')
-                .select('moq, stock_fisico')
+                .select('moq, stock_fisico, imagen_principal')
                 .eq('id', item.product_id)
                 .maybeSingle();
               
               if (product) {
                 moq = product.moq || 1;
                 stockDisponible = product.stock_fisico || 0;
+                imagen = product.imagen_principal || undefined;
               }
             }
 
@@ -98,6 +101,7 @@ export const useB2BCartSupabase = () => {
               size: item.size || undefined,
               moq,
               stockDisponible,
+              imagen,
             };
           })
         );

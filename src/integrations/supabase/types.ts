@@ -303,6 +303,109 @@ export type Database = {
           },
         ]
       }
+      b2c_cart_items: {
+        Row: {
+          cart_id: string
+          created_at: string | null
+          id: string
+          image: string | null
+          metadata: Json | null
+          nombre: string
+          quantity: number
+          seller_catalog_id: string | null
+          sku: string
+          store_id: string | null
+          store_name: string | null
+          store_whatsapp: string | null
+          total_price: number
+          unit_price: number
+        }
+        Insert: {
+          cart_id: string
+          created_at?: string | null
+          id?: string
+          image?: string | null
+          metadata?: Json | null
+          nombre: string
+          quantity?: number
+          seller_catalog_id?: string | null
+          sku: string
+          store_id?: string | null
+          store_name?: string | null
+          store_whatsapp?: string | null
+          total_price: number
+          unit_price: number
+        }
+        Update: {
+          cart_id?: string
+          created_at?: string | null
+          id?: string
+          image?: string | null
+          metadata?: Json | null
+          nombre?: string
+          quantity?: number
+          seller_catalog_id?: string | null
+          sku?: string
+          store_id?: string | null
+          store_name?: string | null
+          store_whatsapp?: string | null
+          total_price?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "b2c_cart_items_cart_id_fkey"
+            columns: ["cart_id"]
+            isOneToOne: false
+            referencedRelation: "b2c_carts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2c_cart_items_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2c_cart_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      b2c_carts: {
+        Row: {
+          created_at: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          status: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          status?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       categories: {
         Row: {
           created_at: string

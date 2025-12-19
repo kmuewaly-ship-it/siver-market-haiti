@@ -1,9 +1,9 @@
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, Store, ChevronDown, ChevronUp } from "lucide-react";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, Store, ChevronDown, ChevronUp, Loader2 } from "lucide-react";
 import { Link, Navigate } from "react-router-dom";
-import { useCart } from "@/hooks/useCart";
+import { useB2CCartSupabase } from "@/hooks/useB2CCartSupabase";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
@@ -12,7 +12,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import { UserRole } from "@/types/auth";
 
 const CartPage = () => {
-  const { items, removeItem, updateQuantity, totalPrice, clearCart, getItemsByStore } = useCart();
+  const { cart, items, removeItem, updateQuantity, totalPrice, clearCart, getItemsByStore, isLoading } = useB2CCartSupabase();
   const isMobile = useIsMobile();
   const { user, role } = useAuth();
   const { toast } = useToast();
