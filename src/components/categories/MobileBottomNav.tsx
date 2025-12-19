@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutGrid, Sparkles, ShoppingBag, User } from "lucide-react";
+import { Home, LayoutGrid, Sparkles, ShoppingBag, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
@@ -21,7 +21,6 @@ const MobileBottomNav = () => {
   }
   
   const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
-  const accountLink = isB2B ? "/seller/cuenta" : "/cuenta";
   const cartLink = isB2B ? "/seller/carrito" : "/carrito";
   
   // Get cart count based on user type
@@ -30,12 +29,18 @@ const MobileBottomNav = () => {
   
   const categoriesLink = "/categorias";
   
-  const navItems = [
+  // Different nav items based on role - B2B users get B2B link instead of Cuenta
+  const navItems = isB2B ? [
+    { href: "/", icon: Home, label: "Inicio" },
+    { href: categoriesLink, icon: LayoutGrid, label: "Categorías" },
+    { href: "/seller/adquisicion-lotes", icon: Package, label: "B2B" },
+    { href: cartLink, icon: ShoppingBag, label: "Carrito", badge: cartBadge },
+    { href: "/tendencias", icon: Sparkles, label: "Tendencias", hasDot: true },
+  ] : [
     { href: "/", icon: Home, label: "Inicio" },
     { href: categoriesLink, icon: LayoutGrid, label: "Categorías" },
     { href: "/tendencias", icon: Sparkles, label: "Tendencias", hasDot: true },
     { href: cartLink, icon: ShoppingBag, label: "Carrito", badge: cartBadge },
-    { href: accountLink, icon: User, label: "Cuenta" },
   ];
 
   return (
