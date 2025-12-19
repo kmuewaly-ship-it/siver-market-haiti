@@ -5,6 +5,8 @@ import { usePublicCategories } from "@/hooks/useCategories";
 import { useTrendingProducts } from "@/hooks/useTrendingProducts";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
+import SellerDesktopHeader from "@/components/seller/SellerDesktopHeader";
+import SellerMobileHeader from "@/components/seller/SellerMobileHeader";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -30,7 +32,13 @@ const TrendsPage = () => {
     data: trendingProducts,
     isLoading: trendingLoading
   } = useTrendingProducts(7, 20);
-  const isB2B = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
+  
+  const isSeller = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
+  const isB2B = isSeller;
+
+  // States for seller header
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -137,17 +145,34 @@ const TrendsPage = () => {
     }));
   }, [trendingProducts]);
   return <div className="min-h-screen bg-gray-50">
-      {!isMobile && <Header />}
+      {/* Header según el rol */}
+      {isSeller ? (
+        isMobile ? (
+          <SellerMobileHeader
+            selectedCategoryId={selectedCategoryId}
+            onCategorySelect={setSelectedCategoryId}
+            onSearch={setSearchQuery}
+          />
+        ) : (
+          <SellerDesktopHeader
+            selectedCategoryId={selectedCategoryId}
+            onCategorySelect={setSelectedCategoryId}
+            onSearch={setSearchQuery}
+          />
+        )
+      ) : (
+        !isMobile && <Header />
+      )}
 
       {/* Featured Carousel - Mobile Only */}
-      {isMobile && featuredProducts.length > 0 && <div className="pt-2">
+      {isMobile && featuredProducts.length > 0 && <div className={isSeller ? "pt-2" : "pt-2"}>
           <FeaturedCarousel products={featuredProducts} showMoq={isB2B} />
         </div>}
       
       {/* Hero Section */}
       
 
-      <div className={`container mx-auto px-4 py-12 ${isMobile ? 'pb-20' : ''}`}>
+      <div className={`container mx-auto px-4 py-12 ${isMobile ? 'pb-20' : ''} ${isSeller && !isMobile ? 'pt-4' : ''}`}>
         {/* Filters Bar */}
         <div className="flex flex-wrap items-center justify-between gap-4 mb-8 bg-white p-4 rounded-lg shadow-sm">
           {/* Desktop Filters */}
@@ -219,7 +244,7 @@ const TrendsPage = () => {
           <TrendingCategoriesSection />
         </div>
       </div>
-      {!isMobile && <Footer />}
+      {!isMobile && !isSeller && <Footer />}
     </div>;
 };
 export default TrendsPage;
