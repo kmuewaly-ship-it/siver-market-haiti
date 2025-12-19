@@ -41,7 +41,10 @@ const SellerOnboardingPage = () => {
   // Fetch existing store data
   useEffect(() => {
     const fetchStore = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setIsFetching(false);
+        return;
+      }
       
       try {
         const { data, error } = await supabase

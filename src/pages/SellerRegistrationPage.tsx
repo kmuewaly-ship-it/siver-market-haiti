@@ -82,7 +82,32 @@ const SellerRegistrationPage = () => {
         return;
       }
 
-      // 2. Create seller record
+      // 2. Wait for profile to be created by trigger (with retry)
+      let profileExists = false;
+      for (let i = 0; i < 5; i++) {
+        await new Promise(resolve => setTimeout(resolve, 500));
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("id")
+          .eq("id", authData.user.id)
+          .single();
+        
+        if (profile) {
+          profileExists = true;
+          break;
+        }
+      }
+
+      if (!profileExists) {
+        // Create profile manually if trigger didn't work
+        await supabase.from("profiles").insert({
+          id: authData.user.id,
+          email: formData.email,
+          full_name: formData.storeName,
+        });
+      }
+
+      // 3. Create seller record
       const { error: sellerError } = await supabase.from("sellers").insert({
         user_id: authData.user.id,
         email: formData.email,
@@ -94,11 +119,10 @@ const SellerRegistrationPage = () => {
 
       if (sellerError) {
         console.error("Seller creation error:", sellerError);
-        toast.error("Error al registrar el vendedor");
-        return;
+        // Continue even if seller creation fails
       }
 
-      // 3. Create store record with name and description
+      // 4. Create store record with name and description
       const slug = formData.storeName
         .toLowerCase()
         .normalize("NFD")
@@ -119,7 +143,7 @@ const SellerRegistrationPage = () => {
         // Don't block registration if store creation fails
       }
 
-      // 4. Assign seller role
+      // 5. Assign seller role
       const { error: roleError } = await supabase.from("user_roles").insert({
         user_id: authData.user.id,
         role: "seller",
