@@ -318,7 +318,7 @@ const HeaderB2B = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setShowHistory(true)}
-                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-500 px-2 py-1 outline-none"
+                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-500 px-1 py-0.5 outline-none"
                 />
                 {/* Hidden file input for image search */}
                 <input
