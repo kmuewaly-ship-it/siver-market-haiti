@@ -138,33 +138,19 @@ const SellerAcquisicionLotesContent = () => {
             </SelectContent>
           </Select>
 
-          {(filters.searchQuery || filters.category || filters.stockStatus !== "all") && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={() => setFilters({
-                searchQuery: "",
-                category: null,
-                stockStatus: "all",
-                sortBy: "newest"
-              })} 
-              className="text-blue-600 hover:text-blue-700 text-xs h-8 whitespace-nowrap"
-            >
+          {(filters.searchQuery || filters.category || filters.stockStatus !== "all") && <Button variant="ghost" size="sm" onClick={() => setFilters({
+          searchQuery: "",
+          category: null,
+          stockStatus: "all",
+          sortBy: "newest"
+        })} className="text-blue-600 hover:text-blue-700 text-xs h-8 whitespace-nowrap">
               Limpiar filtros
-            </Button>
-          )}
+            </Button>}
         </div>
 
         {/* Resultados */}
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-900">
-              Productos ({totalProducts} encontrados)
-            </h2>
-            {totalProducts > 0 && <div className="text-sm text-gray-600">
-                Mostrando {startIndex + 1}-{endIndex} de {totalProducts}
-              </div>}
-          </div>
+          
 
           {productsLoading ? <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
