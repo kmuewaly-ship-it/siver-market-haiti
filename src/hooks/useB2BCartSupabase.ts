@@ -283,14 +283,27 @@ export const useB2BCartSupabase = () => {
   }, [cart.id, fetchOrCreateCart]);
 
   // Create order from cart
-  const createOrder = useCallback(async (paymentMethod: 'stripe' | 'moncash' | 'transfer') => {
+  const createOrder = useCallback(async (
+    paymentMethod: 'stripe' | 'moncash' | 'transfer',
+    shippingAddress?: {
+      id: string;
+      full_name: string;
+      phone?: string;
+      street_address: string;
+      city: string;
+      state?: string;
+      postal_code?: string;
+      country: string;
+      notes?: string;
+    }
+  ) => {
     if (!cart.id || !user?.id || cart.items.length === 0) {
       toast.error('Carrito vacío o usuario no autenticado');
       return null;
     }
 
     try {
-      // Create order
+      // Create order with shipping address in metadata
       const { data: order, error: orderError } = await supabase
         .from('orders_b2b')
         .insert({
@@ -300,6 +313,7 @@ export const useB2BCartSupabase = () => {
           payment_method: paymentMethod,
           status: 'draft',
           currency: 'USD',
+          metadata: shippingAddress ? { shipping_address: shippingAddress } : null,
         })
         .select()
         .single();

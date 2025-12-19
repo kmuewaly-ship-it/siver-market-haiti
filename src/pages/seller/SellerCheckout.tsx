@@ -278,8 +278,18 @@ const SellerCheckout = () => {
     setIsProcessing(true);
 
     try {
-      // Create the order with the primary payment method
-      const order = await createOrder(paymentMethod);
+      // Create the order with the primary payment method and shipping address
+      const order = await createOrder(paymentMethod, selectedAddress ? {
+        id: selectedAddress.id,
+        full_name: selectedAddress.full_name,
+        phone: selectedAddress.phone || undefined,
+        street_address: selectedAddress.street_address,
+        city: selectedAddress.city,
+        state: selectedAddress.state || undefined,
+        postal_code: selectedAddress.postal_code || undefined,
+        country: selectedAddress.country,
+        notes: selectedAddress.notes || undefined,
+      } : undefined);
 
       if (!order) {
         throw new Error('Error al crear el pedido');
