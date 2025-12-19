@@ -13,13 +13,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
+import FeaturedCarousel from "@/components/shared/FeaturedCarousel";
+import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/types/auth";
 
 const TrendsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { role, user } = useAuth();
   const { data: productsData, isLoading: productsLoading } = useProducts(0, 50);
   const { data: categories, isLoading: categoriesLoading } = usePublicCategories();
   const { data: trendingProducts, isLoading: trendingLoading } = useTrendingProducts(7, 20);
+
+  const isB2B = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
 
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -152,9 +158,29 @@ const TrendsPage = () => {
     </div>
   );
 
+  // Featured products for carousel
+  const featuredProducts = useMemo(() => {
+    return (trendingProducts || []).slice(0, 8).map(p => ({
+      id: p.id,
+      sku: p.sku_interno,
+      nombre: p.nombre,
+      precio: p.precio_sugerido_venta || p.precio_mayorista,
+      imagen_principal: p.imagen_principal || '/placeholder.svg',
+      stock: p.stock_status === 'out_of_stock' ? 0 : 1,
+      moq: 1
+    }));
+  }, [trendingProducts]);
+
   return (
     <div className="min-h-screen bg-gray-50">
       {!isMobile && <Header />}
+
+      {/* Featured Carousel - Mobile Only */}
+      {isMobile && featuredProducts.length > 0 && (
+        <div className="pt-2">
+          <FeaturedCarousel products={featuredProducts} showMoq={isB2B} />
+        </div>
+      )}
       
       {/* Hero Section */}
       <div className="bg-gray-900 text-white py-16 md:py-24 relative overflow-hidden">
