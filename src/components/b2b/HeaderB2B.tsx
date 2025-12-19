@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, Search, Heart, User, Camera, Loader2, Mic, MicOff, Package } from "lucide-react";
+import { ShoppingBag, Search, Heart, User, Camera, Loader2, Mic, MicOff, Package, Clock, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -8,6 +8,9 @@ import { cn } from "@/lib/utils";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { searchProductsByImage } from "@/services/api/imageSearch";
 import { toast } from "sonner";
+
+const SEARCH_HISTORY_KEY = 'b2b_search_history';
+const MAX_HISTORY_ITEMS = 8;
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -68,9 +71,12 @@ const HeaderB2B = ({
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
   const [isImageSearching, setIsImageSearching] = useState(false);
+  const [showHistory, setShowHistory] = useState(false);
+  const [searchHistory, setSearchHistory] = useState<string[]>([]);
   const isMobile = useIsMobile();
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
+  const searchContainerRef = useRef<HTMLDivElement>(null);
   const { cart } = useCartB2B();
   const cartCount = cart.totalItems;
 
@@ -79,6 +85,30 @@ const HeaderB2B = ({
 
   const catBarRef = useRef<HTMLDivElement>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
+
+  // Load search history from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(SEARCH_HISTORY_KEY);
+      if (stored) {
+        setSearchHistory(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Error loading search history:', e);
+    }
+  }, []);
+
+  // Close history dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target as Node)) {
+        setShowHistory(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     const SpeechRecognitionAPI = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -102,6 +132,39 @@ const HeaderB2B = ({
     return () => window.removeEventListener("resize", check);
   }, [categories]);
 
+  const saveToHistory = (query: string) => {
+    const trimmed = query.trim();
+    if (!trimmed || trimmed.length < 2) return;
+    
+    try {
+      const newHistory = [trimmed, ...searchHistory.filter(h => h.toLowerCase() !== trimmed.toLowerCase())].slice(0, MAX_HISTORY_ITEMS);
+      setSearchHistory(newHistory);
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+    } catch (e) {
+      console.error('Error saving search history:', e);
+    }
+  };
+
+  const removeFromHistory = (query: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    try {
+      const newHistory = searchHistory.filter(h => h !== query);
+      setSearchHistory(newHistory);
+      localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(newHistory));
+    } catch (e) {
+      console.error('Error removing from search history:', e);
+    }
+  };
+
+  const clearHistory = () => {
+    try {
+      setSearchHistory([]);
+      localStorage.removeItem(SEARCH_HISTORY_KEY);
+    } catch (e) {
+      console.error('Error clearing search history:', e);
+    }
+  };
+
   const scrollHeader = (dir: number) => {
     const el = catBarRef.current;
     if (!el) return;
@@ -113,7 +176,18 @@ const HeaderB2B = ({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch?.(searchQuery);
+    if (searchQuery.trim()) {
+      saveToHistory(searchQuery);
+      onSearch?.(searchQuery);
+      setShowHistory(false);
+    }
+  };
+
+  const handleHistoryClick = (query: string) => {
+    setSearchQuery(query);
+    saveToHistory(query);
+    onSearch?.(query);
+    setShowHistory(false);
   };
 
   const handleCategoryClick = (categoryId: string | null) => {
@@ -189,6 +263,7 @@ const HeaderB2B = ({
 
       if (finalTranscript) {
         setSearchQuery(finalTranscript);
+        saveToHistory(finalTranscript);
         toast.success(`Buscando: "${finalTranscript}"`);
         onSearch?.(finalTranscript);
       }
@@ -217,6 +292,10 @@ const HeaderB2B = ({
     recognition.start();
   };
 
+  const filteredHistory = searchQuery.trim() 
+    ? searchHistory.filter(h => h.toLowerCase().includes(searchQuery.toLowerCase()))
+    : searchHistory;
+
   if (isMobile) {
     return (
       <>
@@ -230,60 +309,94 @@ const HeaderB2B = ({
               <span className="font-bold text-sm text-gray-900">B2B</span>
             </Link>
 
-            {/* Search input */}
-            <form onSubmit={handleSearch} className="flex-1 flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
-              <input
-                type="text"
-                placeholder="Buscar productos..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-500 px-4 py-2 outline-none"
-              />
-              {/* Hidden file input for image search */}
-              <input
-                ref={imageInputRef}
-                type="file"
-                accept="image/*"
-                capture="environment"
-                className="hidden"
-                onChange={handleImageSearch}
-              />
-              {/* Camera icon for image search */}
-              <button
-                type="button"
-                onClick={() => imageInputRef.current?.click()}
-                disabled={isImageSearching}
-                className="p-1 text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
-              >
-                {isImageSearching ? (
-                  <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
-                ) : (
-                  <Camera className="w-5 h-5" strokeWidth={1.5} />
-                )}
-              </button>
-              {/* Voice search button */}
-              {voiceSupported && (
-                <button 
-                  type="button" 
-                  onClick={startVoiceSearch}
-                  className={cn(
-                    "p-1 transition-colors",
-                    isListening 
-                      ? "text-red-500 animate-pulse" 
-                      : "text-gray-500 hover:text-blue-600"
-                  )}
+            {/* Search input with history */}
+            <div ref={searchContainerRef} className="flex-1 relative">
+              <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
+                <input
+                  type="text"
+                  placeholder="Buscar productos..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowHistory(true)}
+                  className="flex-1 bg-transparent text-sm text-gray-700 placeholder-gray-500 px-4 py-2 outline-none"
+                />
+                {/* Hidden file input for image search */}
+                <input
+                  ref={imageInputRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleImageSearch}
+                />
+                {/* Camera icon for image search */}
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  disabled={isImageSearching}
+                  className="p-1 text-gray-500 hover:text-blue-600 transition-colors disabled:opacity-50"
                 >
-                  {isListening ? (
-                    <MicOff className="w-5 h-5" strokeWidth={1.5} />
+                  {isImageSearching ? (
+                    <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
                   ) : (
-                    <Mic className="w-5 h-5" strokeWidth={1.5} />
+                    <Camera className="w-5 h-5" strokeWidth={1.5} />
                   )}
                 </button>
+                {/* Voice search button */}
+                {voiceSupported && (
+                  <button 
+                    type="button" 
+                    onClick={startVoiceSearch}
+                    className={cn(
+                      "p-1 transition-colors",
+                      isListening 
+                        ? "text-red-500 animate-pulse" 
+                        : "text-gray-500 hover:text-blue-600"
+                    )}
+                  >
+                    {isListening ? (
+                      <MicOff className="w-5 h-5" strokeWidth={1.5} />
+                    ) : (
+                      <Mic className="w-5 h-5" strokeWidth={1.5} />
+                    )}
+                  </button>
+                )}
+                <button type="submit" className="bg-blue-600 hover:bg-blue-700 p-2 rounded-full m-0.5 transition-colors">
+                  <Search className="w-4 h-4 text-white" strokeWidth={2} />
+                </button>
+              </form>
+
+              {/* Search History Dropdown - Mobile */}
+              {showHistory && filteredHistory.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-gray-100">
+                    <span className="text-xs font-medium text-gray-500">Búsquedas recientes</span>
+                    <button 
+                      onClick={clearHistory}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                    >
+                      Limpiar
+                    </button>
+                  </div>
+                  {filteredHistory.map((query, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleHistoryClick(query)}
+                      className="w-full flex items-center gap-2 px-3 py-2 hover:bg-gray-50 transition-colors text-left"
+                    >
+                      <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 flex-1 truncate">{query}</span>
+                      <button
+                        onClick={(e) => removeFromHistory(query, e)}
+                        className="p-1 hover:bg-gray-200 rounded-full transition-colors"
+                      >
+                        <X className="w-3 h-3 text-gray-400" />
+                      </button>
+                    </button>
+                  ))}
+                </div>
               )}
-              <button type="submit" className="bg-blue-600 hover:bg-blue-700 p-2 rounded-full m-0.5 transition-colors">
-                <Search className="w-4 h-4 text-white" strokeWidth={2} />
-              </button>
-            </form>
+            </div>
 
             {/* Cart */}
             <Link to="/seller/carrito" className="relative flex-shrink-0">
@@ -367,67 +480,101 @@ const HeaderB2B = ({
               </div>
             </Link>
 
-            {/* Search Bar */}
-            <form onSubmit={handleSearch} className="flex-1 mx-8 max-w-xl">
-              <div className="relative w-full flex items-center">
-                <Input
-                  type="text"
-                  placeholder="Buscar productos por nombre o SKU..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-4 pr-24 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
-                />
-                {/* Hidden file input for image search */}
-                <input
-                  ref={imageInputRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={handleImageSearch}
-                />
-                <div className="absolute right-12 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
-                  {/* Camera icon for image search */}
-                  <button
-                    type="button"
-                    onClick={() => imageInputRef.current?.click()}
-                    disabled={isImageSearching}
-                    className="text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
-                  >
-                    {isImageSearching ? (
-                      <Loader2 className="w-5 h-5 animate-spin" />
-                    ) : (
-                      <Camera className="w-5 h-5" />
-                    )}
-                  </button>
-                  {/* Voice search button */}
-                  {voiceSupported && (
+            {/* Search Bar with History */}
+            <div ref={searchContainerRef} className="flex-1 mx-8 max-w-xl relative">
+              <form onSubmit={handleSearch}>
+                <div className="relative w-full flex items-center">
+                  <Input
+                    type="text"
+                    placeholder="Buscar productos por nombre o SKU..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onFocus={() => setShowHistory(true)}
+                    className="pl-4 pr-24 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  {/* Hidden file input for image search */}
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/*"
+                    capture="environment"
+                    className="hidden"
+                    onChange={handleImageSearch}
+                  />
+                  <div className="absolute right-12 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
+                    {/* Camera icon for image search */}
                     <button
                       type="button"
-                      onClick={startVoiceSearch}
-                      className={cn(
-                        "transition-colors",
-                        isListening 
-                          ? "text-red-500 animate-pulse" 
-                          : "text-gray-400 hover:text-blue-600"
-                      )}
+                      onClick={() => imageInputRef.current?.click()}
+                      disabled={isImageSearching}
+                      className="text-gray-400 hover:text-blue-600 transition-colors disabled:opacity-50"
                     >
-                      {isListening ? (
-                        <MicOff className="w-5 h-5" />
+                      {isImageSearching ? (
+                        <Loader2 className="w-5 h-5 animate-spin" />
                       ) : (
-                        <Mic className="w-5 h-5" />
+                        <Camera className="w-5 h-5" />
                       )}
                     </button>
-                  )}
+                    {/* Voice search button */}
+                    {voiceSupported && (
+                      <button
+                        type="button"
+                        onClick={startVoiceSearch}
+                        className={cn(
+                          "transition-colors",
+                          isListening 
+                            ? "text-red-500 animate-pulse" 
+                            : "text-gray-400 hover:text-blue-600"
+                        )}
+                      >
+                        {isListening ? (
+                          <MicOff className="w-5 h-5" />
+                        ) : (
+                          <Mic className="w-5 h-5" />
+                        )}
+                      </button>
+                    )}
+                  </div>
+                  <button 
+                    type="submit"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 p-2 rounded-full transition-colors"
+                  >
+                    <Search className="w-4 h-4 text-white" />
+                  </button>
                 </div>
-                <button 
-                  type="submit"
-                  className="absolute right-1 top-1/2 transform -translate-y-1/2 bg-blue-600 hover:bg-blue-700 p-2 rounded-full transition-colors"
-                >
-                  <Search className="w-4 h-4 text-white" />
-                </button>
-              </div>
-            </form>
+              </form>
+
+              {/* Search History Dropdown - Desktop */}
+              {showHistory && filteredHistory.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-72 overflow-y-auto">
+                  <div className="flex items-center justify-between px-4 py-2 border-b border-gray-100">
+                    <span className="text-xs font-medium text-gray-500">Búsquedas recientes</span>
+                    <button 
+                      onClick={clearHistory}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Limpiar historial
+                    </button>
+                  </div>
+                  {filteredHistory.map((query, index) => (
+                    <button
+                      key={index}
+                      onClick={() => handleHistoryClick(query)}
+                      className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 transition-colors text-left group"
+                    >
+                      <Clock className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                      <span className="text-sm text-gray-700 flex-1">{query}</span>
+                      <button
+                        onClick={(e) => removeFromHistory(query, e)}
+                        className="p-1 opacity-0 group-hover:opacity-100 hover:bg-gray-200 rounded-full transition-all"
+                      >
+                        <X className="w-3.5 h-3.5 text-gray-400" />
+                      </button>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
 
             {/* Actions */}
             <div className="flex items-center gap-6">
