@@ -159,7 +159,7 @@ const SellerAcquisicionLotesContent = () => {
                 No se encontraron productos que coincidan con tus filtros.
               </p>
             </div> : <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 md:gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-2">
                 {products.map(product => <ProductCardB2B key={product.id} product={product} onAddToCart={handleAddToCart} cartItem={cart.items.find(item => item.productId === product.id)} whatsappNumber={whatsappNumber} />)}
               </div>
 
