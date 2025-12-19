@@ -8,12 +8,16 @@ import { cn } from "@/lib/utils";
 import { useCartB2B } from "@/hooks/useCartB2B";
 
 interface HeaderB2BProps {
-  selectedCategoryId: string | null;
-  onCategorySelect: (categoryId: string | null) => void;
-  onSearch: (query: string) => void;
+  selectedCategoryId?: string | null;
+  onCategorySelect?: (categoryId: string | null) => void;
+  onSearch?: (query: string) => void;
 }
 
-const HeaderB2B = ({ selectedCategoryId, onCategorySelect, onSearch }: HeaderB2BProps) => {
+const HeaderB2B = ({ 
+  selectedCategoryId = null, 
+  onCategorySelect, 
+  onSearch 
+}: HeaderB2BProps) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [voiceSupported, setVoiceSupported] = useState(false);
@@ -61,11 +65,11 @@ const HeaderB2B = ({ selectedCategoryId, onCategorySelect, onSearch }: HeaderB2B
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    onSearch(searchQuery);
+    onSearch?.(searchQuery);
   };
 
   const handleCategoryClick = (categoryId: string | null) => {
-    onCategorySelect(categoryId);
+    onCategorySelect?.(categoryId);
   };
 
   if (isMobile) {
