@@ -343,24 +343,24 @@ const HeaderB2B = ({
                   )}
                 </button>
                 {/* Voice search button */}
-                {voiceSupported && (
-                  <button 
-                    type="button" 
-                    onClick={startVoiceSearch}
-                    className={cn(
-                      "p-1 transition-colors",
-                      isListening 
-                        ? "text-red-500 animate-pulse" 
-                        : "text-gray-500 hover:text-blue-600"
-                    )}
-                  >
-                    {isListening ? (
-                      <MicOff className="w-5 h-5" strokeWidth={1.5} />
-                    ) : (
-                      <Mic className="w-5 h-5" strokeWidth={1.5} />
-                    )}
-                  </button>
-                )}
+                <button 
+                  type="button" 
+                  onClick={voiceSupported ? startVoiceSearch : undefined}
+                  disabled={!voiceSupported}
+                  className={cn(
+                    "p-1 transition-colors",
+                    !voiceSupported && "opacity-50 cursor-not-allowed",
+                    isListening 
+                      ? "text-red-500 animate-pulse" 
+                      : "text-gray-500 hover:text-blue-600"
+                  )}
+                >
+                  {isListening ? (
+                    <MicOff className="w-5 h-5" strokeWidth={1.5} />
+                  ) : (
+                    <Mic className="w-5 h-5" strokeWidth={1.5} />
+                  )}
+                </button>
                 <button type="submit" className="bg-blue-600 hover:bg-blue-700 p-2 rounded-full m-0.5 transition-colors">
                   <Search className="w-4 h-4 text-white" strokeWidth={2} />
                 </button>
