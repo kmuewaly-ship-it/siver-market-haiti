@@ -4,8 +4,10 @@ import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useCart } from '@/hooks/useCart';
+import { useB2CCartSupabase } from '@/hooks/useB2CCartSupabase';
 import { useAddresses, Address } from '@/hooks/useAddresses';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useCreateB2COrder } from '@/hooks/useB2COrders';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,8 +40,10 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user, role, isLoading: authLoading } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
+  const { completeCart, cart: b2cCart } = useB2CCartSupabase();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const isMobile = useIsMobile();
+  const createOrder = useCreateB2COrder();
 
   // Redirect sellers/admins to B2B checkout
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
@@ -235,18 +239,62 @@ const CheckoutPage = () => {
       return;
     }
 
+    if (items.length === 0) {
+      toast.error('El carrito está vacío');
+      return;
+    }
+
     setIsProcessing(true);
 
     try {
-      // Simulate order creation (in real app, this would be an API call)
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      const newOrderId = `ORD-${Date.now().toString(36).toUpperCase()}`;
-      setOrderId(newOrderId);
-      
-      clearCart();
-      setOrderPlaced(true);
-      toast.success('¡Pedido realizado exitosamente!');
+      // Prepare order items from cart
+      const orderItems = items.map(item => ({
+        sku: item.sku,
+        nombre: item.name,
+        cantidad: item.quantity,
+        precio_unitario: item.price,
+        subtotal: item.price * item.quantity,
+        image: item.image,
+        store_id: item.storeId,
+        store_name: item.storeName,
+      }));
+
+      // Prepare shipping address
+      const shippingAddress = selectedAddressData ? {
+        id: selectedAddressData.id,
+        full_name: selectedAddressData.full_name,
+        phone: selectedAddressData.phone || undefined,
+        street_address: selectedAddressData.street_address,
+        city: selectedAddressData.city,
+        state: selectedAddressData.state || undefined,
+        postal_code: selectedAddressData.postal_code || undefined,
+        country: selectedAddressData.country,
+        notes: selectedAddressData.notes || undefined,
+      } : undefined;
+
+      // Create the order in database
+      const order = await createOrder.mutateAsync({
+        items: orderItems,
+        total_amount: totalPrice(),
+        total_quantity: items.reduce((sum, item) => sum + item.quantity, 0),
+        payment_method: paymentMethod,
+        payment_reference: paymentReference || undefined,
+        notes: orderNotes || undefined,
+        shipping_address: shippingAddress,
+      });
+
+      if (order) {
+        setOrderId(order.id.slice(0, 8).toUpperCase());
+        
+        // Complete the B2C cart in Supabase if it exists
+        if (b2cCart?.id) {
+          await completeCart();
+        }
+        
+        // Clear the local cart (zustand)
+        clearCart();
+        setOrderPlaced(true);
+      }
     } catch (error) {
       console.error('Error placing order:', error);
       toast.error('Error al procesar el pedido');

@@ -21,14 +21,18 @@ export function SellerSidebar() {
     icon: ShoppingCart,
     badge: "B2B"
   }, {
-    title: "Mis Pedidos",
+    title: "Mis Compras",
+    url: "/seller/mis-compras",
+    icon: Package,
+    badge: "Nuevo"
+  }, {
+    title: "Pedidos Recibidos",
     url: "/seller/pedidos",
     icon: ClipboardList
   }, {
     title: "Inventario B2C",
     url: "/seller/inventario",
-    icon: LayoutGrid,
-    badge: "Nuevo"
+    icon: LayoutGrid
   }, {
     title: "Mi Catálogo",
     url: "/seller/catalogo",
@@ -36,7 +40,7 @@ export function SellerSidebar() {
   }, {
     title: "Carrito B2B",
     url: "/seller/carrito",
-    icon: Package
+    icon: ShoppingBag
   }, {
     title: "Lista de Deseos",
     url: "/seller/favoritos",
@@ -44,8 +48,7 @@ export function SellerSidebar() {
   }, {
     title: "Créditos y KYC",
     url: "/seller/kyc",
-    icon: Shield,
-    badge: "Nuevo"
+    icon: Shield
   }, {
     title: "Mi Cuenta",
     url: "/seller/cuenta",

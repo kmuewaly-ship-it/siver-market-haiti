@@ -54,6 +54,7 @@ import SellerCartPage from "./pages/seller/SellerCartPage";
 import SellerFavoritesPage from "./pages/seller/SellerFavoritesPage";
 import SellerInventarioB2C from "./pages/seller/SellerInventarioB2C";
 import SellerPedidosPage from "./pages/seller/SellerPedidosPage";
+import SellerMisComprasPage from "./pages/seller/SellerMisComprasPage";
 import SellerOnboardingPage from "./pages/seller/SellerOnboardingPage";
 import SellerKYCPage from "./pages/seller/SellerKYCPage";
 import { PageLoader } from "./components/ui/PageLoader";
@@ -249,6 +250,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
                   <SellerPedidosPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route
+              path="/seller/mis-compras" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
+                  <SellerMisComprasPage />
                 </ProtectedRoute>
               } 
             />
