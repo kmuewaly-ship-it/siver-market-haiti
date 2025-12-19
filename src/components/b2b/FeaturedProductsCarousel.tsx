@@ -1,15 +1,23 @@
-﻿import { ProductB2BCard } from '@/types/b2b';
+import { ProductB2BCard } from '@/types/b2b';
 import useEmblaCarousel from 'embla-carousel-react';
+import Autoplay from 'embla-carousel-autoplay';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useEffect, useState } from 'react';
+import { useRef } from 'react';
 
 interface FeaturedProductsCarouselProps {
   products: ProductB2BCard[];
 }
 
 const FeaturedProductsCarousel = ({ products }: FeaturedProductsCarouselProps) => {
-  const [emblaRef] = useEmblaCarousel({ align: 'start', loop: true });
+  const autoplayPlugin = useRef(
+    Autoplay({ delay: 3000, stopOnInteraction: false, stopOnMouseEnter: true })
+  );
+  
+  const [emblaRef] = useEmblaCarousel(
+    { align: 'start', loop: true },
+    [autoplayPlugin.current]
+  );
 
   if (products.length === 0) return null;
 
