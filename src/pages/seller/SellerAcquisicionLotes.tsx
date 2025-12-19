@@ -204,6 +204,9 @@ const SellerAcquisicionLotesContent = () => {
                 {isFetching && (
                   <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
                 )}
+                {!hasMore && !isFetching && allProducts.length > 0 && (
+                  <p className="text-sm text-gray-500">No hay más productos</p>
+                )}
               </div>
             </>
           )}
