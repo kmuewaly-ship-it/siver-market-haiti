@@ -24,20 +24,29 @@ export interface StoreProfile {
   tiktok: string | null;
 }
 
-export const useStore = (storeId: string | undefined) => {
+// Helper to check if string is a valid UUID
+const isUUID = (str: string) => {
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(str);
+};
+
+export const useStore = (storeIdOrSlug: string | undefined) => {
   return useQuery({
-    queryKey: ["store", storeId],
+    queryKey: ["store", storeIdOrSlug],
     queryFn: async () => {
+      // Query by id if UUID, otherwise by slug
+      const column = isUUID(storeIdOrSlug!) ? "id" : "slug";
+      
       const { data, error } = await supabase
         .from("stores")
         .select("*")
-        .eq("id", storeId!)
+        .eq(column, storeIdOrSlug!)
         .single();
 
       if (error) throw new Error(error.message);
       return data as StoreProfile;
     },
-    enabled: !!storeId,
+    enabled: !!storeIdOrSlug,
     staleTime: 1000 * 60 * 10,
   });
 };
