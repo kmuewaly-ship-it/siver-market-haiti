@@ -13,19 +13,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
-import FeaturedCarousel from "@/components/shared/FeaturedCarousel";
-import { useAuth } from "@/hooks/useAuth";
-import { UserRole } from "@/types/auth";
-
 const TrendsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
-  const { role, user } = useAuth();
-  const { data: productsData, isLoading: productsLoading } = useProducts(0, 50);
-  const { data: categories, isLoading: categoriesLoading } = usePublicCategories();
-  const { data: trendingProducts, isLoading: trendingLoading } = useTrendingProducts(7, 20);
-
-  const isB2B = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
+  const {
+    data: productsData,
+    isLoading: productsLoading
+  } = useProducts(0, 50);
+  const {
+    data: categories,
+    isLoading: categoriesLoading
+  } = usePublicCategories();
+  const {
+    data: trendingProducts,
+    isLoading: trendingLoading
+  } = useTrendingProducts(7, 20);
 
   // Filter states
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -61,13 +63,9 @@ const TrendsPage = () => {
 
     // Sort
     if (sortBy === "price-low") {
-      products = [...products].sort((a, b) => 
-        (a.precio_sugerido_venta || a.precio_mayorista) - (b.precio_sugerido_venta || b.precio_mayorista)
-      );
+      products = [...products].sort((a, b) => (a.precio_sugerido_venta || a.precio_mayorista) - (b.precio_sugerido_venta || b.precio_mayorista));
     } else if (sortBy === "price-high") {
-      products = [...products].sort((a, b) => 
-        (b.precio_sugerido_venta || b.precio_mayorista) - (a.precio_sugerido_venta || a.precio_mayorista)
-      );
+      products = [...products].sort((a, b) => (b.precio_sugerido_venta || b.precio_mayorista) - (a.precio_sugerido_venta || a.precio_mayorista));
     }
     // "trending" is default order from API
 
@@ -77,32 +75,25 @@ const TrendsPage = () => {
   // Get new arrivals (recent products)
   const newArrivals = useMemo(() => {
     let products = productsData?.products.slice(0, 16) || [];
-    
     if (selectedCategory !== "all") {
       products = products.filter(p => p.categoria_id === selectedCategory);
     }
-
     products = products.filter(p => {
       const price = p.precio_sugerido_venta || p.precio_mayorista || 0;
       return price >= priceRange[0] && price <= priceRange[1];
     });
-
     return products.slice(0, 8);
   }, [productsData, selectedCategory, priceRange]);
 
   // Get top categories (root categories)
   const topCategories = categories?.filter(c => !c.parent_id).slice(0, 6) || [];
-
   const clearFilters = () => {
     setSelectedCategory("all");
     setPriceRange([0, maxPrice]);
     setSortBy("trending");
   };
-
   const hasActiveFilters = selectedCategory !== "all" || priceRange[0] > 0 || priceRange[1] < maxPrice;
-
-  const FilterControls = () => (
-    <div className="space-y-6">
+  const FilterControls = () => <div className="space-y-6">
       {/* Category Filter */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-2">Categoría</label>
@@ -112,9 +103,7 @@ const TrendsPage = () => {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Todas las categorías</SelectItem>
-            {categories?.filter(c => !c.parent_id).map((cat) => (
-              <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-            ))}
+            {categories?.filter(c => !c.parent_id).map(cat => <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
@@ -124,14 +113,7 @@ const TrendsPage = () => {
         <label className="block text-sm font-medium text-gray-700 mb-2">
           Rango de Precio: ${priceRange[0]} - ${priceRange[1]}
         </label>
-        <Slider
-          value={priceRange}
-          onValueChange={(value) => setPriceRange(value as [number, number])}
-          min={0}
-          max={maxPrice}
-          step={10}
-          className="mt-2"
-        />
+        <Slider value={priceRange} onValueChange={value => setPriceRange(value as [number, number])} min={0} max={maxPrice} step={10} className="mt-2" />
       </div>
 
       {/* Sort */}
@@ -149,38 +131,13 @@ const TrendsPage = () => {
         </Select>
       </div>
 
-      {hasActiveFilters && (
-        <Button variant="outline" onClick={clearFilters} className="w-full">
+      {hasActiveFilters && <Button variant="outline" onClick={clearFilters} className="w-full">
           <X className="w-4 h-4 mr-2" />
           Limpiar Filtros
-        </Button>
-      )}
-    </div>
-  );
-
-  // Featured products for carousel
-  const featuredProducts = useMemo(() => {
-    return (trendingProducts || []).slice(0, 8).map(p => ({
-      id: p.id,
-      sku: p.sku_interno,
-      nombre: p.nombre,
-      precio: p.precio_sugerido_venta || p.precio_mayorista,
-      imagen_principal: p.imagen_principal || '/placeholder.svg',
-      stock: p.stock_status === 'out_of_stock' ? 0 : 1,
-      moq: 1
-    }));
-  }, [trendingProducts]);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
+        </Button>}
+    </div>;
+  return <div className="min-h-screen bg-gray-50">
       {!isMobile && <Header />}
-
-      {/* Featured Carousel - Mobile Only */}
-      {isMobile && featuredProducts.length > 0 && (
-        <div className="pt-2">
-          <FeaturedCarousel products={featuredProducts} showMoq={isB2B} />
-        </div>
-      )}
       
       {/* Hero Section */}
       <div className="bg-gray-900 text-white py-16 md:py-24 relative overflow-hidden">
@@ -209,14 +166,9 @@ const TrendsPage = () => {
           <div className="hidden md:flex items-center gap-4 flex-1">
             <Select value={selectedCategory} onValueChange={setSelectedCategory}>
               <SelectTrigger className="w-[200px]">
-                <SelectValue placeholder="Categoría" />
+                
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas las categorías</SelectItem>
-                {categories?.filter(c => !c.parent_id).map((cat) => (
-                  <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                ))}
-              </SelectContent>
+              
             </Select>
 
             <Select value={sortBy} onValueChange={setSortBy}>
@@ -233,13 +185,7 @@ const TrendsPage = () => {
             <div className="flex items-center gap-2 text-sm text-gray-600">
               <span>Precio:</span>
               <div className="w-48">
-                <Slider
-                  value={priceRange}
-                  onValueChange={(value) => setPriceRange(value as [number, number])}
-                  min={0}
-                  max={maxPrice}
-                  step={10}
-                />
+                <Slider value={priceRange} onValueChange={value => setPriceRange(value as [number, number])} min={0} max={maxPrice} step={10} />
               </div>
               <span className="text-xs">${priceRange[0]}-${priceRange[1]}</span>
             </div>
@@ -264,12 +210,10 @@ const TrendsPage = () => {
             </SheetContent>
           </Sheet>
 
-          {hasActiveFilters && (
-            <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500">
+          {hasActiveFilters && <Button variant="ghost" size="sm" onClick={clearFilters} className="text-gray-500">
               <X className="w-4 h-4 mr-1" />
               Limpiar
-            </Button>
-          )}
+            </Button>}
 
           <div className="text-sm text-gray-500">
             {filteredTrendingProducts.length} productos
@@ -294,66 +238,34 @@ const TrendsPage = () => {
               </Button>
             </div>
 
-            {trendingLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => (
-                  <div key={i} className="space-y-4">
+            {trendingLoading ? <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[...Array(8)].map((_, i) => <div key={i} className="space-y-4">
                     <Skeleton className="h-64 w-full rounded-xl" />
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : filteredTrendingProducts.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {filteredTrendingProducts.slice(0, 8).map((product) => (
-                  <ProductCard key={product.id} product={{
-                    id: product.id,
-                    name: product.nombre,
-                    price: product.precio_sugerido_venta || product.precio_mayorista,
-                    image: product.imagen_principal || '/placeholder.svg',
-                    badge: product.view_count > 10 ? `${product.view_count} vistas` : undefined,
-                  }} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500">
+                  </div>)}
+              </div> : filteredTrendingProducts.length > 0 ? <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {filteredTrendingProducts.slice(0, 8).map(product => {})}
+              </div> : <div className="text-center py-12 text-gray-500">
                 No hay productos que coincidan con los filtros seleccionados.
-              </div>
-            )}
+              </div>}
           </section>
 
           {/* Categories Section */}
           <section>
             <h2 className="text-2xl font-bold text-gray-900 mb-8 text-center">Categorías en Tendencia</h2>
-            {categoriesLoading ? (
-              <div className="flex gap-4 overflow-x-auto pb-4">
-                {[...Array(6)].map((_, i) => (
-                  <Skeleton key={i} className="h-32 w-32 rounded-full flex-shrink-0" />
-                ))}
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                {topCategories.map((cat) => (
-                  <div 
-                    key={cat.id}
-                    onClick={() => navigate(`/categoria/${cat.slug}`)}
-                    className="group cursor-pointer flex flex-col items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 hover:shadow-lg transition-all hover:-translate-y-1"
-                  >
+            {categoriesLoading ? <div className="flex gap-4 overflow-x-auto pb-4">
+                {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 w-32 rounded-full flex-shrink-0" />)}
+              </div> : <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+                {topCategories.map(cat => <div key={cat.id} onClick={() => navigate(`/categoria/${cat.slug}`)} className="group cursor-pointer flex flex-col items-center gap-3 p-4 rounded-xl bg-white border border-gray-100 hover:shadow-lg transition-all hover:-translate-y-1">
                     <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden group-hover:ring-2 group-hover:ring-red-500 transition-all">
-                      {cat.icon ? (
-                        <img src={cat.icon} alt={cat.name} className="w-full h-full object-cover" />
-                      ) : (
-                        <span className="text-2xl font-bold text-gray-400">{cat.name.charAt(0)}</span>
-                      )}
+                      {cat.icon ? <img src={cat.icon} alt={cat.name} className="w-full h-full object-cover" /> : <span className="text-2xl font-bold text-gray-400">{cat.name.charAt(0)}</span>}
                     </div>
                     <span className="font-medium text-gray-900 group-hover:text-red-600 transition-colors text-center">
                       {cat.name}
                     </span>
-                  </div>
-                ))}
-              </div>
-            )}
+                  </div>)}
+              </div>}
           </section>
 
           {/* New Arrivals Section */}
@@ -373,38 +285,26 @@ const TrendsPage = () => {
               </Button>
             </div>
 
-            {productsLoading ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[...Array(4)].map((_, i) => (
-                  <div key={i} className="space-y-4">
+            {productsLoading ? <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {[...Array(4)].map((_, i) => <div key={i} className="space-y-4">
                     <Skeleton className="h-64 w-full rounded-xl" />
                     <Skeleton className="h-4 w-3/4" />
                     <Skeleton className="h-4 w-1/2" />
-                  </div>
-                ))}
-              </div>
-            ) : newArrivals.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {newArrivals.map((product) => (
-                  <ProductCard key={product.id} product={{
-                    id: product.id,
-                    name: product.nombre,
-                    price: product.precio_sugerido_venta || product.precio_mayorista,
-                    image: product.imagen_principal || '/placeholder.svg',
-                  }} />
-                ))}
-              </div>
-            ) : (
-              <div className="text-center py-12 text-gray-500">
+                  </div>)}
+              </div> : newArrivals.length > 0 ? <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                {newArrivals.map(product => <ProductCard key={product.id} product={{
+              id: product.id,
+              name: product.nombre,
+              price: product.precio_sugerido_venta || product.precio_mayorista,
+              image: product.imagen_principal || '/placeholder.svg'
+            }} />)}
+              </div> : <div className="text-center py-12 text-gray-500">
                 No hay productos nuevos que coincidan con los filtros.
-              </div>
-            )}
+              </div>}
           </section>
         </div>
       </div>
       {!isMobile && <Footer />}
-    </div>
-  );
+    </div>;
 };
-
 export default TrendsPage;
