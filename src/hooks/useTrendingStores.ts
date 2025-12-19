@@ -41,13 +41,13 @@ export const useTrendingStores = (limit = 5) => {
       // Fetch active stores with their products
       const { data: stores, error: storesError } = await supabase
         .from("stores")
-        .select("id, name, slug, logo")
+        .select("id, name, slug, logo, owner_user_id")
         .eq("is_active", true)
         .limit(limit);
 
       if (storesError) throw new Error(storesError.message);
 
-      // For each store, fetch their products, followers, and reviews
+      // For each store, fetch their products, followers, reviews, and sales
       const storesWithData: TrendingStore[] = await Promise.all(
         (stores || []).map(async (store) => {
           // Fetch 4 most recent products
@@ -117,6 +117,39 @@ export const useTrendingStores = (limit = 5) => {
             .eq("is_active", true)
             .gte("imported_at", sevenDaysAgo.toISOString());
 
+          // Calculate real sales count from orders_b2b
+          let salesCount = "0";
+          try {
+            // Get seller record for this store owner
+            const { data: seller } = await supabase
+              .from("sellers")
+              .select("id")
+              .eq("user_id", store.owner_user_id)
+              .single();
+
+            if (seller) {
+              // Count total quantity sold from orders_b2b
+              const { data: orders } = await supabase
+                .from("orders_b2b")
+                .select("total_quantity")
+                .eq("seller_id", store.owner_user_id)
+                .in("status", ["paid", "completed", "delivered"]);
+
+              const totalSold = orders?.reduce((sum, order) => sum + (order.total_quantity || 0), 0) || 0;
+              
+              // Format the count
+              if (totalSold >= 1000) {
+                salesCount = `${(totalSold / 1000).toFixed(0)}K+`;
+              } else if (totalSold > 0) {
+                salesCount = `${totalSold}+`;
+              } else {
+                salesCount = "Nuevo";
+              }
+            }
+          } catch (e) {
+            salesCount = "Nuevo";
+          }
+
           const formattedProducts: TrendingStoreProduct[] = (products || []).map(p => ({
             id: p.id,
             sku: p.sku,
@@ -127,9 +160,6 @@ export const useTrendingStores = (limit = 5) => {
               : null,
           }));
 
-          // Generate sales count (this would ideally come from orders data)
-          const randomSales = `${Math.floor(Math.random() * 100 + 1)}K+`;
-
           return {
             id: store.id,
             name: store.name,
@@ -137,7 +167,7 @@ export const useTrendingStores = (limit = 5) => {
             logo: store.logo,
             products: formattedProducts,
             followers: followersCount || 0,
-            salesCount: randomSales,
+            salesCount,
             newProductsCount: newProductsCount || 0,
             recentReview,
           };
