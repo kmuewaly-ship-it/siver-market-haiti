@@ -481,16 +481,16 @@ const HeaderB2B = ({
             </Link>
 
             {/* Search Bar with History */}
-            <div ref={searchContainerRef} className="flex-1 mx-8 max-w-xl relative">
+            <div ref={searchContainerRef} className="flex-1 mx-8 max-w-md relative">
               <form onSubmit={handleSearch}>
                 <div className="relative w-full flex items-center">
                   <Input
                     type="text"
-                    placeholder="Buscar productos por nombre o SKU..."
+                    placeholder=""
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     onFocus={() => setShowHistory(true)}
-                    className="pl-4 pr-24 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="pl-4 pr-28 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
                   {/* Hidden file input for image search */}
                   <input
