@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useB2BCartSupabase } from '@/hooks/useB2BCartSupabase';
 import { useKYC } from '@/hooks/useKYC';
 import { useSellerCredits } from '@/hooks/useSellerCredits';
+import { useAddresses, Address } from '@/hooks/useAddresses';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -28,6 +29,10 @@ import {
   Copy,
   Wallet,
   Info,
+  MapPin,
+  Plus,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -39,6 +44,7 @@ const SellerCheckout = () => {
   const { cart, isLoading: cartLoading, createOrder, markOrderAsPaid, clearCart } = useB2BCartSupabase();
   const { isVerified } = useKYC();
   const { credit, availableCredit, hasActiveCredit, calculateMaxCreditForCart } = useSellerCredits();
+  const { addresses, isLoading: addressesLoading, createAddress } = useAddresses();
 
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -48,6 +54,29 @@ const SellerCheckout = () => {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [creditAmount, setCreditAmount] = useState(0);
   const [useSiverCredit, setUseSiverCredit] = useState(false);
+  
+  // Shipping address states
+  const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
+  const [showNewAddressForm, setShowNewAddressForm] = useState(false);
+  const [newAddress, setNewAddress] = useState({
+    label: 'Negocio',
+    full_name: '',
+    phone: '',
+    street_address: '',
+    city: '',
+    state: '',
+    postal_code: '',
+    country: 'Haití',
+    notes: '',
+  });
+
+  // Set default address on load
+  useState(() => {
+    const defaultAddress = addresses.find(a => a.is_default);
+    if (defaultAddress && !selectedAddressId) {
+      setSelectedAddressId(defaultAddress.id);
+    }
+  });
 
   // Calculate max credit for current cart (never 100% - max is what admin configured, typically less)
   const maxCreditAmount = calculateMaxCreditForCart(cart.subtotal);
@@ -98,7 +127,40 @@ const SellerCheckout = () => {
     name: 'Siver Market 509',
   };
 
-  const isLoading = authLoading || cartLoading;
+  const isLoading = authLoading || cartLoading || addressesLoading;
+
+  // Get selected address
+  const selectedAddress = addresses.find(a => a.id === selectedAddressId);
+
+  // Handle saving new address
+  const handleSaveNewAddress = async () => {
+    if (!newAddress.full_name || !newAddress.street_address || !newAddress.city) {
+      toast.error('Completa los campos obligatorios');
+      return;
+    }
+    
+    try {
+      const result = await createAddress.mutateAsync({
+        ...newAddress,
+        is_default: addresses.length === 0,
+      });
+      setSelectedAddressId(result.id);
+      setShowNewAddressForm(false);
+      setNewAddress({
+        label: 'Negocio',
+        full_name: '',
+        phone: '',
+        street_address: '',
+        city: '',
+        state: '',
+        postal_code: '',
+        country: 'Haití',
+        notes: '',
+      });
+    } catch (error) {
+      console.error('Error creating address:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -322,7 +384,185 @@ const SellerCheckout = () => {
                 </div>
               </Card>
 
-              {/* Cart Items */}
+              {/* Shipping Address */}
+              <Card className="p-6">
+                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-primary" />
+                  Dirección de Envío
+                </h2>
+                
+                {addresses.length > 0 && !showNewAddressForm ? (
+                  <div className="space-y-3">
+                    {addresses.map((address) => (
+                      <div
+                        key={address.id}
+                        onClick={() => setSelectedAddressId(address.id)}
+                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                          selectedAddressId === address.id
+                            ? 'border-primary bg-primary/5'
+                            : 'border-border hover:border-muted-foreground'
+                        }`}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="font-semibold">{address.full_name}</span>
+                              {address.is_default && (
+                                <Badge variant="secondary" className="text-xs">
+                                  Predeterminada
+                                </Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs">
+                                {address.label}
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground">
+                              {address.street_address}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {address.city}{address.state ? `, ${address.state}` : ''}{address.postal_code ? ` ${address.postal_code}` : ''}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {address.country}
+                            </p>
+                            {address.phone && (
+                              <p className="text-sm text-muted-foreground mt-1">
+                                Tel: {address.phone}
+                              </p>
+                            )}
+                          </div>
+                          <div
+                            className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ${
+                              selectedAddressId === address.id
+                                ? 'border-primary bg-primary'
+                                : 'border-muted-foreground'
+                            }`}
+                          >
+                            {selectedAddressId === address.id && (
+                              <Check className="h-full w-full text-primary-foreground p-0.5" />
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <Button
+                      variant="outline"
+                      className="w-full mt-2"
+                      onClick={() => setShowNewAddressForm(true)}
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Agregar Nueva Dirección
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {addresses.length > 0 && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setShowNewAddressForm(false)}
+                        className="mb-2"
+                      >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Volver a direcciones guardadas
+                      </Button>
+                    )}
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="address_name">Nombre completo *</Label>
+                        <Input
+                          id="address_name"
+                          placeholder="Nombre del destinatario"
+                          value={newAddress.full_name}
+                          onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="address_phone">Teléfono</Label>
+                        <Input
+                          id="address_phone"
+                          placeholder="+509 XXXX XXXX"
+                          value={newAddress.phone}
+                          onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="address_street">Dirección *</Label>
+                      <Input
+                        id="address_street"
+                        placeholder="Calle, número, local..."
+                        value={newAddress.street_address}
+                        onChange={(e) => setNewAddress({ ...newAddress, street_address: e.target.value })}
+                      />
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="address_city">Ciudad *</Label>
+                        <Input
+                          id="address_city"
+                          placeholder="Ciudad"
+                          value={newAddress.city}
+                          onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="address_state">Departamento</Label>
+                        <Input
+                          id="address_state"
+                          placeholder="Departamento"
+                          value={newAddress.state}
+                          onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="address_postal">Código postal</Label>
+                        <Input
+                          id="address_postal"
+                          placeholder="Código postal"
+                          value={newAddress.postal_code}
+                          onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-2">
+                      <Label htmlFor="address_notes">Notas de entrega</Label>
+                      <Textarea
+                        id="address_notes"
+                        placeholder="Instrucciones especiales para el repartidor..."
+                        value={newAddress.notes}
+                        onChange={(e) => setNewAddress({ ...newAddress, notes: e.target.value })}
+                        rows={2}
+                      />
+                    </div>
+                    
+                    <Button
+                      onClick={handleSaveNewAddress}
+                      disabled={createAddress.isPending}
+                      className="w-full"
+                    >
+                      {createAddress.isPending ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Guardando...
+                        </>
+                      ) : (
+                        <>
+                          <Check className="h-4 w-4 mr-2" />
+                          Guardar Dirección
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </Card>
+
+
               <Card className="p-6">
                 <h2 className="text-xl font-bold mb-4">
                   Productos ({cart.items.length})
