@@ -1,33 +1,29 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import Footer from "@/components/layout/Footer";
-import HeaderB2B from "@/components/b2b/HeaderB2B";
 import ProductCardB2B from "@/components/b2b/ProductCardB2B";
 import CartSidebarB2B from "@/components/b2b/CartSidebarB2B";
-import { B2BFilters, CartItemB2B } from "@/types/b2b";
+import { B2BFilters, CartItemB2B, ProductB2BCard } from "@/types/b2b";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProductsB2B, useFeaturedProductsB2B } from "@/hooks/useProductsB2B";
 import { Button } from "@/components/ui/button";
-import { ChevronLeft, ChevronRight, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import FeaturedProductsCarousel from "@/components/b2b/FeaturedProductsCarousel";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+
 const SellerAcquisicionLotesContent = () => {
-  const {
-    user,
-    isLoading: authLoading
-  } = useAuth();
-  const {
-    cart,
-    addItem,
-    updateQuantity,
-    removeItem
-  } = useCartB2B();
+  const { user, isLoading: authLoading } = useAuth();
+  const { cart, addItem, updateQuantity, removeItem } = useCartB2B();
   const isMobile = useIsMobile();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
+  const [allProducts, setAllProducts] = useState<ProductB2BCard[]>([]);
+  const [hasMore, setHasMore] = useState(true);
   const itemsPerPage = 12;
+  const loadMoreRef = useRef<HTMLDivElement>(null);
+  
   const [filters, setFilters] = useState<B2BFilters>({
     searchQuery: "",
     category: null,
@@ -37,16 +33,45 @@ const SellerAcquisicionLotesContent = () => {
   const [whatsappNumber, setWhatsappNumber] = useState("50369596772");
 
   // Fetch products from database
-  const {
-    data: productsData,
-    isLoading: productsLoading
-  } = useProductsB2B(filters, currentPage, itemsPerPage);
-  const {
-    data: featuredProducts = []
-  } = useFeaturedProductsB2B(6);
-  const products = productsData?.products || [];
-  const totalProducts = productsData?.total || 0;
-  const totalPages = Math.ceil(totalProducts / itemsPerPage);
+  const { data: productsData, isLoading: productsLoading, isFetching } = useProductsB2B(filters, currentPage, itemsPerPage);
+  const { data: featuredProducts = [] } = useFeaturedProductsB2B(6);
+  
+  // Accumulate products for infinite scroll
+  useEffect(() => {
+    if (productsData?.products) {
+      if (currentPage === 0) {
+        setAllProducts(productsData.products);
+      } else {
+        setAllProducts(prev => [...prev, ...productsData.products]);
+      }
+      setHasMore(productsData.products.length === itemsPerPage);
+    }
+  }, [productsData, currentPage]);
+
+  // Reset when filters change
+  useEffect(() => {
+    setCurrentPage(0);
+    setAllProducts([]);
+    setHasMore(true);
+  }, [filters]);
+
+  // Infinite scroll observer
+  const handleObserver = useCallback((entries: IntersectionObserverEntry[]) => {
+    const [target] = entries;
+    if (target.isIntersecting && hasMore && !isFetching && !productsLoading) {
+      setCurrentPage(prev => prev + 1);
+    }
+  }, [hasMore, isFetching, productsLoading]);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(handleObserver, {
+      root: null,
+      rootMargin: "100px",
+      threshold: 0.1
+    });
+    if (loadMoreRef.current) observer.observe(loadMoreRef.current);
+    return () => observer.disconnect();
+  }, [handleObserver]);
   useEffect(() => {
     const saved = localStorage.getItem("admin_whatsapp_b2b");
     if (saved) setWhatsappNumber(saved);
@@ -90,8 +115,6 @@ const SellerAcquisicionLotesContent = () => {
         </div>
       </div>;
   }
-  const startIndex = currentPage * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalProducts);
   return <div className="min-h-screen bg-gray-50">
       
       
@@ -152,48 +175,38 @@ const SellerAcquisicionLotesContent = () => {
         <div className="mb-8">
           
 
-          {productsLoading ? <div className="flex items-center justify-center py-12">
+          {productsLoading && allProducts.length === 0 ? (
+            <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
-            </div> : products.length === 0 ? <div className="bg-white rounded-lg p-12 text-center">
+            </div>
+          ) : allProducts.length === 0 ? (
+            <div className="bg-white rounded-lg p-12 text-center">
               <p className="text-gray-600">
                 No se encontraron productos que coincidan con tus filtros.
               </p>
-            </div> : <>
+            </div>
+          ) : (
+            <>
               <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-2">
-                {products.map(product => <ProductCardB2B key={product.id} product={product} onAddToCart={handleAddToCart} cartItem={cart.items.find(item => item.productId === product.id)} whatsappNumber={whatsappNumber} />)}
+                {allProducts.map(product => (
+                  <ProductCardB2B 
+                    key={product.id} 
+                    product={product} 
+                    onAddToCart={handleAddToCart} 
+                    cartItem={cart.items.find(item => item.productId === product.id)} 
+                    whatsappNumber={whatsappNumber} 
+                  />
+                ))}
               </div>
 
-              {/* Paginación */}
-              {totalPages > 1 && <div className="flex items-center justify-center gap-2 mt-8">
-                  <Button variant="outline" onClick={() => setCurrentPage(Math.max(0, currentPage - 1))} disabled={currentPage === 0}>
-                    {isMobile ? <ChevronLeft className="h-5 w-5" /> : "← Anterior"}
-                  </Button>
-
-                  <div className="flex gap-1">
-                    {Array.from({
-                length: Math.min(totalPages, 5)
-              }, (_, i) => {
-                let pageNum = i;
-                if (totalPages > 5) {
-                  if (currentPage < 2) {
-                    pageNum = i;
-                  } else if (currentPage > totalPages - 3) {
-                    pageNum = totalPages - 5 + i;
-                  } else {
-                    pageNum = currentPage - 2 + i;
-                  }
-                }
-                return <Button key={pageNum} variant={currentPage === pageNum ? "default" : "outline"} size="sm" onClick={() => setCurrentPage(pageNum)} className={currentPage === pageNum ? "bg-blue-600 hover:bg-blue-700" : ""}>
-                          {pageNum + 1}
-                        </Button>;
-              })}
-                  </div>
-
-                  <Button variant="outline" onClick={() => setCurrentPage(Math.min(totalPages - 1, currentPage + 1))} disabled={currentPage === totalPages - 1}>
-                    {isMobile ? <ChevronRight className="h-5 w-5" /> : "Siguiente →"}
-                  </Button>
-                </div>}
-            </>}
+              {/* Infinite scroll trigger */}
+              <div ref={loadMoreRef} className="flex justify-center py-4">
+                {isFetching && (
+                  <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
+                )}
+              </div>
+            </>
+          )}
         </div>
       </main>
 
