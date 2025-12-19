@@ -8,7 +8,7 @@ import { UserRole } from "@/types/auth";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/ToastContainer";
 import { useToast } from "@/hooks/useToastNotification";
-import { useState } from "react";
+import { ViewModeProvider } from "@/contexts/ViewModeContext";
 
 // Public Pages
 import Index from "./pages/Index";
@@ -307,7 +307,9 @@ const App = () => (
     <TooltipProvider>
       <BrowserRouter>
         <AuthProvider>
-          <AppContent />
+          <ViewModeProvider>
+            <AppContent />
+          </ViewModeProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>

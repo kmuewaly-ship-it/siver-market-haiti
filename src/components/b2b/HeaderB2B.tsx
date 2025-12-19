@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, Search, Heart, User, Camera, Loader2, Mic, MicOff, Package, Clock, X } from "lucide-react";
+import { ShoppingBag, Search, Heart, User, Camera, Loader2, Mic, MicOff, Package, Clock, X, Eye } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { searchProductsByImage } from "@/services/api/imageSearch";
 import { toast } from "sonner";
+import { useViewMode } from "@/contexts/ViewModeContext";
 
 const SEARCH_HISTORY_KEY = 'b2b_search_history';
 const MAX_HISTORY_ITEMS = 8;
@@ -61,6 +62,24 @@ interface HeaderB2BProps {
   onCategorySelect?: (categoryId: string | null) => void;
   onSearch?: (query: string) => void;
 }
+
+// Componente interno para el switch de vista
+const ViewModeSwitch = () => {
+  const { toggleViewMode, canToggle } = useViewMode();
+
+  if (!canToggle) return null;
+
+  return (
+    <button
+      onClick={toggleViewMode}
+      className="flex flex-col items-center gap-1 text-amber-600 hover:text-amber-700 transition"
+      title="Ver como cliente"
+    >
+      <Eye className="w-6 h-6" />
+      <span className="text-xs">Vista Cliente</span>
+    </button>
+  );
+};
 
 const HeaderB2B = ({ 
   selectedCategoryId = null, 
@@ -583,6 +602,8 @@ const HeaderB2B = ({
 
             {/* Actions */}
             <div className="flex items-center gap-6">
+              {/* View Mode Switch */}
+              <ViewModeSwitch />
               <Link to="/seller/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-blue-600 transition">
                 <Heart className="w-6 h-6" />
                 <span className="text-xs">Favoritos</span>

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, ShoppingBag, Search, Heart, User, Mail, Camera, Loader2, TrendingUp, Flame, Mic, MicOff } from "lucide-react";
+import { Menu, X, ShoppingBag, Search, Heart, User, Mail, Camera, Loader2, TrendingUp, Flame, Mic, MicOff, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useAuth } from "@/hooks/useAuth";
@@ -10,6 +10,7 @@ import { searchProductsByImage } from "@/services/api/imageSearch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
+import { useViewMode } from "@/contexts/ViewModeContext";
 
 // Web Speech API types
 interface SpeechRecognitionEvent extends Event {
@@ -55,7 +56,12 @@ declare global {
   }
 }
 
-const Header = () => {
+interface HeaderProps {
+  showViewModeSwitch?: boolean;
+}
+
+const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
+  const { canToggle, toggleViewMode, isClientPreview } = useViewMode();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openMobileCategory, setOpenMobileCategory] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -432,6 +438,17 @@ const Header = () => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-6">
+            {/* View Mode Switch - Solo visible cuando se muestra explícitamente */}
+            {showViewModeSwitch && canToggle && (
+              <button
+                onClick={toggleViewMode}
+                className="flex flex-col items-center gap-1 text-amber-600 hover:text-amber-700 transition"
+                title="Volver a vista B2B"
+              >
+                <EyeOff className="w-6 h-6" />
+                <span className="text-xs">Vista B2B</span>
+              </button>
+            )}
             <Link to="/tendencias" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
               <Flame className="w-6 h-6" />
               <span className="text-xs">Tendencias</span>
@@ -602,3 +619,4 @@ const Header = () => {
 };
 
 export default Header;
+

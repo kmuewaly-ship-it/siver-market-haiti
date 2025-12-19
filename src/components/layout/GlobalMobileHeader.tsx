@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package } from "lucide-react";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package, Eye, EyeOff } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -11,6 +11,7 @@ import { useCart } from "@/hooks/useCart";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
+import { useViewMode } from "@/contexts/ViewModeContext";
 interface SearchResult {
   id: string;
   nombre: string;
@@ -87,12 +88,16 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
   const { totalItems } = useCart();
   const { cart: cartB2B } = useCartB2B();
   const { role } = useAuth();
+  const { isClientPreview, toggleViewMode, canToggle } = useViewMode();
   
   // Determinar si es seller/admin para mostrar header B2B
   const isSellerOrAdmin = role === UserRole.SELLER || role === UserRole.ADMIN;
   
-  // Usar carrito B2B para seller/admin, B2C para clientes
-  const cartCount = isSellerOrAdmin ? cartB2B.totalItems : totalItems();
+  // Cuando está en modo preview cliente, usar carrito B2C y estilo de cliente
+  const showAsClient = isSellerOrAdmin && isClientPreview;
+  
+  // Usar carrito B2B para seller/admin en modo B2B, B2C para clientes o preview
+  const cartCount = (isSellerOrAdmin && !isClientPreview) ? cartB2B.totalItems : totalItems();
 
   // Bounce animation when cart count increases
   useEffect(() => {
@@ -315,25 +320,59 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
     }
   };
 
-  // Links dinámicos según rol
-  const favoritesLink = isSellerOrAdmin ? "/seller/favoritos" : "/favoritos";
-  const cartLink = isSellerOrAdmin ? "/seller/carrito" : "/carrito";
-  const accentColor = isSellerOrAdmin ? "bg-blue-600" : "bg-red-500";
-  const buttonColor = isSellerOrAdmin ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-900 hover:bg-gray-800";
+  // Links dinámicos según rol y modo de vista
+  const showB2BStyle = isSellerOrAdmin && !showAsClient;
+  const favoritesLink = showB2BStyle ? "/seller/favoritos" : "/favoritos";
+  const cartLink = showB2BStyle ? "/seller/carrito" : "/carrito";
+  const accentColor = showB2BStyle ? "bg-blue-600" : "bg-red-500";
+  const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-900 hover:bg-gray-800";
 
   return (
     <header className="bg-white sticky top-0 z-40">
       {/* Top search bar */}
       <div className="flex items-center gap-3 px-3 py-2.5">
-        {/* Logo/Icon for B2B sellers */}
-        {isSellerOrAdmin ? (
-          <Link to="/seller/adquisicion-lotes" className="flex items-center gap-1 flex-shrink-0">
-            <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
-              <Package className="w-4 h-4 text-white" />
-            </div>
-            <span className="font-bold text-xs text-gray-900">B2B</span>
-          </Link>
+        {/* Logo/Icon - cambia según el modo */}
+        {showB2BStyle ? (
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <Link to="/seller/adquisicion-lotes" className="flex items-center gap-1">
+              <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
+                <Package className="w-4 h-4 text-white" />
+              </div>
+              <span className="font-bold text-xs text-gray-900">B2B</span>
+            </Link>
+            {/* Switch de vista */}
+            {canToggle && (
+              <button
+                onClick={toggleViewMode}
+                className="ml-1 p-1 rounded-full bg-amber-100 text-amber-600"
+                title="Ver como cliente"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            )}
+          </div>
+        ) : isSellerOrAdmin && showAsClient ? (
+          /* Modo preview cliente para seller */
+          <div className="flex items-center gap-1 flex-shrink-0">
+            <button className="relative">
+              <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+                5
+              </span>
+            </button>
+            {/* Switch para volver a B2B */}
+            {canToggle && (
+              <button
+                onClick={toggleViewMode}
+                className="ml-1 p-1 rounded-full bg-amber-100 text-amber-600"
+                title="Volver a vista B2B"
+              >
+                <EyeOff className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         ) : (
+          /* Cliente normal */
           <button className="relative flex-shrink-0">
             <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
             <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
@@ -482,11 +521,11 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
       {/* Category tabs - horizontal scroll with dynamic background */}
       <div className={cn(
         "flex items-center gap-4 px-3 py-2.5 overflow-x-auto scrollbar-hide",
-        isSellerOrAdmin ? "bg-gray-900" : "bg-black"
+        showB2BStyle ? "bg-gray-900" : "bg-black"
       )}>
         {/* "All" tab */}
         <button
-          onClick={() => navigate(isSellerOrAdmin ? "/seller/adquisicion-lotes" : "/categorias")}
+          onClick={() => navigate(showB2BStyle ? "/seller/adquisicion-lotes" : "/categorias")}
           className={cn(
             "text-sm font-medium whitespace-nowrap pb-0.5 transition-colors",
             isCategoriesPage && !selectedCategory
@@ -494,7 +533,7 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
               : "text-gray-400 hover:text-white"
           )}
         >
-          {isSellerOrAdmin ? "Todos" : "All"}
+          {showB2BStyle ? "Todos" : "All"}
         </button>
 
         {rootCategories.map((category) => (

@@ -1,6 +1,7 @@
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useViewMode } from "@/contexts/ViewModeContext";
 import Header from "./Header";
 import HeaderB2B from "@/components/b2b/HeaderB2B";
 
@@ -13,7 +14,7 @@ interface GlobalHeaderProps {
 
 /**
  * GlobalHeader - Renderiza el header apropiado según el rol del usuario
- * - Admin/Seller: HeaderB2B (azul/verde)
+ * - Admin/Seller: HeaderB2B (azul/verde) - puede alternar a vista cliente
  * - Client/Guest: Header regular (rojo)
  */
 const GlobalHeader = ({ 
@@ -23,6 +24,7 @@ const GlobalHeader = ({
 }: GlobalHeaderProps) => {
   const { role, isLoading } = useAuth();
   const isMobile = useIsMobile();
+  const { isClientPreview } = useViewMode();
 
   // En mobile no mostramos este header (GlobalMobileHeader se encarga)
   if (isMobile) {
@@ -34,8 +36,15 @@ const GlobalHeader = ({
     return <Header />;
   }
 
-  // Seller o Admin: mostrar HeaderB2B
-  if (role === UserRole.SELLER || role === UserRole.ADMIN) {
+  // Seller o Admin con preview de cliente: mostrar Header regular con switch
+  const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
+  
+  if (isB2BUser && isClientPreview) {
+    return <Header showViewModeSwitch={true} />;
+  }
+
+  // Seller o Admin: mostrar HeaderB2B con switch
+  if (isB2BUser) {
     return (
       <HeaderB2B
         selectedCategoryId={selectedCategoryId}
