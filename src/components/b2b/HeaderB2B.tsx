@@ -481,7 +481,7 @@ const HeaderB2B = ({
             </Link>
 
             {/* Search Bar with History */}
-            <div ref={searchContainerRef} className="flex-1 mx-8 max-w-[200px] relative">
+            <div ref={searchContainerRef} className="mx-auto max-w-[150px] relative">
               <form onSubmit={handleSearch}>
                 <div className="relative w-full flex items-center">
                   <Input
