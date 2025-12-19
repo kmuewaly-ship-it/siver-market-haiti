@@ -300,7 +300,7 @@ const HeaderB2B = ({
     return (
       <>
         <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
-          <div className="flex items-center justify-between gap-0.5 px-0.5 py-0.5">
+          <div className="flex items-center justify-between gap-1 px-2 py-1">
             {/* Logo */}
             <Link to="/seller/catalogo" className="flex items-center gap-1.5 flex-shrink-0">
               <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
@@ -310,7 +310,7 @@ const HeaderB2B = ({
             </Link>
 
             {/* Search input with history */}
-            <div ref={searchContainerRef} className="flex-1 relative max-w-[56%]">
+            <div ref={searchContainerRef} className="flex-1 relative max-w-[48%]">
               <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
                 {/* Voice search button */}
                 <button 
@@ -397,6 +397,11 @@ const HeaderB2B = ({
                 </div>
               )}
             </div>
+
+            {/* Account Link */}
+            <Link to="/seller/cuenta" className="flex-shrink-0 p-1">
+              <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+            </Link>
 
             {/* Cart */}
             <Link to="/seller/carrito" className="relative flex-shrink-0">
