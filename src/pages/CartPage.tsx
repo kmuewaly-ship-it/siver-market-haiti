@@ -2,21 +2,28 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, Store, ChevronDown, ChevronUp } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useCart } from "@/hooks/useCart";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useMemo } from "react";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { UserRole } from "@/types/auth";
 
 const CartPage = () => {
   const { items, removeItem, updateQuantity, totalPrice, clearCart, getItemsByStore } = useCart();
   const isMobile = useIsMobile();
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const { toast } = useToast();
   const [expandedStores, setExpandedStores] = useState<Set<string>>(new Set(['all']));
   const totalQuantity = items.reduce((acc, item) => acc + item.quantity, 0);
+
+  // Redirect sellers/admins to B2B cart
+  const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
+  if (isB2BUser) {
+    return <Navigate to="/seller/carrito" replace />;
+  }
 
   // Group items by store
   const itemsByStore = useMemo(() => {

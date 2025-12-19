@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, Navigate } from 'react-router-dom';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
@@ -15,6 +15,7 @@ import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { AddressesDialog } from '@/components/account/AddressesDialog';
+import { UserRole } from '@/types/auth';
 import {
   ArrowLeft,
   Check,
@@ -35,11 +36,14 @@ type PaymentMethod = 'stripe' | 'moncash' | 'transfer';
 
 const CheckoutPage = () => {
   const navigate = useNavigate();
-  const { user, isLoading: authLoading } = useAuth();
+  const { user, role, isLoading: authLoading } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const isMobile = useIsMobile();
 
+  // Redirect sellers/admins to B2B checkout
+  const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
+  
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
   const [isProcessing, setIsProcessing] = useState(false);
@@ -48,6 +52,11 @@ const CheckoutPage = () => {
   const [paymentReference, setPaymentReference] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
+
+  // Redirect after hooks are called
+  if (isB2BUser && !authLoading) {
+    return <Navigate to="/seller/checkout" replace />;
+  }
 
   // Auto-select default address
   useEffect(() => {
