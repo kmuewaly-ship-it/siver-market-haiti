@@ -110,46 +110,49 @@ const SellerAcquisicionLotesContent = () => {
           </div>}
 
         {/* Filtros inline */}
-        <div className="flex flex-wrap items-center gap-3 mb-6 bg-white p-4 rounded-lg border border-gray-200">
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Ordenar:</span>
-            <Select value={filters.sortBy} onValueChange={handleSortChange}>
-              <SelectTrigger className="w-[160px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="newest">Más recientes</SelectItem>
-                <SelectItem value="price_asc">Precio: menor a mayor</SelectItem>
-                <SelectItem value="price_desc">Precio: mayor a menor</SelectItem>
-                <SelectItem value="moq_asc">MOQ: menor a mayor</SelectItem>
-                <SelectItem value="moq_desc">MOQ: mayor a menor</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+        <div className="flex items-center gap-2 mb-6 bg-white px-3 py-2 rounded-lg border border-gray-200 overflow-x-auto">
+          <span className="text-xs text-gray-500 whitespace-nowrap">Ordenar:</span>
+          <Select value={filters.sortBy} onValueChange={handleSortChange}>
+            <SelectTrigger className="w-[130px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="newest">Más recientes</SelectItem>
+              <SelectItem value="price_asc">Precio: menor a mayor</SelectItem>
+              <SelectItem value="price_desc">Precio: mayor a menor</SelectItem>
+              <SelectItem value="moq_asc">MOQ: menor a mayor</SelectItem>
+              <SelectItem value="moq_desc">MOQ: mayor a menor</SelectItem>
+            </SelectContent>
+          </Select>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-gray-600">Stock:</span>
-            <Select value={filters.stockStatus} onValueChange={handleStockFilterChange}>
-              <SelectTrigger className="w-[140px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos</SelectItem>
-                <SelectItem value="in_stock">En stock</SelectItem>
-                <SelectItem value="low_stock">Stock bajo</SelectItem>
-                <SelectItem value="out_of_stock">Agotado</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          <span className="text-xs text-gray-500 whitespace-nowrap">Stock:</span>
+          <Select value={filters.stockStatus} onValueChange={handleStockFilterChange}>
+            <SelectTrigger className="w-[100px] h-8 text-xs">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Todos</SelectItem>
+              <SelectItem value="in_stock">En stock</SelectItem>
+              <SelectItem value="low_stock">Stock bajo</SelectItem>
+              <SelectItem value="out_of_stock">Agotado</SelectItem>
+            </SelectContent>
+          </Select>
 
-          {(filters.searchQuery || filters.category || filters.stockStatus !== "all") && <Button variant="ghost" size="sm" onClick={() => setFilters({
-          searchQuery: "",
-          category: null,
-          stockStatus: "all",
-          sortBy: "newest"
-        })} className="text-blue-600 hover:text-blue-700">
+          {(filters.searchQuery || filters.category || filters.stockStatus !== "all") && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setFilters({
+                searchQuery: "",
+                category: null,
+                stockStatus: "all",
+                sortBy: "newest"
+              })} 
+              className="text-blue-600 hover:text-blue-700 text-xs h-8 whitespace-nowrap"
+            >
               Limpiar filtros
-            </Button>}
+            </Button>
+          )}
         </div>
 
         {/* Resultados */}
