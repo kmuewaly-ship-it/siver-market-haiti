@@ -1,6 +1,6 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Flame, Clock, ArrowRight, TrendingUp, Filter, X } from "lucide-react";
+import { Clock, ArrowRight, Filter, X } from "lucide-react";
 import { useProducts } from "@/hooks/useProducts";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useTrendingProducts } from "@/hooks/useTrendingProducts";
@@ -14,8 +14,10 @@ import { Slider } from "@/components/ui/slider";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { useIsMobile } from "@/hooks/use-mobile";
 import FeaturedCarousel from "@/components/shared/FeaturedCarousel";
+import TrendingStoresSection from "@/components/trends/TrendingStoresSection";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
+
 const TrendsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -233,41 +235,8 @@ const TrendsPage = () => {
         </div>
 
         <div className="space-y-16">
-          {/* Trending Section */}
-          <section>
-            <div className="flex items-center justify-between mb-8">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-red-100 rounded-full text-red-600">
-                  <TrendingUp className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900">Tendencias de la Semana</h2>
-                  <p className="text-gray-500 text-sm">Los productos más populares en este momento</p>
-                </div>
-              </div>
-              <Button variant="ghost" className="gap-2" onClick={() => navigate('/categorias')}>
-                Ver todo <ArrowRight className="w-4 h-4" />
-              </Button>
-            </div>
-
-            {trendingLoading ? <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {[...Array(8)].map((_, i) => <div key={i} className="space-y-4">
-                    <Skeleton className="h-64 w-full rounded-xl" />
-                    <Skeleton className="h-4 w-3/4" />
-                    <Skeleton className="h-4 w-1/2" />
-                  </div>)}
-              </div> : filteredTrendingProducts.length > 0 ? <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-                {filteredTrendingProducts.slice(0, 8).map(product => <ProductCard key={product.id} product={{
-              id: product.id,
-              name: product.nombre,
-              price: product.precio_sugerido_venta || product.precio_mayorista,
-              image: product.imagen_principal || '/placeholder.svg',
-              badge: product.view_count > 10 ? `${product.view_count} vistas` : undefined
-            }} />)}
-              </div> : <div className="text-center py-12 text-gray-500">
-                No hay productos que coincidan con los filtros seleccionados.
-              </div>}
-          </section>
+          {/* Trending Stores Section */}
+          <TrendingStoresSection />
 
           {/* Categories Section */}
           <section>
