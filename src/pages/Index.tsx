@@ -24,6 +24,9 @@ const Index = () => {
       id: product.id,
       name: product.nombre,
       price: product.precio_venta,
+      priceB2B: product.precio_costo, // B2B price
+      moq: 1, // Default MOQ
+      stock: product.stock,
       image: mainImage,
       sku: product.sku,
       storeId: product.store?.id,

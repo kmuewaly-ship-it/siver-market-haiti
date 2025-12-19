@@ -15,6 +15,10 @@ interface Product {
   storeId?: string;
   storeName?: string;
   storeWhatsapp?: string;
+  // B2B fields
+  priceB2B?: number;
+  moq?: number;
+  stock?: number;
 }
 
 interface ProductCarouselProps {

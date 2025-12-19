@@ -1,8 +1,7 @@
 import { Heart, Package, Store } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useCart } from "@/hooks/useCart";
-import { useToast } from "@/hooks/use-toast";
+import { useSmartCart } from "@/hooks/useSmartCart";
 
 interface Product {
   id: string;
@@ -16,6 +15,10 @@ interface Product {
   storeId?: string;
   storeName?: string;
   storeWhatsapp?: string;
+  // B2B fields
+  priceB2B?: number;
+  moq?: number;
+  stock?: number;
 }
 
 interface ProductCardProps {
@@ -24,8 +27,7 @@ interface ProductCardProps {
 
 const ProductCard = ({ product }: ProductCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
-  const { addItem } = useCart();
-  const { toast } = useToast();
+  const { addToCart, isB2BUser } = useSmartCart();
 
   const discountPercentage = product.originalPrice
     ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
@@ -35,20 +37,18 @@ const ProductCard = ({ product }: ProductCardProps) => {
     e.preventDefault();
     e.stopPropagation();
     
-    addItem({
+    addToCart({
       id: product.id,
       name: product.name,
       price: product.price,
+      priceB2B: product.priceB2B || product.price,
+      moq: product.moq || 1,
+      stock: product.stock,
       image: product.image,
       sku: product.sku || product.id,
       storeId: product.storeId,
       storeName: product.storeName,
       storeWhatsapp: product.storeWhatsapp,
-    });
-
-    toast({
-      title: "Añadido al carrito",
-      description: product.name,
     });
   };
 
@@ -132,7 +132,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
           onClick={handleAddToCart}
           className="w-full mt-3 bg-primary hover:bg-primary/90 text-primary-foreground py-2 rounded-lg text-sm font-medium transition"
         >
-          Agregar al Carrito
+          {isB2BUser ? `Agregar (MOQ: ${product.moq || 1})` : "Agregar al Carrito"}
         </button>
       </div>
     </div>

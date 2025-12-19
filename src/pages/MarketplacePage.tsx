@@ -3,8 +3,7 @@ import Footer from "@/components/layout/Footer";
 import { useSellerProducts } from "@/hooks/useSellerProducts";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
-import { useCart } from "@/hooks/useCart";
-import { useToast } from "@/hooks/use-toast";
+import { useSmartCart } from "@/hooks/useSmartCart";
 import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Store, Search, Package, Grid3X3, X } from "lucide-react";
+
 const MarketplacePage = () => {
   const isMobile = useIsMobile();
   const {
@@ -22,12 +22,7 @@ const MarketplacePage = () => {
   const {
     data: categories = []
   } = usePublicCategories();
-  const {
-    addItem
-  } = useCart();
-  const {
-    toast
-  } = useToast();
+  const { addToCart, isB2BUser } = useSmartCart();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStore, setSelectedStore] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
@@ -76,19 +71,19 @@ const MarketplacePage = () => {
   const handleAddToCart = (product: typeof products[0]) => {
     const images = product.images as any;
     const mainImage = Array.isArray(images) && images.length > 0 ? images[0] : typeof images === 'string' ? images : '';
-    addItem({
+    
+    addToCart({
       id: product.id,
       name: product.nombre,
       price: product.precio_venta,
+      priceB2B: product.precio_costo, // Use costo as B2B price
+      moq: 1, // Default MOQ for seller catalog items
+      stock: product.stock,
       image: mainImage,
       sku: product.sku,
       storeId: product.store?.id,
       storeName: product.store?.name,
       storeWhatsapp: product.store?.whatsapp || undefined
-    });
-    toast({
-      title: "Añadido al carrito",
-      description: product.nombre
     });
   };
   const clearFilters = () => {
@@ -237,7 +232,7 @@ const MarketplacePage = () => {
 
                     <Button onClick={() => handleAddToCart(product)} disabled={product.stock <= 0} size="sm" className="w-full gap-2">
                       <ShoppingCart className="h-4 w-4" />
-                      {product.stock > 0 ? 'Agregar' : 'Sin Stock'}
+                      {product.stock > 0 ? (isB2BUser ? 'Agregar B2B' : 'Agregar') : 'Sin Stock'}
                     </Button>
                   </div>
                 </div>;
