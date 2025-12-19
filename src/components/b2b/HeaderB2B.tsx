@@ -300,7 +300,7 @@ const HeaderB2B = ({
     return (
       <>
         <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-100">
-          <div className="flex items-center gap-0.5 px-0.5 py-0.5">
+          <div className="flex items-center gap-2 px-2 py-2">
             {/* Logo */}
             <Link to="/seller/catalogo" className="flex items-center gap-1.5 flex-shrink-0">
               <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
