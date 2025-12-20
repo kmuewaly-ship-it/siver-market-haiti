@@ -71,27 +71,6 @@ const CategoriesPage = () => {
   if (isMobile) {
     return (
       <div className="flex flex-col min-h-screen bg-white">
-        {/* Header with Root Categories Tabs */}
-        <div className="sticky top-0 z-20 bg-white border-b border-gray-200">
-          <div className="overflow-x-auto scrollbar-hide">
-            <div className="flex px-2 py-2 gap-1 min-w-max">
-              {rootCategories.map(cat => (
-                <button
-                  key={cat.id}
-                  onClick={() => setSelectedRootId(cat.id)}
-                  className={cn(
-                    "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all",
-                    selectedRootId === cat.id
-                      ? "bg-black text-white font-medium"
-                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                  )}
-                >
-                  {cat.name}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
 
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden min-h-0">

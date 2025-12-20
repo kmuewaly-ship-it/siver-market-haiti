@@ -409,7 +409,26 @@ const GlobalMobileHeader = ({
       </div>
 
       {/* Category tabs - horizontal scroll with dynamic background */}
-      
+      <div className="overflow-x-auto scrollbar-hide border-b border-gray-200">
+        <div className="flex px-2 py-2 gap-1 min-w-max">
+          {rootCategories.map(cat => (
+            <button
+              key={cat.id}
+              onClick={() => handleCategorySelect(cat.id)}
+              className={cn(
+                "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all",
+                selectedCategory === cat.id
+                  ? showB2BStyle 
+                    ? "bg-blue-600 text-white font-medium"
+                    : "bg-black text-white font-medium"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              )}
+            >
+              {cat.name}
+            </button>
+          ))}
+        </div>
+      </div>
     </header>;
 };
 export default GlobalMobileHeader;
