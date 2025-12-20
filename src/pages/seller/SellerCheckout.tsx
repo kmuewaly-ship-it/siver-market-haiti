@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useB2BCartSupabase } from '@/hooks/useB2BCartSupabase';
+import { useCartB2B } from '@/hooks/useCartB2B';
 import { useKYC } from '@/hooks/useKYC';
 import { useSellerCredits } from '@/hooks/useSellerCredits';
 import { useAddresses, Address } from '@/hooks/useAddresses';
@@ -41,7 +42,9 @@ type PaymentMethod = 'stripe' | 'moncash' | 'transfer';
 const SellerCheckout = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { cart, isLoading: cartLoading, createOrder, markOrderAsPaid, clearCart } = useB2BCartSupabase();
+  const { cart, clearCart } = useCartB2B();
+  const { markOrderAsPaid } = useB2BCartSupabase();
+  const cartLoading = false;
   const { isVerified } = useKYC();
   const { credit, availableCredit, hasActiveCredit, calculateMaxCreditForCart } = useSellerCredits();
   const { addresses, isLoading: addressesLoading, createAddress } = useAddresses();
@@ -54,6 +57,72 @@ const SellerCheckout = () => {
   const [paymentNotes, setPaymentNotes] = useState('');
   const [creditAmount, setCreditAmount] = useState(0);
   const [useSiverCredit, setUseSiverCredit] = useState(false);
+  
+  // Create order from local cart
+  const createOrder = async (
+    paymentMethod: 'stripe' | 'moncash' | 'transfer',
+    shippingAddress?: {
+      id: string;
+      full_name: string;
+      phone?: string;
+      street_address: string;
+      city: string;
+      state?: string;
+      postal_code?: string;
+      country: string;
+      notes?: string;
+    }
+  ) => {
+    if (!user?.id || cart.items.length === 0) {
+      toast.error('Carrito vacío o usuario no autenticado');
+      return null;
+    }
+
+    try {
+      // Create order with shipping address in metadata
+      const { data: order, error: orderError } = await supabase
+        .from('orders_b2b')
+        .insert({
+          seller_id: user.id,
+          total_amount: cart.subtotal,
+          total_quantity: cart.totalQuantity,
+          payment_method: paymentMethod,
+          status: 'draft',
+          currency: 'USD',
+          metadata: shippingAddress ? { shipping_address: shippingAddress } : null,
+        })
+        .select()
+        .single();
+
+      if (orderError) throw orderError;
+
+      // Create order items
+      const orderItems = cart.items.map(item => ({
+        order_id: order.id,
+        product_id: item.productId,
+        sku: item.sku,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        precio_unitario: item.precio_b2b,
+        subtotal: item.subtotal,
+      }));
+
+      const { error: itemsError } = await supabase
+        .from('order_items_b2b')
+        .insert(orderItems);
+
+      if (itemsError) throw itemsError;
+
+      // Clear local cart
+      clearCart();
+
+      return order;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      toast.error('Error al crear pedido');
+      return null;
+    }
+  };
   
   // Shipping address states
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
@@ -580,7 +649,7 @@ const SellerCheckout = () => {
                 <div className="space-y-4">
                   {cart.items.map((item) => (
                     <div
-                      key={item.id}
+                      key={item.productId}
                       className="flex gap-4 pb-4 border-b last:border-b-0"
                     >
                       <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
@@ -592,12 +661,12 @@ const SellerCheckout = () => {
                           SKU: {item.sku}
                         </p>
                         <div className="flex items-center gap-4 text-sm">
-                          <span>{item.quantity} unidades</span>
+                          <span>{item.cantidad} unidades</span>
                           <span>×</span>
-                          <span>${item.unitPrice.toFixed(2)}</span>
+                          <span>${item.precio_b2b.toFixed(2)}</span>
                           <span>=</span>
                           <span className="font-semibold text-primary">
-                            ${item.totalPrice.toFixed(2)}
+                            ${item.subtotal.toFixed(2)}
                           </span>
                         </div>
                       </div>

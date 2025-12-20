@@ -4,13 +4,13 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useB2CCartSupabase } from "@/hooks/useB2CCartSupabase";
-import { useB2BCartSupabase } from "@/hooks/useB2BCartSupabase";
+import { useCartB2B } from "@/hooks/useCartB2B";
 
 const MobileBottomNav = () => {
   const location = useLocation();
   const { role } = useAuth();
   const { cart: b2cCart } = useB2CCartSupabase();
-  const { cart: b2bCart } = useB2BCartSupabase();
+  const { cart: b2bCart } = useCartB2B();
   
   // Hide on admin routes
   const isAdminRoute = location.pathname.startsWith("/admin");

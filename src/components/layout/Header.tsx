@@ -10,6 +10,7 @@ import { searchProductsByImage } from "@/services/api/imageSearch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/hooks/useCart";
+import { useCartB2B } from "@/hooks/useCartB2B";
 import { useViewMode } from "@/contexts/ViewModeContext";
 
 // Web Speech API types
@@ -73,8 +74,16 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const prevCartCountRef = useRef<number>(0);
-  const { totalItems } = useCart();
-  const cartCount = totalItems();
+  
+  const { role } = useAuth();
+  const { totalItems: b2cTotalItems } = useCart();
+  const { cart: b2bCart } = useCartB2B();
+  
+  // Determine which cart to use
+  const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
+  const showB2B = isB2B && !isClientPreview;
+  const cartCount = showB2B ? b2bCart.totalQuantity : b2cTotalItems();
+  const cartLink = showB2B ? "/seller/carrito" : "/carrito";
 
   // Bounce animation when cart count increases
   useEffect(() => {
@@ -88,7 +97,6 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
 
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
   const navigate = useNavigate();
-  const { role } = useAuth();
 
   const catBarRef = useRef(null);
   const [hasOverflow, setHasOverflow] = useState(false);
@@ -438,17 +446,6 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-6">
-            {/* View Mode Switch - Solo visible cuando se muestra explícitamente */}
-            {showViewModeSwitch && canToggle && (
-              <button
-                onClick={toggleViewMode}
-                className="flex flex-col items-center gap-1 text-amber-600 hover:text-amber-700 transition"
-                title="Volver a vista B2B"
-              >
-                <EyeOff className="w-6 h-6" />
-                <span className="text-xs">Vista B2B</span>
-              </button>
-            )}
             <Link to="/tendencias" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
               <Flame className="w-6 h-6" />
               <span className="text-xs">Tendencias</span>
@@ -461,9 +458,17 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
               <User className="w-6 h-6" />
               <span className="text-xs">Cuenta</span>
             </Link>
-            <Link to="/carrito" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+            <Link to={cartLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition relative">
               <ShoppingBag className="w-6 h-6" />
               <span className="text-xs">Carrito</span>
+              {cartCount > 0 && (
+                <span className={cn(
+                  "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
+                  cartBounce && "animate-bounce"
+                )}>
+                  {cartCount > 99 ? '99+' : cartCount}
+                </span>
+              )}
             </Link>
           </div>
 

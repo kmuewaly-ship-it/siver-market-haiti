@@ -3,7 +3,7 @@ import { SellerLayout } from "@/components/seller/SellerLayout";
 import { Button } from "@/components/ui/button";
 import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, Loader2 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { useB2BCartSupabase } from "@/hooks/useB2BCartSupabase";
+import { useCartB2B } from "@/hooks/useCartB2B";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,7 +11,8 @@ import { toast } from "sonner";
 
 const SellerCartPage = () => {
   const { user } = useAuth();
-  const { cart, removeItem, updateQuantity, clearCart, isLoading } = useB2BCartSupabase();
+  const { cart, removeItem, updateQuantity, clearCart } = useCartB2B();
+  const isLoading = false;
   const items = cart.items;
   const subtotal = cart.subtotal;
   const totalQuantity = cart.totalQuantity;
@@ -42,9 +43,9 @@ const SellerCartPage = () => {
           productId: item.productId,
           sku: item.sku,
           nombre: item.nombre,
-          cantidad: item.quantity,
-          precio_b2b: item.unitPrice,
-          subtotal: item.totalPrice,
+          cantidad: item.cantidad,
+          precio_b2b: item.precio_b2b,
+          subtotal: item.subtotal,
         })),
         totalItems: items.length,
         totalQuantity: totalQuantity,
@@ -148,9 +149,9 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                       <div className="flex gap-3">
                         {/* Product Image */}
                         <div className="flex-shrink-0 rounded-md bg-muted overflow-hidden" style={{ width: '72px', height: '72px' }}>
-                          {item.imagen ? (
+                          {item.imagen_principal ? (
                             <img 
-                              src={item.imagen} 
+                              src={item.imagen_principal} 
                               alt={item.nombre}
                               className="w-full h-full object-cover"
                             />
@@ -171,7 +172,7 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                               <p className="text-xs text-gray-500">SKU: {item.sku}</p>
                             </div>
                             <button
-                              onClick={() => removeItem(item.id)}
+                              onClick={() => removeItem(item.productId)}
                               className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition ml-2"
                               title="Eliminar del carrito"
                             >
@@ -182,10 +183,10 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                           {/* Price */}
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-xs text-gray-600">
-                              ${item.unitPrice.toFixed(2)} × {item.quantity}
+                              ${item.precio_b2b.toFixed(2)} × {item.cantidad}
                             </span>
                             <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                              ${item.totalPrice.toFixed(2)}
+                              ${item.subtotal.toFixed(2)}
                             </span>
                           </div>
                           
@@ -194,8 +195,8 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             <button
                               onClick={() =>
                                 updateQuantity(
-                                  item.id,
-                                  Math.max(item.moq, item.quantity - 1)
+                                  item.productId,
+                                  Math.max(item.moq, item.cantidad - 1)
                                 )
                               }
                               className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-100 text-xs font-medium transition"
@@ -205,11 +206,11 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             <input
                               type="number"
                               min={item.moq}
-                              max={item.stockDisponible}
-                              value={item.quantity}
+                              max={item.stock_fisico}
+                              value={item.cantidad}
                               onChange={(e) =>
                                 updateQuantity(
-                                  item.id,
+                                  item.productId,
                                   parseInt(e.target.value) || item.moq
                                 )
                               }
@@ -218,8 +219,8 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             <button
                               onClick={() =>
                                 updateQuantity(
-                                  item.id,
-                                  Math.min(item.stockDisponible, item.quantity + 1)
+                                  item.productId,
+                                  Math.min(item.stock_fisico, item.cantidad + 1)
                                 )
                               }
                               className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-100 text-xs font-medium transition"

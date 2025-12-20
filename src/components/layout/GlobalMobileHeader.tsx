@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package, Eye, EyeOff } from "lucide-react";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package, Eye, EyeOff, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -179,8 +179,8 @@ const GlobalMobileHeader = ({
   }, [searchQuery]);
 
   // No mostrar en admin routes, login, o trends (a menos que forceShow)
-  // Para sellers, mostrar en TODAS las rutas (incluyendo públicas) con estilo B2B
-  if (!isMobile || isAdminRoute || isLoginRoute || isTrendsRoute) {
+  // Para sellers, ocultar porque SellerLayout ya maneja su propio header móvil (SellerMobileHeader)
+  if (!isMobile || isAdminRoute || isLoginRoute || isTrendsRoute || (isSellerRoute && !forceShow)) {
     return null;
   }
 
@@ -322,24 +322,21 @@ const GlobalMobileHeader = ({
   const showB2BStyle = isSellerOrAdmin && !showAsClient;
   const favoritesLink = showB2BStyle ? "/seller/favoritos" : "/favoritos";
   const cartLink = showB2BStyle ? "/seller/carrito" : "/carrito";
+  const accountLink = showB2BStyle ? "/seller/cuenta" : "/cuenta";
   const accentColor = showB2BStyle ? "bg-blue-600" : "bg-red-500";
   const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-900 hover:bg-gray-800";
   return <header className="bg-white sticky top-0 z-40">
       {/* Top search bar */}
       <div className="flex items-center gap-3 px-3 py-2.5">
         {/* Logo/Icon - cambia según el modo */}
-        {showB2BStyle ? <div className="flex items-center gap-1 flex-shrink-0">
-            <Link to="/seller/adquisicion-lotes" className="flex items-center gap-1">
-              <div className="w-8 h-8 rounded bg-blue-600 flex items-center justify-center">
-                <Package className="w-4 h-4 text-white" />
-              </div>
-              <span className="font-bold text-xs text-gray-900">B2B</span>
-            </Link>
-            {/* Switch de vista */}
-            {canToggle && <button onClick={toggleViewMode} className="ml-1 p-1 rounded-full bg-amber-100 text-amber-600" title="Ver como cliente">
-                <Eye className="w-4 h-4" />
-              </button>}
-          </div> : isSellerOrAdmin && showAsClient ? (/* Modo preview cliente para seller */
+        {showB2BStyle ? (
+          <button className="relative flex-shrink-0">
+            <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              5
+            </span>
+          </button>
+        ) : isSellerOrAdmin && showAsClient ? (/* Modo preview cliente para seller */
       <div className="flex items-center gap-1 flex-shrink-0">
             <button className="relative">
               <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
@@ -347,10 +344,6 @@ const GlobalMobileHeader = ({
                 5
               </span>
             </button>
-            {/* Switch para volver a B2B */}
-            {canToggle && <button onClick={toggleViewMode} className="ml-1 p-1 rounded-full bg-amber-100 text-amber-600" title="Volver a vista B2B">
-                <EyeOff className="w-4 h-4" />
-              </button>}
           </div>) : (/* Cliente normal */
       <button className="relative flex-shrink-0">
             <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
@@ -405,6 +398,11 @@ const GlobalMobileHeader = ({
                 </div>}
             </div>}
         </div>
+
+        {/* Account User */}
+        <Link to={accountLink} className="relative flex-shrink-0">
+          <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+        </Link>
 
         {/* Favorites heart */}
         <Link to={favoritesLink} className="relative flex-shrink-0">

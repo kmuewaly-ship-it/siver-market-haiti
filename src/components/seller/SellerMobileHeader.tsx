@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag } from "lucide-react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCategories } from "@/hooks/useCategories";
 
@@ -85,6 +85,7 @@ const SellerMobileHeader = ({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const prevCartCountRef = useRef<number>(0);
   const navigate = useNavigate();
+  const location = useLocation();
   
   const { data: categories = [] } = useCategories();
   const { cart } = useCartB2B();
@@ -165,7 +166,11 @@ const SellerMobileHeader = ({
   const rootCategories = categories.filter((c) => !c.parent_id);
 
   const handleCategoryClick = (categoryId: string | null) => {
-    onCategorySelect(categoryId);
+    if (location.pathname !== '/seller/adquisicion-lotes') {
+      navigate('/seller/adquisicion-lotes', { state: { selectedCategory: categoryId } });
+    } else {
+      onCategorySelect(categoryId);
+    }
   };
 
   const handleSearch = (e: React.FormEvent) => {
@@ -418,6 +423,11 @@ const SellerMobileHeader = ({
             </div>
           )}
         </div>
+
+        {/* Account User */}
+        <Link to="/seller/cuenta" className="relative flex-shrink-0">
+          <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+        </Link>
 
         {/* Favorites heart */}
         <Link to="/seller/favoritos" className="relative flex-shrink-0">

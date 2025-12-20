@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { SellerLayout } from "@/components/seller/SellerLayout";
@@ -15,12 +16,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 // Content component removed - logic moved to SellerAcquisicionLotesContentWithFilters
 const SellerAcquisicionLotes = () => {
+  const location = useLocation();
   const [filters, setFiltersState] = useState<B2BFilters>({
     searchQuery: "",
-    category: null,
+    category: location.state?.selectedCategory || null,
     stockStatus: "all",
     sortBy: "newest"
   });
+
+  useEffect(() => {
+    if (location.state?.selectedCategory !== undefined) {
+      setFiltersState(prev => ({
+        ...prev,
+        category: location.state.selectedCategory
+      }));
+    }
+  }, [location.state]);
 
   const handleCategorySelect = (categoryId: string | null) => {
     setFiltersState(prev => ({
@@ -38,6 +49,7 @@ const SellerAcquisicionLotes = () => {
 
   return (
     <SellerLayout
+      headerVariant="seller"
       selectedCategoryId={filters.category}
       onCategorySelect={handleCategorySelect}
       onSearch={handleSearch}

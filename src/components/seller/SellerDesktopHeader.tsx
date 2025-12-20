@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { ShoppingBag, Search, Heart, User, Camera, Loader2, Mic, MicOff, X } from "lucide-react";
+import { ShoppingBag, Search, Heart, User, Camera, Loader2, Mic, MicOff, X, Flame } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { useCategories } from "@/hooks/useCategories";
 import { useAuth } from "@/hooks/useAuth";
@@ -311,15 +311,20 @@ const SellerDesktopHeader = ({
     <>
       <header ref={headerRef} className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
         {/* Top Bar */}
-        <div className="bg-gray-50 border-b border-gray-200">
+        <div className="bg-gray-50 border-b border-gray-200 hidden md:block">
           <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between h-10 text-xs text-gray-600">
+            <div className="flex items-center justify-between h-8 text-xs text-gray-600">
               <div className="flex items-center gap-4">
-                <span className="text-green-600 font-medium">🛒 Portal B2B Mayorista</span>
-                <span>Compras al por mayor con precios especiales</span>
+                <span className="cursor-pointer hover:text-red-500 transition-colors">Envío desde el extranjero</span>
+                <Link to="/tendencias" className="flex items-center gap-1 hover:text-red-500 transition-colors">
+                  <Flame className="w-3 h-3" />
+                  Tendencias
+                </Link>
+                <span className="cursor-pointer hover:text-red-500 transition-colors">Devolución Gratis</span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="text-gray-500">Hola, {user?.name || "Vendedor"}</span>
+                <span className="cursor-pointer hover:text-red-500 transition-colors">Centro de Ayuda</span>
+                <span className="cursor-pointer hover:text-red-500 transition-colors">Vender</span>
               </div>
             </div>
           </div>
@@ -330,25 +335,22 @@ const SellerDesktopHeader = ({
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/seller/adquisicion-lotes" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-10 h-10 rounded bg-green-600 flex items-center justify-center">
+              <div className="w-10 h-10 rounded bg-red-500 flex items-center justify-center">
                 <ShoppingBag className="w-6 h-6 text-white" />
               </div>
-              <div className="flex flex-col">
-                <span className="font-bold text-lg text-gray-900">SIVER</span>
-                <span className="text-xs text-green-600 -mt-1">B2B Mayorista</span>
-              </div>
+              <span className="font-bold text-2xl text-gray-900 tracking-tight">SIVER</span>
             </Link>
 
             {/* Search Bar */}
-            <div ref={searchRef} className="flex-1 mx-8 max-w-xl relative">
+            <div ref={searchRef} className="flex-1 mx-8 max-w-2xl relative">
               <form onSubmit={handleSearch} className="relative w-full flex items-center">
                 <Input
                   type="text"
-                  placeholder="Buscar productos B2B..."
+                  placeholder="Buscar productos..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
-                  className="pl-4 pr-28 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-green-500"
+                  className="pl-4 pr-28 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 hover:bg-white transition-colors"
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                   {searchQuery && (
@@ -368,7 +370,7 @@ const SellerDesktopHeader = ({
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
                     disabled={isImageSearching}
-                    className="text-gray-400 hover:text-green-500 transition-colors disabled:opacity-50"
+                    className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
                   >
                     {isImageSearching ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -384,7 +386,7 @@ const SellerDesktopHeader = ({
                         "transition-colors",
                         isListening 
                           ? "text-red-500 animate-pulse" 
-                          : "text-gray-400 hover:text-green-500"
+                          : "text-gray-400 hover:text-red-500"
                       )}
                     >
                       {isListening ? (
@@ -394,7 +396,7 @@ const SellerDesktopHeader = ({
                       )}
                     </button>
                   )}
-                  <button type="submit" className="text-gray-400 hover:text-green-500">
+                  <button type="submit" className="text-gray-400 hover:text-red-500">
                     {isSearching ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
@@ -453,17 +455,21 @@ const SellerDesktopHeader = ({
 
             {/* Desktop Actions */}
             <div className="flex items-center gap-6">
-              <Link to="/seller/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-green-600 transition">
+              <Link to="/tendencias" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+                <Flame className="w-6 h-6" />
+                <span className="text-xs">Tendencias</span>
+              </Link>
+              <Link to="/seller/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
                 <Heart className="w-6 h-6" />
                 <span className="text-xs">Favoritos</span>
               </Link>
-              <Link to="/seller/cuenta" className="flex flex-col items-center gap-1 text-gray-700 hover:text-green-600 transition">
+              <Link to="/seller/cuenta" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
                 <User className="w-6 h-6" />
-                <span className="text-xs">Mi Cuenta</span>
+                <span className="text-xs">Cuenta</span>
               </Link>
-              <Link to="/seller/carrito" className="flex flex-col items-center gap-1 text-gray-700 hover:text-green-600 transition">
+              <Link to="/seller/carrito" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
                 <ShoppingBag className="w-6 h-6" />
-                <span className="text-xs">Carrito B2B</span>
+                <span className="text-xs">Carrito</span>
               </Link>
             </div>
           </div>
@@ -481,8 +487,8 @@ const SellerDesktopHeader = ({
                 className={cn(
                   "px-4 py-3 text-sm font-medium transition whitespace-nowrap flex items-center gap-2 border-b-2",
                   selectedCategoryId === null
-                    ? "text-green-600 border-green-600 bg-green-50"
-                    : "text-gray-700 hover:text-green-600 hover:bg-gray-50 border-transparent"
+                    ? "text-red-500 border-red-500 bg-red-50"
+                    : "text-gray-700 hover:text-red-500 hover:bg-gray-50 border-transparent"
                 )}
               >
                 Todos
@@ -496,8 +502,8 @@ const SellerDesktopHeader = ({
                   className={cn(
                     "px-4 py-3 text-sm font-medium transition whitespace-nowrap flex items-center gap-2 border-b-2",
                     selectedCategoryId === cat.id
-                      ? "text-green-600 border-green-600 bg-green-50"
-                      : "text-gray-700 hover:text-green-600 hover:bg-gray-50 border-transparent"
+                      ? "text-red-500 border-red-500 bg-red-50"
+                      : "text-gray-700 hover:text-red-500 hover:bg-gray-50 border-transparent"
                   )}
                 >
                   {cat.name}
