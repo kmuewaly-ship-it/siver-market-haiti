@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag } from "lucide-react";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCategories } from "@/hooks/useCategories";
 
@@ -297,7 +297,7 @@ const SellerMobileHeader = ({
   };
 
   return (
-    <header className="bg-white sticky top-0 z-40">
+    <header className="bg-white sticky top-0 z-40 shadow-md">
       {/* Top search bar */}
       <div className="flex items-center gap-3 px-3 py-2.5">
         {/* Notification/Mail icon */}
@@ -317,6 +317,7 @@ const SellerMobileHeader = ({
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
               className="flex-1 bg-transparent text-sm text-gray-700 px-3 py-2 outline-none min-w-0"
+              placeholder="Buscar..."
             />
             {searchQuery && (
               <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600">
@@ -419,6 +420,11 @@ const SellerMobileHeader = ({
           )}
         </div>
 
+        {/* Account */}
+        <Link to="/seller/cuenta" className="relative flex-shrink-0">
+          <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+        </Link>
+
         {/* Favorites heart */}
         <Link to="/seller/favoritos" className="relative flex-shrink-0">
           <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
@@ -437,37 +443,6 @@ const SellerMobileHeader = ({
             </span>
           )}
         </Link>
-      </div>
-
-      {/* Category tabs - horizontal scroll with black background */}
-      <div className="flex items-center gap-4 px-3 py-2.5 overflow-x-auto scrollbar-hide bg-black">
-        {/* "All" tab */}
-        <button
-          onClick={() => handleCategoryClick(null)}
-          className={cn(
-            "text-sm font-medium whitespace-nowrap pb-0.5 transition-colors",
-            selectedCategoryId === null
-              ? "text-white border-b-2 border-white" 
-              : "text-gray-400 hover:text-white"
-          )}
-        >
-          Tous
-        </button>
-
-        {rootCategories.map((category) => (
-          <button
-            key={category.id}
-            onClick={() => handleCategoryClick(category.id)}
-            className={cn(
-              "text-sm font-medium whitespace-nowrap pb-0.5 transition-colors",
-              selectedCategoryId === category.id 
-                ? "text-white border-b-2 border-white" 
-                : "text-gray-400 hover:text-white"
-            )}
-          >
-            {category.name}
-          </button>
-        ))}
       </div>
     </header>
   );

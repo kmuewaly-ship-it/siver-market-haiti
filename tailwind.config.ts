@@ -76,6 +76,20 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        // Override standard blue to match brand color #071d7f
+        blue: {
+          50: "#eff4ff",
+          100: "#dbeafe",
+          200: "#bfdbfe",
+          300: "#93c5fd",
+          400: "#60a5fa",
+          500: "#0a2a9f", // Lighter brand blue
+          600: "#071d7f", // Main brand blue
+          700: "#05155c", // Darker brand blue (hover)
+          800: "#1e40af",
+          900: "#1e3a8a",
+          950: "#172554",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

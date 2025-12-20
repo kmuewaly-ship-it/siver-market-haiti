@@ -1,5 +1,5 @@
-import { useState, useMemo } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useState, useMemo, useEffect } from "react";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -44,17 +44,62 @@ const CategoryProductsPage = () => {
   const isLoading = isCategoryLoading || isProductsLoading;
   const { data: allCategories = [] } = usePublicCategories();
 
-  const subcategories = allCategories.filter((c: any) => c.parent_id === categoryId);
+  // Logic for 3-level category navigation
+  const rootCategory = useMemo(() => {
+    if (!category || !allCategories.length) return null;
+    if (!category.parent_id) return category;
+    const parent = allCategories.find(c => c.id === category.parent_id);
+    if (parent && !parent.parent_id) return parent;
+    if (parent && parent.parent_id) return allCategories.find(c => c.id === parent.parent_id);
+    return category;
+  }, [category, allCategories]);
 
-  const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
+  const level2Categories = useMemo(() => {
+    if (!rootCategory) return [];
+    return allCategories.filter(c => c.parent_id === rootCategory.id);
+  }, [rootCategory, allCategories]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const selectedSubcategory = searchParams.get("subcategory");
+  
+  const { displayMode, categoriesGrid } = useMemo(() => {
+      if (!category) return { displayMode: 'loading', categoriesGrid: [] };
+      
+      // Robust check for root category using the full list
+      const isRoot = !category.parent_id || allCategories.some(c => c.id === category.id && !c.parent_id);
+      
+      const children = allCategories.filter(c => c.parent_id === category.id);
+      
+      if (selectedSubcategory) {
+          return { 
+              displayMode: 'categories', 
+              categoriesGrid: allCategories.filter(c => c.parent_id === selectedSubcategory) 
+          };
+      }
+      
+      if (isRoot) {
+          // Root Category -> Show Level 2s
+          return { displayMode: 'categories', categoriesGrid: children };
+      }
+      
+      if (children.length > 0) {
+          // Level 2 Category -> Show Level 3s
+          return { displayMode: 'categories', categoriesGrid: children };
+      }
+      
+      return { displayMode: 'products', categoriesGrid: [] };
+  }, [category, allCategories, selectedSubcategory]);
+
   const [priceMin, setPriceMin] = useState<number | undefined>(undefined);
   const [priceMax, setPriceMax] = useState<number | undefined>(undefined);
   const [showFiltersMobile, setShowFiltersMobile] = useState(false);
 
   const filteredProducts = useMemo(() => {
+    if (displayMode !== 'products') return []; // Don't filter if not showing products
+
     let list = [...products];
 
-    // apply subcategory filter if selected
+    // apply subcategory filter if selected (Legacy logic, kept just in case)
     if (selectedSubcategory) {
       list = list.filter((p: any) => (p.categoria_id === selectedSubcategory) || (p.subcategoria_id === selectedSubcategory));
     }
@@ -79,7 +124,7 @@ const CategoryProductsPage = () => {
       default:
         return list;
     }
-  }, [products, filters.sortBy, selectedSubcategory, priceMin, priceMax]);
+  }, [products, filters.sortBy, selectedSubcategory, priceMin, priceMax, displayMode]);
   const handleViewStore = (sellerId: string) => navigate(`/tienda/${sellerId}`);
 
   const getSku = (p: AnyProduct) => p.sku_interno ?? p.sku ?? p.id;
@@ -185,19 +230,9 @@ const CategoryProductsPage = () => {
                   <label className="text-sm font-medium">Precio máximo</label>
                   <input type="number" value={priceMax ?? ""} onChange={(e) => { setPriceMax(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }} className="w-full mt-1 px-3 py-2 border rounded" placeholder="9999" />
                 </div>
-                {subcategories.length > 0 && (
-                  <div className="mb-3">
-                    <h4 className="font-medium mb-2">Subcategorías</h4>
-                    <div className="flex flex-wrap gap-2">
-                      <button onClick={() => { setSelectedSubcategory(null); setCurrentPage(1); }} className={`py-1 px-2 rounded ${selectedSubcategory === null ? 'bg-gray-100' : 'bg-white border'}`}>Todas</button>
-                      {subcategories.map((s: any) => (
-                        <button key={s.id} onClick={() => { setSelectedSubcategory(s.id); setCurrentPage(1); }} className={`py-1 px-2 rounded ${selectedSubcategory === s.id ? 'bg-gray-100' : 'bg-white border'}`}>{s.name}</button>
-                      ))}
-                    </div>
-                  </div>
-                )}
+                {/* Subcategories removed from here as they are now in the header */}
                 <div className="flex gap-2 mt-2">
-                  <button onClick={() => { setPriceMin(undefined); setPriceMax(undefined); setSelectedSubcategory(null); setFilters({ ...filters, sortBy: 'newest' }); setShowFiltersMobile(false); }} className="px-3 py-2 bg-gray-100 rounded">Limpiar</button>
+                  <button onClick={() => { setPriceMin(undefined); setPriceMax(undefined); setSearchParams({}); setFilters({ ...filters, sortBy: 'newest' }); setShowFiltersMobile(false); }} className="px-3 py-2 bg-gray-100 rounded">Limpiar</button>
                 </div>
               </div>
             )}
@@ -207,6 +242,34 @@ const CategoryProductsPage = () => {
           {/* Sidebar */}
           <aside className="lg:col-span-3">
             <div className="bg-white p-4 rounded-lg shadow-sm">
+              {/* Categories List */}
+              {level2Categories.length > 0 && (
+                <div className="mb-6 border-b pb-4">
+                  <h3 className="font-semibold mb-3">Categorías</h3>
+                  <div className="flex flex-col gap-1">
+                    {level2Categories.map(cat => (
+                      <button 
+                        key={cat.id}
+                        onClick={() => {
+                          if (selectedSubcategory === cat.id) {
+                            setSearchParams({});
+                          } else {
+                            setSearchParams({ subcategory: cat.id });
+                          }
+                        }}
+                        className={`text-left px-3 py-2 rounded-md text-sm transition-colors ${
+                          selectedSubcategory === cat.id || category?.id === cat.id
+                            ? 'bg-blue-50 text-blue-600 font-medium' 
+                            : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                        }`}
+                      >
+                        {cat.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <h3 className="font-semibold mb-3">Filtros</h3>
 
               <div className="mb-3">
@@ -231,27 +294,52 @@ const CategoryProductsPage = () => {
                 />
               </div>
 
-              {subcategories.length > 0 && (
-                <div className="mb-3">
-                  <h4 className="font-medium mb-2">Subcategorías</h4>
-                  <div className="flex flex-col gap-2">
-                    <button onClick={() => { setSelectedSubcategory(null); setCurrentPage(1); }} className={`text-left py-1 px-2 rounded ${selectedSubcategory === null ? 'bg-gray-100' : ''}`}>Todas</button>
-                    {subcategories.map((s: any) => (
-                      <button key={s.id} onClick={() => { setSelectedSubcategory(s.id); setCurrentPage(1); }} className={`text-left py-1 px-2 rounded ${selectedSubcategory === s.id ? 'bg-gray-100' : ''}`}>{s.name}</button>
-                    ))}
-                  </div>
-                </div>
-              )}
-
               <div className="flex gap-2 mt-4">
-                <button onClick={() => { setPriceMin(undefined); setPriceMax(undefined); setSelectedSubcategory(null); setFilters({ ...filters, sortBy: 'newest' }); }} className="px-3 py-2 bg-gray-100 rounded">Limpiar</button>
+                <button onClick={() => { setPriceMin(undefined); setPriceMax(undefined); setSearchParams({}); setFilters({ ...filters, sortBy: 'newest' }); }} className="px-3 py-2 bg-gray-100 rounded">Limpiar</button>
               </div>
             </div>
           </aside>
 
-          {/* Products */}
+          {/* Products or Categories Grid */}
           <section className="lg:col-span-9">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+            {displayMode === 'categories' ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                {categoriesGrid.map((cat) => (
+                  <div 
+                    key={cat.id} 
+                    onClick={() => {
+                      // If it's a Level 2 (has children), we might want to filter by it (same as sidebar)
+                      // If it's a Level 3 (no children), we navigate to it
+                      const hasChildren = allCategories.some(c => c.parent_id === cat.id);
+                      if (hasChildren) {
+                        setSearchParams({ subcategory: cat.id });
+                      } else {
+                        navigate(`/categoria/${cat.slug}`);
+                      }
+                    }}
+                    className="bg-white p-4 rounded-lg shadow-sm hover:shadow-md transition cursor-pointer flex flex-col items-center text-center border border-gray-100"
+                  >
+                    <div className="w-24 h-24 mb-3 rounded-full bg-gray-50 flex items-center justify-center overflow-hidden">
+                      {cat.icon ? (
+                        <img src={cat.icon} alt={cat.name} className="w-full h-full object-cover" />
+                      ) : (
+                        <span className="text-2xl text-gray-400 font-bold">{cat.name.charAt(0)}</span>
+                      )}
+                    </div>
+                    <h3 className="font-medium text-gray-900">{cat.name}</h3>
+                    {cat.description && <p className="text-xs text-gray-500 mt-1 line-clamp-2">{cat.description}</p>}
+                  </div>
+                ))}
+                {categoriesGrid.length === 0 && (
+                  <div className="col-span-full text-center py-12 bg-white rounded-lg border border-dashed border-gray-300">
+                    <p className="text-gray-500 font-medium">No se encontraron subcategorías.</p>
+                    <p className="text-sm text-gray-400 mt-1">Intenta seleccionar otra categoría.</p>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               {filteredProducts.map((p) => {
                 const sku = getSku(p);
                 const name = getName(p);
@@ -314,6 +402,8 @@ const CategoryProductsPage = () => {
                 ))}
                 <button disabled={currentPage === totalPages} onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50">Siguiente</button>
               </div>
+            )}
+            </>
             )}
           </section>
         </div>

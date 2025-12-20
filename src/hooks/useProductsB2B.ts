@@ -6,9 +6,10 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 12) => {
   return useQuery({
     queryKey: ["products-b2b", filters, page, limit],
     queryFn: async () => {
+      // Removed stock_status from select to avoid errors if column is missing or permissions are wrong
       let query = supabase
         .from("products")
-        .select("id, sku_interno, nombre, precio_mayorista, moq, stock_fisico, imagen_principal, categoria_id, stock_status", { count: "exact" })
+        .select("id, sku_interno, nombre, precio_mayorista, moq, stock_fisico, imagen_principal, categoria_id", { count: "exact" })
         .eq("is_active", true);
 
       // Filter by category
@@ -21,9 +22,18 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 12) => {
         query = query.or(`nombre.ilike.%${filters.searchQuery}%,sku_interno.ilike.%${filters.searchQuery}%`);
       }
 
-      // Filter by stock status
+      // Filter by stock status - Only apply if we are sure the column exists and we want to filter
+      // For now, we'll rely on stock_fisico for basic status
       if (filters.stockStatus !== "all") {
-        query = query.eq("stock_status", filters.stockStatus);
+        if (filters.stockStatus === "in_stock") {
+          query = query.gt("stock_fisico", 0);
+        } else if (filters.stockStatus === "out_of_stock") {
+          query = query.eq("stock_fisico", 0);
+        }
+        // 'low_stock' logic is complex without the enum/column, so we might skip or approximate
+        else if (filters.stockStatus === "low_stock") {
+             query = query.gt("stock_fisico", 0).lt("stock_fisico", 10); // Approximation
+        }
       }
 
       // Apply sorting
@@ -49,16 +59,19 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 12) => {
 
       const { data, error, count } = await query;
 
-      if (error) throw new Error(error.message);
+      if (error) {
+        console.error("Error fetching B2B products:", error);
+        throw new Error(error.message);
+      }
 
       // Map to B2B card format
       const products: ProductB2BCard[] = (data || []).map((p) => ({
         id: p.id,
         sku: p.sku_interno,
         nombre: p.nombre,
-        precio_b2b: p.precio_mayorista,
-        moq: p.moq,
-        stock_fisico: p.stock_fisico,
+        precio_b2b: p.precio_mayorista || 0, // Fallback to 0
+        moq: p.moq || 1, // Fallback to 1
+        stock_fisico: p.stock_fisico || 0,
         imagen_principal: p.imagen_principal || "",
         categoria_id: p.categoria_id || "",
       }));

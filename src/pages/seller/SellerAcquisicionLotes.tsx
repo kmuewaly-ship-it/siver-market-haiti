@@ -1,11 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useCartB2B } from "@/hooks/useCartB2B";
+import { useB2BCartSupabase } from "@/hooks/useB2BCartSupabase";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import Footer from "@/components/layout/Footer";
 import ProductCardB2B from "@/components/b2b/ProductCardB2B";
 import CartSidebarB2B from "@/components/b2b/CartSidebarB2B";
-import { B2BFilters, CartItemB2B, ProductB2BCard } from "@/types/b2b";
+import { B2BFilters, CartItemB2B, CartB2B } from "@/types/b2b";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProductsB2B, useFeaturedProductsB2B } from "@/hooks/useProductsB2B";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,26 @@ interface ContentWithFiltersProps {
 
 const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: ContentWithFiltersProps) => {
   const { user, isLoading: authLoading } = useAuth();
-  const { cart, addItem, updateQuantity, removeItem } = useCartB2B();
+  const { cart: supabaseCart, addItem: supabaseAddItem, updateQuantity: supabaseUpdateQuantity, removeItem: supabaseRemoveItem } = useB2BCartSupabase();
+  
+  // Map Supabase cart to local CartB2B type
+  const cart: CartB2B = {
+    items: supabaseCart.items.map(item => ({
+      productId: item.productId,
+      sku: item.sku,
+      nombre: item.nombre,
+      precio_b2b: item.unitPrice,
+      moq: item.moq,
+      stock_fisico: item.stockDisponible,
+      cantidad: item.quantity,
+      subtotal: item.totalPrice,
+      imagen_principal: item.imagen
+    })),
+    totalItems: supabaseCart.totalItems,
+    totalQuantity: supabaseCart.totalQuantity,
+    subtotal: supabaseCart.subtotal
+  };
+
   const isMobile = useIsMobile();
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(0);
@@ -111,7 +130,31 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
   }, []);
 
   const handleAddToCart = (item: CartItemB2B) => {
-    addItem(item);
+    supabaseAddItem({
+      productId: item.productId,
+      sku: item.sku,
+      nombre: item.nombre,
+      unitPrice: item.precio_b2b,
+      quantity: item.cantidad,
+      moq: item.moq,
+      stockDisponible: item.stock_fisico,
+      color: undefined,
+      size: undefined
+    });
+  };
+
+  const handleUpdateQuantity = (productId: string, cantidad: number) => {
+    const item = supabaseCart.items.find(i => i.productId === productId);
+    if (item) {
+      supabaseUpdateQuantity(item.id, cantidad);
+    }
+  };
+
+  const handleRemoveItem = (productId: string) => {
+    const item = supabaseCart.items.find(i => i.productId === productId);
+    if (item) {
+      supabaseRemoveItem(item.id);
+    }
   };
 
   const handleSortChange = (value: string) => {
@@ -248,8 +291,8 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
       {/* Carrito Flotante */}
       <CartSidebarB2B
         cart={cart}
-        onUpdateQuantity={updateQuantity}
-        onRemoveItem={removeItem}
+        onUpdateQuantity={handleUpdateQuantity}
+        onRemoveItem={handleRemoveItem}
         isOpen={isCartOpen}
         onToggle={() => setIsCartOpen(!isCartOpen)}
       />

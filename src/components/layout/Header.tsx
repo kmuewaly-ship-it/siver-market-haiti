@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, ShoppingBag, Search, Heart, User, Mail, Camera, Loader2, TrendingUp, Flame, Mic, MicOff, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
@@ -87,6 +87,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
   }, [cartCount]);
 
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
+  const rootCategories = categories.filter((c) => !c.parent_id);
   const navigate = useNavigate();
   const { role } = useAuth();
 
@@ -135,8 +136,48 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
     el.scrollBy({ left: dir * amount, behavior: "smooth" });
   };
 
-  // Root categories (no parent)
-  const rootCategories = categories.filter((c) => !c.parent_id);
+  const location = useLocation();
+
+  // Determine selected category from route
+  const categorySlug = location.pathname.startsWith('/categoria/') 
+    ? location.pathname.split('/categoria/')[1] 
+    : null;
+  
+  const selectedCategory = categorySlug 
+    ? categories.find(c => c.slug === categorySlug)?.id || null
+    : null;
+
+  // Get subcategories if we are on a category page
+  const subCategories = selectedCategory 
+    ? categories.filter(c => c.parent_id === selectedCategory)
+    : [];
+
+  // Determine which categories to show in the scroll bar
+  const categoriesToShow = subCategories.length > 0 ? subCategories : rootCategories.filter((c) => !c.parent_id);
+  const isShowingSubcategories = subCategories.length > 0;
+
+  // Get selected subcategory from URL query param
+  const searchParams = new URLSearchParams(location.search);
+  const selectedSubcategoryId = searchParams.get("subcategory");
+
+  const handleCategoryClick = (categoryId: string) => {
+    if (isShowingSubcategories) {
+      // If showing subcategories, clicking one should filter by that subcategory
+      const params = new URLSearchParams(location.search);
+      if (selectedSubcategoryId === categoryId) {
+        params.delete("subcategory");
+      } else {
+        params.set("subcategory", categoryId);
+      }
+      navigate(`${location.pathname}?${params.toString()}`);
+    } else {
+      // If showing root categories, navigate to that category page
+      const category = categories.find(c => c.id === categoryId);
+      if (category) {
+        navigate(`/categoria/${category.slug}`);
+      }
+    }
+  };
 
   const getSubcategories = (parentId) =>
     categories.filter((c) => c.parent_id === parentId);
@@ -300,6 +341,11 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                 <Search className="w-4 h-4 text-white" strokeWidth={2} />
               </button>
             </div>
+
+            {/* Account */}
+            <Link to={accountLink} className="relative flex-shrink-0">
+              <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+            </Link>
 
             {/* Favorites heart */}
             <Link to="/favoritos" className="relative flex-shrink-0">
@@ -486,20 +532,27 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
           {categoriesLoading ? (
             <div className="px-4 py-3 text-sm text-gray-500">Cargando categorías...</div>
           ) : (
-            rootCategories.map((cat) => {
+            categoriesToShow.map((cat) => {
               const subs = getSubcategories(cat.id);
+              const isSelected = (selectedCategory === cat.id && !isShowingSubcategories) || (selectedSubcategoryId === cat.id);
+              
               return (
                 <div key={cat.id} className="relative group inline-block">
                       <button
                         type="button"
-                        onClick={() => navigate(`/categoria/${cat.slug}`)}
-                        className="px-4 py-3 text-sm font-medium text-gray-700 hover:text-red-500 hover:bg-gray-50 border-b-2 border-transparent hover:border-red-500 transition whitespace-nowrap flex items-center gap-2"
+                        onClick={() => handleCategoryClick(cat.id)}
+                        className={cn(
+                          "px-4 py-3 text-sm font-medium transition whitespace-nowrap flex items-center gap-2 border-b-2",
+                          isSelected 
+                            ? "text-red-500 border-red-500" 
+                            : "text-gray-700 hover:text-red-500 hover:bg-gray-50 border-transparent hover:border-red-500"
+                        )}
                       >
                         {cat.name}
                       </button>
 
-                  {/* Subcategories dropdown on hover */}
-                  {subs.length > 0 && (
+                  {/* Subcategories dropdown on hover - Only show if we are NOT already showing subcategories as main items */}
+                  {!isShowingSubcategories && subs.length > 0 && (
                     <div className="absolute left-0 top-full mt-2 hidden group-hover:flex p-6 bg-white border border-gray-100 shadow-lg rounded-lg z-40 max-w-screen-lg">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         {subs.map((sub) => (

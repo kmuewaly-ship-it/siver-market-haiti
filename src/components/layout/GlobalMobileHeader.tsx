@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package, Eye, EyeOff } from "lucide-react";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package, Eye, EyeOff, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -176,7 +176,11 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
 
   // No mostrar en admin routes, login, o trends (a menos que forceShow)
   // Para sellers, mostrar en TODAS las rutas (incluyendo públicas) con estilo B2B
-  if (!isMobile || isAdminRoute || isLoginRoute || isTrendsRoute) {
+  // En TrendsPage, si es seller, la página renderiza su propio header (SellerMobileHeader), así que ocultamos este.
+  // Si es cliente, TrendsPage no renderiza header móvil, así que mostramos este.
+  const shouldHideOnTrends = isTrendsRoute && isSellerOrAdmin && !showAsClient;
+
+  if (!isMobile || isAdminRoute || isLoginRoute || shouldHideOnTrends) {
     return null;
   }
 
@@ -193,10 +197,72 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
     ? categories.find(c => c.slug === categorySlug)?.id || null
     : null;
 
+  // Get subcategories if we are on a category page
+  const subCategories = selectedCategory 
+    ? categories.filter(c => c.parent_id === selectedCategory)
+    : [];
+
+  // Get selected subcategory from URL query param
+  const searchParams = new URLSearchParams(location.search);
+  const selectedSubcategoryId = searchParams.get("subcategory");
+
+  // Level 3 detection: Check if the selected subcategory has children
+  const level3Categories = selectedSubcategoryId 
+    ? categories.filter(c => c.parent_id === selectedSubcategoryId)
+    : [];
+  
+  const showLevel3 = level3Categories.length > 0;
+
+  // Determine which categories to show in the scroll bar
+  // 1. If we are deep in Level 3 (selectedSubcategoryId has children), show those children.
+  // 2. If we are in Level 2 (subCategories exist), show those.
+  // 3. Otherwise show Root categories.
+  const categoriesToShow = showLevel3 
+    ? level3Categories 
+    : (subCategories.length > 0 ? subCategories : rootCategories);
+
+  const isShowingSubcategories = subCategories.length > 0;
+
   const handleCategorySelect = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    if (category) {
-      navigate(`/categoria/${category.slug}`);
+    if (showLevel3) {
+      // We are showing Level 3 categories. Clicking one should navigate to that specific category page
+      // effectively treating it as a "Final Category" selection.
+      const category = categories.find(c => c.id === categoryId);
+      if (category) {
+        navigate(`/categoria/${category.slug}`);
+      }
+    } else if (isShowingSubcategories) {
+      // If showing subcategories (Level 2), clicking one should filter by that subcategory
+      // This will trigger the Level 3 view if it has children
+      const params = new URLSearchParams(location.search);
+      if (selectedSubcategoryId === categoryId) {
+        params.delete("subcategory");
+      } else {
+        params.set("subcategory", categoryId);
+      }
+      navigate(`${location.pathname}?${params.toString()}`);
+    } else {
+      // If showing root categories, navigate to that category page
+      const category = categories.find(c => c.id === categoryId);
+      if (category) {
+        navigate(`/categoria/${category.slug}`);
+      }
+    }
+  };
+
+  const handleBackToRoot = () => {
+    if (showLevel3) {
+      // If showing Level 3, go back to Level 2 (clear subcategory param)
+      const params = new URLSearchParams(location.search);
+      params.delete("subcategory");
+      navigate(`${location.pathname}?${params.toString()}`);
+    } else if (isShowingSubcategories) {
+      // If showing subcategories, "All" button should clear subcategory filter
+      const params = new URLSearchParams(location.search);
+      params.delete("subcategory");
+      navigate(`${location.pathname}?${params.toString()}`);
+    } else {
+      navigate(showB2BStyle ? "/seller/adquisicion-lotes" : "/categorias");
     }
   };
 
@@ -323,12 +389,13 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
   // Links dinámicos según rol y modo de vista
   const showB2BStyle = isSellerOrAdmin && !showAsClient;
   const favoritesLink = showB2BStyle ? "/seller/favoritos" : "/favoritos";
+  const accountLink = showB2BStyle ? "/seller/cuenta" : "/cuenta";
   const cartLink = showB2BStyle ? "/seller/carrito" : "/carrito";
   const accentColor = showB2BStyle ? "bg-blue-600" : "bg-red-500";
   const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-900 hover:bg-gray-800";
 
   return (
-    <header className="bg-white sticky top-0 z-40">
+    <header className="bg-white sticky top-0 z-40 shadow-md">
       {/* Top search bar */}
       <div className="flex items-center gap-3 px-3 py-2.5">
         {/* Logo/Icon - cambia según el modo */}
@@ -390,6 +457,7 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
               className="flex-1 bg-transparent text-sm text-gray-700 px-3 py-2 outline-none min-w-0"
+              placeholder="Buscar..."
             />
             {searchQuery && (
               <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600">
@@ -497,6 +565,11 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
           )}
         </div>
 
+        {/* Account */}
+        <Link to={accountLink} className="relative flex-shrink-0">
+          <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+        </Link>
+
         {/* Favorites heart */}
         <Link to={favoritesLink} className="relative flex-shrink-0">
           <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
@@ -516,40 +589,6 @@ const GlobalMobileHeader = ({ forceShow = false }: GlobalMobileHeaderProps) => {
             </span>
           )}
         </Link>
-      </div>
-
-      {/* Category tabs - horizontal scroll with dynamic background */}
-      <div className={cn(
-        "flex items-center gap-4 px-3 py-2.5 overflow-x-auto scrollbar-hide",
-        showB2BStyle ? "bg-gray-900" : "bg-black"
-      )}>
-        {/* "All" tab */}
-        <button
-          onClick={() => navigate(showB2BStyle ? "/seller/adquisicion-lotes" : "/categorias")}
-          className={cn(
-            "text-sm font-medium whitespace-nowrap pb-0.5 transition-colors",
-            isCategoriesPage && !selectedCategory
-              ? "text-white border-b-2 border-white" 
-              : "text-gray-400 hover:text-white"
-          )}
-        >
-          {showB2BStyle ? "Todos" : "All"}
-        </button>
-
-        {rootCategories.map((category) => (
-          <button
-            key={category.id}
-            onClick={() => handleCategorySelect(category.id)}
-            className={cn(
-              "text-sm font-medium whitespace-nowrap pb-0.5 transition-colors",
-              selectedCategory === category.id 
-                ? "text-white border-b-2 border-white" 
-                : "text-gray-400 hover:text-white"
-            )}
-          >
-            {category.name}
-          </button>
-        ))}
       </div>
     </header>
   );

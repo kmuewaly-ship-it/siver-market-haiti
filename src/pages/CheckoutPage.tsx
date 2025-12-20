@@ -31,6 +31,11 @@ import {
   Package,
   Star,
   Pencil,
+  X,
+  ChevronRight,
+  Truck,
+  ShieldCheck,
+  Wallet
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -302,6 +307,164 @@ const CheckoutPage = () => {
       setIsProcessing(false);
     }
   };
+
+  if (isMobile) {
+    return (
+      <div className="min-h-screen bg-black/30 flex flex-col justify-end animate-in slide-in-from-bottom-10 duration-500">
+        <div className="bg-white w-full h-[92vh] rounded-t-[20px] flex flex-col overflow-hidden shadow-2xl relative">
+          {/* Header */}
+          <div className="flex items-center justify-between px-4 py-4 border-b border-gray-100 shrink-0">
+            <div className="w-8"></div>
+            <h1 className="text-lg font-bold tracking-wide">PAGAR</h1>
+            <button onClick={() => navigate(-1)} className="p-1 rounded-full hover:bg-gray-100 text-gray-500">
+              <X className="w-6 h-6" />
+            </button>
+          </div>
+
+          {/* Scrollable Content */}
+          <div className="flex-1 overflow-y-auto bg-[#f9f9f9] pb-32">
+            {/* Address Section */}
+            <div className="bg-white p-4 mb-2">
+              <div 
+                className="flex items-center justify-between cursor-pointer"
+                onClick={() => setShowAddressDialog(true)}
+              >
+                {selectedAddressData ? (
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <MapPin className="w-4 h-4 text-black" />
+                      <span className="font-bold text-sm">{selectedAddressData.full_name}</span>
+                      <span className="text-gray-500 text-sm">{selectedAddressData.phone}</span>
+                    </div>
+                    <p className="text-sm text-gray-600 pl-6 line-clamp-1">
+                      {selectedAddressData.street_address} {selectedAddressData.city} {selectedAddressData.country}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2 text-red-500">
+                    <MapPin className="w-5 h-5" />
+                    <span className="font-medium">Agregar dirección de envío</span>
+                  </div>
+                )}
+                <ChevronRight className="w-5 h-5 text-gray-400" />
+              </div>
+              
+              {/* QuickShip / Delivery Info Mockup */}
+              <div className="mt-3 pl-6">
+                <div className="flex items-center gap-2 text-xs text-green-700 bg-green-50 p-2 rounded w-fit">
+                  <Truck className="w-3 h-3" />
+                  <span className="font-bold">Envío Rápido</span>
+                  <span className="text-gray-500">Llega en 3-5 días</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Items Section */}
+            <div className="bg-white p-4 mb-2">
+              {items.map((item) => (
+                <div key={item.id} className="flex gap-3 mb-4 last:mb-0">
+                  <div className="w-20 h-20 bg-gray-100 rounded-md overflow-hidden shrink-0">
+                    {item.image ? (
+                      <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <Package className="w-8 h-8 text-gray-300 m-auto mt-6" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium line-clamp-2 mb-1">{item.name}</p>
+                    <div className="flex items-center gap-2 mb-2">
+                      <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded">Envío Gratis</span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="font-bold text-red-600">${item.price.toFixed(2)}</span>
+                      <span className="text-sm text-gray-500">Cant: {item.quantity}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Payment Methods */}
+            <div className="bg-white p-4 mb-2">
+              <h3 className="text-sm font-bold mb-3 uppercase text-gray-500">Método de Pago</h3>
+              <div className="space-y-0">
+                {paymentMethods.map((method) => (
+                  <div 
+                    key={method.id}
+                    onClick={() => setPaymentMethod(method.id)}
+                    className="flex items-center gap-3 py-3 border-b last:border-0 cursor-pointer"
+                  >
+                    <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${paymentMethod === method.id ? 'border-black bg-black' : 'border-gray-300'}`}>
+                      {paymentMethod === method.id && <div className="w-2 h-2 bg-white rounded-full" />}
+                    </div>
+                    <div className="flex items-center gap-3 flex-1">
+                      {method.id === 'stripe' && <CreditCard className="w-5 h-5 text-blue-600" />}
+                      {method.id === 'moncash' && <Smartphone className="w-5 h-5 text-red-600" />}
+                      {method.id === 'transfer' && <Building2 className="w-5 h-5 text-green-600" />}
+                      <span className="text-sm font-medium">{method.name}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Payment Details Inputs */}
+              {paymentMethod !== 'stripe' && (
+                <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-100">
+                  <Label className="text-xs mb-1.5 block">
+                    {paymentMethod === 'transfer' ? 'Referencia de Transferencia' : 'Código de Transacción'}
+                  </Label>
+                  <Input 
+                    value={paymentReference}
+                    onChange={(e) => setPaymentReference(e.target.value)}
+                    className="h-9 text-sm"
+                    placeholder="Ingrese el código aquí"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Order Summary */}
+            <div className="bg-white p-4 mb-4">
+              <div className="flex justify-between py-2 text-sm">
+                <span className="text-gray-600">Subtotal ({totalItems} items)</span>
+                <span>${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between py-2 text-sm">
+                <span className="text-gray-600">Envío</span>
+                <span className="text-green-600">Gratis</span>
+              </div>
+              <div className="flex justify-between py-2 text-sm">
+                <span className="text-gray-600">Impuestos</span>
+                <span>$0.00</span>
+              </div>
+              <div className="flex justify-between py-3 text-base font-bold border-t mt-2">
+                <span>Total del Pedido</span>
+                <span className="text-red-600">${subtotal.toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Sticky Bottom Bar */}
+          <div className="absolute bottom-0 left-0 right-0 bg-white border-t p-4 pb-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-10">
+            <div className="flex items-center gap-4">
+              <div className="flex-1">
+                <p className="text-xs text-gray-500">Total a Pagar</p>
+                <p className="text-xl font-bold text-red-600">${subtotal.toFixed(2)}</p>
+              </div>
+              <Button 
+                onClick={handlePlaceOrder}
+                disabled={isProcessing || !selectedAddress || addresses.length === 0}
+                className="flex-[2] bg-black hover:bg-gray-800 text-white rounded-full h-12 text-base font-bold"
+              >
+                {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : `Realizar Pedido (${totalItems})`}
+              </Button>
+            </div>
+          </div>
+        </div>
+        <AddressesDialog open={showAddressDialog} onOpenChange={setShowAddressDialog} />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
