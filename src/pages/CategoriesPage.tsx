@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { usePublicCategories, Category } from "@/hooks/useCategories";
 import { Skeleton } from "@/components/ui/skeleton";
 import GlobalHeader from "@/components/layout/GlobalHeader";
@@ -10,13 +10,23 @@ import { cn } from "@/lib/utils";
 
 const CategoriesPage = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { data: categories = [], isLoading } = usePublicCategories();
   const isMobile = useIsMobile();
   
-  // Level 1: Selected root category (shown in header tabs)
-  const [selectedRootId, setSelectedRootId] = useState<string | null>(null);
+  // Read selected root from URL params
+  const selectedRootId = searchParams.get('cat');
   // Level 2: Selected secondary category (shown in right sidebar)
   const [selectedSecondaryId, setSelectedSecondaryId] = useState<string | null>(null);
+  
+  // Function to update selected root via URL
+  const setSelectedRootId = (id: string | null) => {
+    if (id) {
+      setSearchParams({ cat: id });
+    } else {
+      setSearchParams({});
+    }
+  };
 
   // Filter root categories (those without a parent)
   const rootCategories = categories.filter(c => !c.parent_id);
@@ -35,12 +45,13 @@ const CategoriesPage = () => {
   const selectedRoot = categories.find(c => c.id === selectedRootId);
   const selectedSecondary = categories.find(c => c.id === selectedSecondaryId);
 
-  // Auto-select first root category on load
+  // Auto-select first root category on load if none selected
   useEffect(() => {
     if (rootCategories.length > 0 && !selectedRootId) {
-      setSelectedRootId(rootCategories[0].id);
+      // Use replace to avoid adding to history
+      setSearchParams({ cat: rootCategories[0].id }, { replace: true });
     }
-  }, [rootCategories, selectedRootId]);
+  }, [rootCategories, selectedRootId, setSearchParams]);
 
   // Auto-select first secondary when root changes
   useEffect(() => {

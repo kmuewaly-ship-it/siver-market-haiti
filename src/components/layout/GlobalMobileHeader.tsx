@@ -190,11 +190,24 @@ const GlobalMobileHeader = ({
   // Determine selected category from route
   const isCategoriesPage = location.pathname === '/categorias';
   const categorySlug = location.pathname.startsWith('/categoria/') ? location.pathname.split('/categoria/')[1] : null;
-  const selectedCategory = categorySlug ? categories.find(c => c.slug === categorySlug)?.id || null : null;
+  
+  // Get selected category from URL params when on /categorias page
+  const urlParams = new URLSearchParams(location.search);
+  const selectedCatParam = urlParams.get('cat');
+  
+  const selectedCategory = isCategoriesPage 
+    ? selectedCatParam 
+    : categorySlug 
+      ? categories.find(c => c.slug === categorySlug)?.id || null 
+      : null;
+  
   const handleCategorySelect = (categoryId: string) => {
-    const category = categories.find(c => c.id === categoryId);
-    if (category) {
-      navigate(`/categoria/${category.slug}`);
+    if (isCategoriesPage) {
+      // On categories page, update URL param to filter subcategories
+      navigate(`/categorias?cat=${categoryId}`);
+    } else {
+      // On other pages, navigate to categories page with filter
+      navigate(`/categorias?cat=${categoryId}`);
     }
   };
   const handleSearch = (e: React.FormEvent) => {
