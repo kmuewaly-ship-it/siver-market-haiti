@@ -5,7 +5,7 @@ import { SellerLayout } from "@/components/seller/SellerLayout";
 import Footer from "@/components/layout/Footer";
 import ProductCardB2B from "@/components/b2b/ProductCardB2B";
 import CartSidebarB2B from "@/components/b2b/CartSidebarB2B";
-import { B2BFilters, CartItemB2B, CartB2B } from "@/types/b2b";
+import { B2BFilters, CartItemB2B, CartB2B, ProductB2BCard } from "@/types/b2b";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProductsB2B, useFeaturedProductsB2B } from "@/hooks/useProductsB2B";
 import { Button } from "@/components/ui/button";
