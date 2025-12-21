@@ -70,7 +70,7 @@ const SellerCartPage = () => {
 
       // Generate WhatsApp message
       const itemsList = items
-        .map((item, index) => `${index + 1}. ${item.nombre} x ${item.quantity} uds - $${item.totalPrice.toFixed(2)}`)
+        .map((item, index) => `${index + 1}. ${item.nombre} x ${item.cantidad} uds - $${item.subtotal.toFixed(2)}`)
         .join('\n');
 
       const message = `📱 *Nuevo Pedido para Negociación - Siver Market*

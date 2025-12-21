@@ -15,7 +15,7 @@ interface Product {
   image: string;
   discount?: number;
   badge?: string;
-  sku?: string;
+  sku: string;
   storeId?: string;
   storeName?: string;
   storeWhatsapp?: string;

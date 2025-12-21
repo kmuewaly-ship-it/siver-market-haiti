@@ -8,6 +8,7 @@ interface Product {
   image: string;
   discount?: number;
   badge?: string;
+  sku: string;
 }
 
 interface ProductGridProps {

@@ -5,6 +5,7 @@ import { ProductB2BCard, B2BFilters } from "@/types/b2b";
 export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 12) => {
   return useQuery({
     queryKey: ["products-b2b", filters, page, limit],
+    staleTime: 1000 * 60 * 5, // 5 minutes cache
     queryFn: async () => {
       let query = supabase
         .from("products")
@@ -52,17 +53,23 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 12) => {
       if (error) throw new Error(error.message);
 
       // Map to B2B card format
-      const products: ProductB2BCard[] = (data || []).map((p) => ({
-        id: p.id,
-        sku: p.sku_interno,
-        nombre: p.nombre,
-        precio_b2b: p.precio_mayorista,
-        precio_sugerido: p.precio_sugerido_venta || p.precio_mayorista * 1.3, // Fallback si es null
-        moq: p.moq,
-        stock_fisico: p.stock_fisico,
-        imagen_principal: p.imagen_principal || "",
-        categoria_id: p.categoria_id || "",
-      }));
+      const products: ProductB2BCard[] = (data || []).map((p) => {
+        const precioMayorista = p.precio_mayorista || 0;
+        // Calculate suggested retail price with 30% margin if not provided
+        const precioSugerido = p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
+        
+        return {
+          id: p.id,
+          sku: p.sku_interno,
+          nombre: p.nombre,
+          precio_b2b: precioMayorista,
+          precio_sugerido: precioSugerido,
+          moq: p.moq,
+          stock_fisico: p.stock_fisico,
+          imagen_principal: p.imagen_principal || "",
+          categoria_id: p.categoria_id || "",
+        };
+      });
 
       return { products, total: count || 0 };
     },
@@ -83,17 +90,22 @@ export const useFeaturedProductsB2B = (limit = 6) => {
 
       if (error) throw new Error(error.message);
 
-      const products: ProductB2BCard[] = (data || []).map((p) => ({
-        id: p.id,
-        sku: p.sku_interno,
-        nombre: p.nombre,
-        precio_b2b: p.precio_mayorista,
-        precio_sugerido: p.precio_sugerido_venta || p.precio_mayorista * 1.3,
-        moq: p.moq,
-        stock_fisico: p.stock_fisico,
-        imagen_principal: p.imagen_principal || "",
-        categoria_id: p.categoria_id || "",
-      }));
+      const products: ProductB2BCard[] = (data || []).map((p) => {
+        const precioMayorista = p.precio_mayorista || 0;
+        const precioSugerido = p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
+        
+        return {
+          id: p.id,
+          sku: p.sku_interno,
+          nombre: p.nombre,
+          precio_b2b: precioMayorista,
+          precio_sugerido: precioSugerido,
+          moq: p.moq,
+          stock_fisico: p.stock_fisico,
+          imagen_principal: p.imagen_principal || "",
+          categoria_id: p.categoria_id || "",
+        };
+      });
 
       return products;
     },

@@ -188,7 +188,8 @@ const StorePage = () => {
                             image: product.galeria_imagenes?.[0] || "/placeholder.png",
                             originalPrice: undefined,
                             discount: 0,
-                            badge: undefined
+                            badge: undefined,
+                            sku: product.sku || product.id
                         };
 
                         return (

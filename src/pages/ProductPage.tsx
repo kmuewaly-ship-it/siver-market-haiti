@@ -41,10 +41,10 @@ const ProductPage = () => {
   const isMobile = useIsMobile();
   
   // Determine if user is B2B (Seller)
-  const isB2BUser = user?.user_metadata?.role === 'seller';
+  const isB2BUser = user?.role === 'seller';
 
   // Fetch product data
-  const { data: product, isLoading, allProducts } = useSellerProduct(sku);
+  const { data: product, isLoading } = useSellerProduct(sku);
   
   // Local state
   const [selectedImage, setSelectedImage] = useState(0);
@@ -98,17 +98,8 @@ const ProductPage = () => {
     };
   }, [isB2BUser, product, quantity, costB2B, pvp]);
 
-  // Related Products Logic
-  const relatedProducts = useMemo(() => {
-    if (!product || !allProducts) return [];
-    
-    const categoryId = product.source_product?.categoria_id;
-    if (!categoryId) return allProducts.filter(p => p.id !== product.id).slice(0, 6);
-    
-    return allProducts
-      .filter(p => p.id !== product.id && p.source_product?.categoria_id === categoryId)
-      .slice(0, 6);
-  }, [product, allProducts]);
+  // Related Products Logic (simplified without allProducts)
+  const relatedProducts: any[] = [];
 
   // Track view
   useEffect(() => {
@@ -128,19 +119,15 @@ const ProductPage = () => {
     
     if (isB2BUser) {
       addItemB2B({
-        id: product.source_product?.id || product.id,
-        name: product.nombre,
-        price: costB2B, // B2B Price
-        priceB2B: costB2B,
-        pvp: pvp,
+        productId: product.source_product?.id || product.id,
+        nombre: product.nombre,
+        precio_b2b: costB2B,
         moq: moq,
-        stock: stockB2B,
-        image: images[0] || '',
+        stock_fisico: stockB2B,
         sku: product.sku,
-        storeId: product.store?.id,
-        storeName: product.store?.name,
-        storeWhatsapp: product.store?.whatsapp || undefined,
-        quantity: quantity
+        imagen_principal: images[0] || '',
+        cantidad: quantity,
+        subtotal: costB2B * quantity
       });
       toast({
         title: "Agregado al pedido B2B",
