@@ -112,7 +112,7 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
             <ShoppingCart className="w-6 h-6" />
             <h1 className="font-bold text-lg">Carrito B2B</h1>
             {items.length > 0 && (
-              <span className="ml-2 px-2 py-1 bg-red-500 text-white text-xs rounded-full font-bold">
+              <span className="ml-2 px-2 py-1 bg-[#071d7f] text-white text-xs rounded-full font-bold">
                 {items.length}
               </span>
             )}

@@ -219,7 +219,7 @@ const TrendsPage = () => {
               <Button variant="outline" className="gap-2">
                 <Filter className="w-4 h-4" />
                 Filtros
-                {hasActiveFilters && <span className="w-2 h-2 bg-red-500 rounded-full" />}
+                {hasActiveFilters && <span className="w-2 h-2 bg-[#071d7f] rounded-full" />}
               </Button>
             </SheetTrigger>
             <SheetContent side="left">

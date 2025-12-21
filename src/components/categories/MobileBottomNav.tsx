@@ -70,12 +70,12 @@ const MobileBottomNav = () => {
                   strokeWidth={isActive ? 2 : 1.5}
                 />
                 {item.badge && (
-                  <span className="absolute -top-1.5 -right-3 min-w-[20px] h-[16px] bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
+                  <span className="absolute -top-1.5 -right-3 min-w-[20px] h-[16px] bg-[#071d7f] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-1">
                     {item.badge}
                   </span>
                 )}
                 {item.hasDot && (
-                  <span className="absolute -top-0.5 right-0 w-2 h-2 bg-red-500 rounded-full" />
+                  <span className="absolute -top-0.5 right-0 w-2 h-2 bg-[#071d7f] rounded-full" />
                 )}
               </div>
               <span className={cn(

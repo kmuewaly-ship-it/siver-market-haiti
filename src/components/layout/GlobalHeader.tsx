@@ -2,6 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useViewMode } from "@/contexts/ViewModeContext";
+import { useLocation } from "react-router-dom";
 import Header from "./Header";
 import HeaderB2B from "@/components/b2b/HeaderB2B";
 
@@ -25,6 +26,7 @@ const GlobalHeader = ({
   const { role, isLoading } = useAuth();
   const isMobile = useIsMobile();
   const { isClientPreview } = useViewMode();
+  const location = useLocation();
 
   // En mobile no mostramos este header (GlobalMobileHeader se encarga)
   if (isMobile) {
@@ -38,20 +40,15 @@ const GlobalHeader = ({
 
   // Seller o Admin con preview de cliente: mostrar Header regular con switch
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
+  const isHomePage = location.pathname === '/';
   
-  if (isB2BUser && isClientPreview) {
-    return <Header showViewModeSwitch={true} />;
+  if (isB2BUser && (isClientPreview || isHomePage)) {
+    return <Header showViewModeSwitch={!isHomePage} />;
   }
 
-  // Seller o Admin: mostrar HeaderB2B con switch
+  // Seller o Admin: mostrar Header regular (unificado)
   if (isB2BUser) {
-    return (
-      <HeaderB2B
-        selectedCategoryId={selectedCategoryId}
-        onCategorySelect={onCategorySelect}
-        onSearch={onSearch}
-      />
-    );
+    return <Header showViewModeSwitch={true} />;
   }
 
   // Cliente o no autenticado: Header regular

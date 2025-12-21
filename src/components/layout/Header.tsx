@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, ShoppingBag, Search, Heart, User, Mail, Camera, Loader2, TrendingUp, Flame, Mic, MicOff, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
@@ -59,9 +59,15 @@ declare global {
 
 interface HeaderProps {
   showViewModeSwitch?: boolean;
+  selectedCategoryId?: string | null;
+  onCategorySelect?: (categoryId: string | null) => void;
 }
 
-const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
+const Header = ({ 
+  showViewModeSwitch = false,
+  selectedCategoryId = null,
+  onCategorySelect
+}: HeaderProps) => {
   const { canToggle, toggleViewMode, isClientPreview } = useViewMode();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [openMobileCategory, setOpenMobileCategory] = useState(null);
@@ -78,25 +84,18 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
   const { role } = useAuth();
   const { totalItems: b2cTotalItems } = useCart();
   const { cart: b2bCart } = useCartB2B();
-  
-  // Determine which cart to use
-  const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
-  const showB2B = isB2B && !isClientPreview;
-  const cartCount = showB2B ? b2bCart.totalQuantity : b2cTotalItems();
-  const cartLink = showB2B ? "/seller/carrito" : "/carrito";
-
-  // Bounce animation when cart count increases
-  useEffect(() => {
-    if (cartCount > prevCartCountRef.current && prevCartCountRef.current !== 0) {
-      setCartBounce(true);
-      const timer = setTimeout(() => setCartBounce(false), 400);
-      return () => clearTimeout(timer);
-    }
-    prevCartCountRef.current = cartCount;
-  }, [cartCount]);
-
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Force public header on home page
+  const isHomePage = location.pathname === '/';
+
+  // Determine which cart to use
+  const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
+  const showB2B = isB2B && !isClientPreview && !isHomePage;
+  const cartCount = showB2B ? b2bCart.totalQuantity : b2cTotalItems();
+  const cartLink = showB2B ? "/seller/carrito" : "/carrito";
 
   const catBarRef = useRef(null);
   const [hasOverflow, setHasOverflow] = useState(false);
@@ -149,7 +148,20 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
   const getSubcategories = (parentId) =>
     categories.filter((c) => c.parent_id === parentId);
 
-  const accountLink = role === UserRole.SELLER ? "/seller/cuenta" : "/cuenta";
+  const accountLink = (role === UserRole.SELLER && !isHomePage) ? "/seller/cuenta" : "/cuenta";
+
+  const handleCategoryClick = (category: any | null) => {
+    const catId = category ? category.id : null;
+    if (onCategorySelect) {
+      onCategorySelect(catId);
+    } else {
+      if (category) {
+        navigate(`/categoria/${category.slug}`);
+      } else {
+        navigate('/categorias');
+      }
+    }
+  };
 
   const handleImageSearch = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -258,7 +270,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
             {/* Notification/Mail icon */}
             <button className="relative flex-shrink-0">
               <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                 5
               </span>
             </button>
@@ -293,7 +305,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                   className={cn(
                     "p-1 transition-colors",
                     isListening 
-                      ? "text-red-500 animate-pulse" 
+                      ? "text-[#071d7f] animate-pulse" 
                       : "text-gray-500 hover:text-gray-700"
                   )}
                 >
@@ -312,7 +324,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
             {/* Favorites heart */}
             <Link to="/favoritos" className="relative flex-shrink-0">
               <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+              <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#071d7f] rounded-full border-2 border-white" />
             </Link>
 
             {/* Cart */}
@@ -320,7 +332,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
               <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
               {cartCount > 0 && (
                 <span className={cn(
-                  "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
+                  "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
                   cartBounce && "animate-cart-shake"
                 )}>
                   {cartCount > 99 ? '99+' : cartCount}
@@ -332,16 +344,22 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
           {/* Mobile Categories Scroll Bar */}
           <div className="flex items-center gap-4 px-3 py-2 overflow-x-auto bg-black text-white scrollbar-hide">
             <button 
-              onClick={() => navigate('/categorias')}
-              className="whitespace-nowrap text-sm font-medium hover:text-gray-300 transition-colors"
+              onClick={() => handleCategoryClick(null)}
+              className={cn(
+                "whitespace-nowrap text-sm font-medium transition-colors",
+                selectedCategoryId === null ? "text-white border-b border-white" : "text-gray-300 hover:text-white"
+              )}
             >
-              All
+              Todo
             </button>
             {rootCategories.map((cat) => (
               <button
                 key={cat.id}
-                onClick={() => navigate(`/categoria/${cat.slug}`)}
-                className="whitespace-nowrap text-sm font-medium hover:text-gray-300 transition-colors"
+                onClick={() => handleCategoryClick(cat)}
+                className={cn(
+                  "whitespace-nowrap text-sm font-medium transition-colors",
+                  selectedCategoryId === cat.id ? "text-white border-b border-white" : "text-gray-300 hover:text-white"
+                )}
               >
                 {cat.name}
               </button>
@@ -362,7 +380,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
           <div className="flex items-center justify-between h-10 text-xs text-gray-600">
             <div className="flex items-center gap-4">
               <span>Envío desde el extranjero</span>
-              <Link to="/tendencias" className="flex items-center gap-1 hover:text-red-500 transition-colors">
+              <Link to="/tendencias" className="flex items-center gap-1 hover:text-[#071d7f] transition-colors">
                 <TrendingUp className="w-3 h-3" />
                 <span>Tendencias</span>
               </Link>
@@ -382,7 +400,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
         <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-            <div className="w-10 h-10 rounded bg-red-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded bg-[#071d7f] flex items-center justify-center">
               <ShoppingBag className="w-6 h-6 text-white" />
             </div>
             <span className="font-bold text-lg text-gray-900">SIVER</span>
@@ -396,7 +414,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                 placeholder="Buscar productos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-4 pr-20 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500"
+                className="pl-4 pr-20 py-2 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#071d7f]"
               />
               <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                 {/* Camera icon for image search */}
@@ -412,7 +430,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                   type="button"
                   onClick={() => imageInputRef.current?.click()}
                   disabled={isImageSearching}
-                  className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                  className="text-gray-400 hover:text-[#071d7f] transition-colors disabled:opacity-50"
                 >
                   {isImageSearching ? (
                     <Loader2 className="w-5 h-5 animate-spin" />
@@ -428,8 +446,8 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                     className={cn(
                       "transition-colors",
                       isListening 
-                        ? "text-red-500 animate-pulse" 
-                        : "text-gray-400 hover:text-red-500"
+                        ? "text-[#071d7f] animate-pulse" 
+                        : "text-gray-400 hover:text-[#071d7f]"
                     )}
                   >
                     {isListening ? (
@@ -446,24 +464,24 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
 
           {/* Desktop Actions */}
           <div className="hidden md:flex items-center gap-6">
-            <Link to="/tendencias" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+            <Link to="/tendencias" className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
               <Flame className="w-6 h-6" />
               <span className="text-xs">Tendencias</span>
             </Link>
-            <Link to="/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+            <Link to="/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
               <Heart className="w-6 h-6" />
               <span className="text-xs">Favoritos</span>
             </Link>
-            <Link to={accountLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+            <Link to={accountLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
               <User className="w-6 h-6" />
               <span className="text-xs">Cuenta</span>
             </Link>
-            <Link to={cartLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition relative">
+            <Link to={cartLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition relative">
               <ShoppingBag className="w-6 h-6" />
               <span className="text-xs">Carrito</span>
               {cartCount > 0 && (
                 <span className={cn(
-                  "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
+                  "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
                   cartBounce && "animate-bounce"
                 )}>
                   {cartCount > 99 ? '99+' : cartCount}
@@ -491,14 +509,33 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
           {categoriesLoading ? (
             <div className="px-4 py-3 text-sm text-gray-500">Cargando categorías...</div>
           ) : (
-            rootCategories.map((cat) => {
-              const subs = getSubcategories(cat.id);
-              return (
-                <div key={cat.id} className="relative group inline-block">
+            <>
+              <button
+                type="button"
+                onClick={() => handleCategoryClick(null)}
+                className={cn(
+                  "px-4 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap flex items-center gap-2",
+                  !selectedCategoryId
+                    ? "text-[#071d7f] border-[#071d7f] bg-[#071d7f]/5" 
+                    : "text-gray-700 hover:text-[#071d7f] hover:bg-gray-50 border-transparent hover:border-[#071d7f]"
+                )}
+              >
+                Todo
+              </button>
+              {rootCategories.map((cat) => {
+                const subs = getSubcategories(cat.id);
+                const isSelected = selectedCategoryId === cat.id;
+                return (
+                  <div key={cat.id} className="relative group inline-block">
                       <button
                         type="button"
-                        onClick={() => navigate(`/categoria/${cat.slug}`)}
-                        className="px-4 py-3 text-sm font-medium text-gray-700 hover:text-red-500 hover:bg-gray-50 border-b-2 border-transparent hover:border-red-500 transition whitespace-nowrap flex items-center gap-2"
+                        onClick={() => handleCategoryClick(cat)}
+                        className={cn(
+                          "px-4 py-3 text-sm font-medium border-b-2 transition whitespace-nowrap flex items-center gap-2",
+                          isSelected 
+                            ? "text-[#071d7f] border-[#071d7f] bg-[#071d7f]/5" 
+                            : "text-gray-700 hover:text-[#071d7f] hover:bg-gray-50 border-transparent hover:border-[#071d7f]"
+                        )}
                       >
                         {cat.name}
                       </button>
@@ -508,7 +545,7 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                     <div className="absolute left-0 top-full mt-2 hidden group-hover:flex p-6 bg-white border border-gray-100 shadow-lg rounded-lg z-40 max-w-screen-lg">
                       <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                         {subs.map((sub) => (
-                          <button key={sub.id} type="button" onClick={() => navigate(`/categoria/${sub.slug}`)} className="flex flex-col items-center text-center w-36">
+                          <button key={sub.id} type="button" onClick={() => handleCategoryClick(sub)} className="flex flex-col items-center text-center w-36">
                             <div className="w-24 h-24 rounded-full overflow-hidden bg-muted flex items-center justify-center mb-2 border border-border">
                               {sub.icon ? (
                                 <img src={sub.icon} alt={sub.name} className="w-full h-full object-cover" />
@@ -528,7 +565,9 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                 </div>
               );
             })
-          )}
+          }
+          </>
+        )}
           </div>
 
           {/* Scroll buttons */}
@@ -585,14 +624,14 @@ const Header = ({ showViewModeSwitch = false }: HeaderProps) => {
                   <div key={cat.id} className="border-b border-gray-100">
                     <div className="flex items-center justify-between w-full">
                       <button onClick={() => { setOpenMobileCategory(isOpen ? null : cat.id); }} className="w-full text-left py-3 px-2 text-gray-800 hover:bg-gray-50 font-medium">{cat.name}</button>
-                      <button onClick={() => navigate(`/categoria/${cat.slug}`)} className="px-3 py-2 text-gray-600">Ir</button>
+                      <button onClick={() => { setIsMenuOpen(false); handleCategoryClick(cat); }} className="px-3 py-2 text-gray-600">Ir</button>
                     </div>
 
                     {isOpen && subs.length > 0 && (
                       <div className="px-2 py-2 bg-white">
                         <div className="grid grid-cols-3 gap-2">
                           {subs.map((sub) => (
-                            <button key={sub.id} type="button" onClick={() => { setIsMenuOpen(false); navigate(`/categoria/${sub.slug}`); }} className="flex flex-col items-center text-center p-2">
+                            <button key={sub.id} type="button" onClick={() => { setIsMenuOpen(false); handleCategoryClick(sub); }} className="flex flex-col items-center text-center p-2">
                               <div className="w-16 h-16 rounded-full overflow-hidden bg-muted flex items-center justify-center mb-2 border border-border">
                                 {sub.icon ? (
                                   <img src={sub.icon} alt={sub.name} className="w-full h-full object-cover" />

@@ -38,7 +38,10 @@ export function SellerLayout({
                 onSearch={onSearch}
               />
             ) : (
-              headerVariant === 'seller' ? <SellerDesktopHeader /> : <Header />
+              <Header 
+                selectedCategoryId={selectedCategoryId}
+                onCategorySelect={onCategorySelect}
+              />
             )
           )}
           <div className="md:hidden fixed bottom-24 left-6 z-50">

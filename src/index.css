@@ -19,7 +19,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
 
-    --primary: 222 65% 25%;
+    --primary: 229 89% 26%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 180 45% 45%;
@@ -36,7 +36,7 @@
 
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 222 65% 25%;
+    --ring: 229 89% 26%;
 
     --radius: 0.75rem;
 
@@ -45,8 +45,8 @@
     --gold-light: 43 100% 70%;
     --teal: 180 45% 45%;
     --teal-light: 180 50% 60%;
-    --navy: 222 65% 25%;
-    --navy-dark: 222 70% 15%;
+    --navy: 229 89% 26%;
+    --navy-dark: 229 89% 20%;
     
     /* Gradients */
     --gradient-hero: linear-gradient(135deg, hsl(222 65% 25%) 0%, hsl(222 70% 35%) 50%, hsl(180 45% 45%) 100%);

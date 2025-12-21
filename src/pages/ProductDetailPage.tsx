@@ -171,7 +171,7 @@ const ProductPage = () => {
 
               {/* Descuento */}
               {product.discount && (
-                <div className="absolute top-4 left-4 bg-red-500 text-white px-3 py-1 rounded-lg font-bold text-lg">
+                <div className="absolute top-4 left-4 bg-[#071d7f] text-white px-3 py-1 rounded-lg font-bold text-lg">
                   -{product.discount}%
                 </div>
               )}

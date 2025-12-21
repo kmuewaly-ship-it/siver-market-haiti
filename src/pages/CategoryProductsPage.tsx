@@ -267,7 +267,7 @@ const CategoryProductsPage = () => {
                   <div key={sku} className="bg-white rounded-lg overflow-hidden hover:shadow-xl transition duration-300 flex flex-col">
                     <div className="relative h-56 bg-gray-100 cursor-pointer overflow-hidden group" onClick={() => navigate(`/producto/${sku}`)}>
                       <img src={image} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" />
-                      {discount && <div className="absolute top-2 left-2 bg-red-500 text-white px-2 py-1 rounded text-xs font-bold">-{discount}%</div>}
+                      {discount && <div className="absolute top-2 left-2 bg-[#071d7f] text-white px-2 py-1 rounded text-xs font-bold">-{discount}%</div>}
                       {badge && <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold">{badge}</div>}
                     </div>
 

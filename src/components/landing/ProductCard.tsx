@@ -84,7 +84,7 @@ const ProductCard = ({ product }: ProductCardProps) => {
 
           {/* Discount Badge - Solo para B2C */}
           {!isB2BUser && discountPercentage > 0 && (
-            <div className="absolute top-2 left-2 bg-destructive text-destructive-foreground px-2 py-1 rounded text-xs font-bold">
+            <div className="absolute top-2 left-2 bg-[#071d7f] text-white px-2 py-1 rounded text-xs font-bold">
               {discountPercentage}% DESC
             </div>
           )}

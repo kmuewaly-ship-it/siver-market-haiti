@@ -308,7 +308,7 @@ const SellerMobileHeader = ({
         {/* Notification/Mail icon */}
         <button className="relative flex-shrink-0">
           <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
             5
           </span>
         </button>
@@ -357,7 +357,7 @@ const SellerMobileHeader = ({
                 className={cn(
                   "p-2 transition-colors",
                   isListening 
-                    ? "text-red-500 animate-pulse" 
+                    ? "text-[#071d7f] animate-pulse" 
                     : "text-gray-500 hover:text-gray-700"
                 )}
               >
@@ -432,7 +432,7 @@ const SellerMobileHeader = ({
         {/* Favorites heart */}
         <Link to="/seller/favoritos" className="relative flex-shrink-0">
           <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white" />
+          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#071d7f] rounded-full border-2 border-white" />
         </Link>
 
         {/* Cart B2B */}
@@ -461,7 +461,7 @@ const SellerMobileHeader = ({
               : "text-gray-400 hover:text-white"
           )}
         >
-          Tous
+          Todo
         </button>
 
         {rootCategories.map((category) => (

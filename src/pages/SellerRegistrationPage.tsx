@@ -314,7 +314,7 @@ const SellerRegistrationPage = () => {
       <header className="bg-white border-b border-gray-200 sticky top-0 z-40">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <Link to="/" className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded bg-red-500 flex items-center justify-center">
+            <div className="w-10 h-10 rounded bg-[#071d7f] flex items-center justify-center">
               <span className="text-white font-bold">S</span>
             </div>
             <span className="font-bold text-lg">SIVER Market</span>

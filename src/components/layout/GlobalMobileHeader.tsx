@@ -180,8 +180,13 @@ const GlobalMobileHeader = ({
 
   // No mostrar en admin routes, login, o trends (a menos que forceShow)
   // Para sellers, ocultar porque SellerLayout ya maneja su propio header móvil (SellerMobileHeader)
-  if (!isMobile || isAdminRoute || isLoginRoute || isTrendsRoute || (isSellerRoute && !forceShow)) {
-    return null;
+  // MODIFICADO: Si no hay sesión (!role), mostrar en todas las páginas.
+  if (!isMobile) return null;
+
+  if (role) {
+    if (isAdminRoute || isLoginRoute || isTrendsRoute || (isSellerRoute && !forceShow)) {
+      return null;
+    }
   }
 
   // Get root categories (no parent)
@@ -201,7 +206,11 @@ const GlobalMobileHeader = ({
       ? categories.find(c => c.slug === categorySlug)?.id || null 
       : null;
   
-  const handleCategorySelect = (categoryId: string) => {
+  const handleCategorySelect = (categoryId: string | null) => {
+    if (categoryId === null) {
+      navigate('/categorias');
+      return;
+    }
     if (isCategoriesPage) {
       // On categories page, update URL param to filter subcategories
       navigate(`/categorias?cat=${categoryId}`);
@@ -323,7 +332,7 @@ const GlobalMobileHeader = ({
   const favoritesLink = showB2BStyle ? "/seller/favoritos" : "/favoritos";
   const cartLink = showB2BStyle ? "/seller/carrito" : "/carrito";
   const accountLink = showB2BStyle ? "/seller/cuenta" : "/cuenta";
-  const accentColor = showB2BStyle ? "bg-blue-600" : "bg-red-500";
+  const accentColor = showB2BStyle ? "bg-blue-600" : "bg-[#071d7f]";
   const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-900 hover:bg-gray-800";
   return <header className="bg-white sticky top-0 z-40">
       {/* Top search bar */}
@@ -332,7 +341,7 @@ const GlobalMobileHeader = ({
         {showB2BStyle ? (
           <button className="relative flex-shrink-0">
             <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
               5
             </span>
           </button>
@@ -340,14 +349,14 @@ const GlobalMobileHeader = ({
       <div className="flex items-center gap-1 flex-shrink-0">
             <button className="relative">
               <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+              <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
                 5
               </span>
             </button>
           </div>) : (/* Cliente normal */
       <button className="relative flex-shrink-0">
             <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+            <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
               5
             </span>
           </button>)}
@@ -365,7 +374,7 @@ const GlobalMobileHeader = ({
               {isImageSearching ? <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} /> : <Camera className="w-5 h-5" strokeWidth={1.5} />}
             </button>
             {/* Voice search button */}
-            {voiceSupported && <button type="button" onClick={startVoiceSearch} className={cn("p-2 transition-colors", isListening ? "text-red-500 animate-pulse" : "text-gray-500 hover:text-gray-700")}>
+            {voiceSupported && <button type="button" onClick={startVoiceSearch} className={cn("p-2 transition-colors", isListening ? "text-[#071d7f] animate-pulse" : "text-gray-500 hover:text-gray-700")}>
                 {isListening ? <MicOff className="w-5 h-5" strokeWidth={1.5} /> : <Mic className="w-5 h-5" strokeWidth={1.5} />}
               </button>}
             <button type="submit" className={cn(buttonColor, "p-2 rounded-full m-0.5 transition-colors")}>
@@ -422,6 +431,19 @@ const GlobalMobileHeader = ({
       {/* Category tabs - horizontal scroll with dynamic background */}
       <div className="overflow-x-auto scrollbar-hide border-b border-gray-200">
         <div className="flex px-2 py-2 gap-1 min-w-max">
+          <button
+            onClick={() => handleCategorySelect(null)}
+            className={cn(
+              "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all",
+              selectedCategory === null
+                ? showB2BStyle 
+                  ? "bg-blue-600 text-white font-medium"
+                  : "bg-black text-white font-medium"
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            )}
+          >
+            Todo
+          </button>
           {rootCategories.map(cat => (
             <button
               key={cat.id}

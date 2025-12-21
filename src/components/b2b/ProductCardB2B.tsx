@@ -72,7 +72,7 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         {/* Badges Overlay */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
           {discountPercent > 0 && (
-            <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+            <span className="bg-[#071d7f] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
               -{Math.round(discountPercent * 100)}%
             </span>
           )}

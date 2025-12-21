@@ -315,16 +315,16 @@ const SellerDesktopHeader = ({
           <div className="container mx-auto px-4">
             <div className="flex items-center justify-between h-8 text-xs text-gray-600">
               <div className="flex items-center gap-4">
-                <span className="cursor-pointer hover:text-red-500 transition-colors">Envío desde el extranjero</span>
-                <Link to="/tendencias" className="flex items-center gap-1 hover:text-red-500 transition-colors">
+                <span className="cursor-pointer hover:text-[#071d7f] transition-colors">Envío desde el extranjero</span>
+                <Link to="/tendencias" className="flex items-center gap-1 hover:text-[#071d7f] transition-colors">
                   <Flame className="w-3 h-3" />
                   Tendencias
                 </Link>
-                <span className="cursor-pointer hover:text-red-500 transition-colors">Devolución Gratis</span>
+                <span className="cursor-pointer hover:text-[#071d7f] transition-colors">Devolución Gratis</span>
               </div>
               <div className="flex items-center gap-4">
-                <span className="cursor-pointer hover:text-red-500 transition-colors">Centro de Ayuda</span>
-                <span className="cursor-pointer hover:text-red-500 transition-colors">Vender</span>
+                <span className="cursor-pointer hover:text-[#071d7f] transition-colors">Centro de Ayuda</span>
+                <span className="cursor-pointer hover:text-[#071d7f] transition-colors">Vender</span>
               </div>
             </div>
           </div>
@@ -335,7 +335,7 @@ const SellerDesktopHeader = ({
           <div className="flex items-center justify-between h-16">
             {/* Logo */}
             <Link to="/seller/adquisicion-lotes" className="flex items-center gap-2 flex-shrink-0">
-              <div className="w-10 h-10 rounded bg-red-500 flex items-center justify-center">
+              <div className="w-10 h-10 rounded bg-[#071d7f] flex items-center justify-center">
                 <ShoppingBag className="w-6 h-6 text-white" />
               </div>
               <span className="font-bold text-2xl text-gray-900 tracking-tight">SIVER</span>
@@ -350,7 +350,7 @@ const SellerDesktopHeader = ({
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => searchQuery.length >= 2 && setShowResults(true)}
-                  className="pl-4 pr-28 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-red-500 bg-gray-50 hover:bg-white transition-colors"
+                  className="pl-4 pr-28 py-2.5 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-[#071d7f] bg-gray-50 hover:bg-white transition-colors"
                 />
                 <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2">
                   {searchQuery && (
@@ -370,7 +370,7 @@ const SellerDesktopHeader = ({
                     type="button"
                     onClick={() => imageInputRef.current?.click()}
                     disabled={isImageSearching}
-                    className="text-gray-400 hover:text-red-500 transition-colors disabled:opacity-50"
+                    className="text-gray-400 hover:text-[#071d7f] transition-colors disabled:opacity-50"
                   >
                     {isImageSearching ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
@@ -385,8 +385,8 @@ const SellerDesktopHeader = ({
                       className={cn(
                         "transition-colors",
                         isListening 
-                          ? "text-red-500 animate-pulse" 
-                          : "text-gray-400 hover:text-red-500"
+                          ? "text-[#071d7f] animate-pulse" 
+                          : "text-gray-400 hover:text-[#071d7f]"
                       )}
                     >
                       {isListening ? (
@@ -396,7 +396,7 @@ const SellerDesktopHeader = ({
                       )}
                     </button>
                   )}
-                  <button type="submit" className="text-gray-400 hover:text-red-500">
+                  <button type="submit" className="text-gray-400 hover:text-[#071d7f]">
                     {isSearching ? (
                       <Loader2 className="w-5 h-5 animate-spin" />
                     ) : (
@@ -455,19 +455,19 @@ const SellerDesktopHeader = ({
 
             {/* Desktop Actions */}
             <div className="flex items-center gap-6">
-              <Link to="/tendencias" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+              <Link to="/tendencias" className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
                 <Flame className="w-6 h-6" />
                 <span className="text-xs">Tendencias</span>
               </Link>
-              <Link to="/seller/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+              <Link to="/seller/favoritos" className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
                 <Heart className="w-6 h-6" />
                 <span className="text-xs">Favoritos</span>
               </Link>
-              <Link to="/seller/cuenta" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+              <Link to="/seller/cuenta" className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
                 <User className="w-6 h-6" />
                 <span className="text-xs">Cuenta</span>
               </Link>
-              <Link to="/seller/carrito" className="flex flex-col items-center gap-1 text-gray-700 hover:text-red-500 transition">
+              <Link to="/seller/carrito" className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
                 <ShoppingBag className="w-6 h-6" />
                 <span className="text-xs">Carrito</span>
               </Link>
@@ -487,8 +487,8 @@ const SellerDesktopHeader = ({
                 className={cn(
                   "px-4 py-3 text-sm font-medium transition whitespace-nowrap flex items-center gap-2 border-b-2",
                   selectedCategoryId === null
-                    ? "text-red-500 border-red-500 bg-red-50"
-                    : "text-gray-700 hover:text-red-500 hover:bg-gray-50 border-transparent"
+                    ? "text-[#071d7f] border-[#071d7f] bg-[#071d7f]/5"
+                    : "text-gray-700 hover:text-[#071d7f] hover:bg-gray-50 border-transparent"
                 )}
               >
                 Todos
@@ -502,8 +502,8 @@ const SellerDesktopHeader = ({
                   className={cn(
                     "px-4 py-3 text-sm font-medium transition whitespace-nowrap flex items-center gap-2 border-b-2",
                     selectedCategoryId === cat.id
-                      ? "text-red-500 border-red-500 bg-red-50"
-                      : "text-gray-700 hover:text-red-500 hover:bg-gray-50 border-transparent"
+                      ? "text-[#071d7f] border-[#071d7f] bg-[#071d7f]/5"
+                      : "text-gray-700 hover:text-[#071d7f] hover:bg-gray-50 border-transparent"
                   )}
                 >
                   {cat.name}
