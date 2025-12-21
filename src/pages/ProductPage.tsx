@@ -1,103 +1,104 @@
+
 import { useState, useEffect, useMemo } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/hooks/useAuth";
+import { useCart } from "@/hooks/useCart";
+import { useCartB2B } from "@/hooks/useCartB2B";
+import { useToast } from "@/hooks/use-toast";
+import { useIsMobile } from "@/hooks/use-mobile";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { useAuth } from "@/hooks/useAuth";
-import { UserRole } from "@/types/auth";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { useTrackProductView } from "@/hooks/useTrendingProducts";
-import { useSellerProduct, useSellerProducts } from "@/hooks/useSellerProducts";
-import { useCart } from "@/hooks/useCart";
-import { useSmartCart } from "@/hooks/useSmartCart";
-import { useToast } from "@/hooks/use-toast";
 import {
-  Star,
-  Heart,
-  Share2,
-  ShoppingCart,
-  Truck,
-  RotateCcw,
-  Shield,
-  ChevronLeft,
   ChevronRight,
-  MessageCircle,
-  Zap,
-  Award,
+  ChevronLeft,
+  ShoppingCart,
+  Heart,
   Store as StoreIcon,
   Package,
   TrendingUp,
   Calculator,
+  Shield,
+  Truck,
+  RotateCcw,
+  Award,
+  MessageCircle,
+  Zap,
+  Info
 } from "lucide-react";
+import { useSellerProduct } from "@/hooks/useSellerProducts";
 
 const ProductPage = () => {
-  const { sku } = useParams<{ sku: string }>();
+  const { sku } = useParams();
   const navigate = useNavigate();
-  const { role } = useAuth();
-  const isMobile = useIsMobile();
-  const { trackView } = useTrackProductView();
-  const { addItem } = useCart();
-  const { addToCart, isB2BUser } = useSmartCart();
+  const { user } = useAuth();
   const { toast } = useToast();
+  const isMobile = useIsMobile();
   
-  const { data: product, isLoading } = useSellerProduct(sku);
-  const { data: allProducts } = useSellerProducts(50);
+  // Determine if user is B2B (Seller)
+  const isB2BUser = user?.user_metadata?.role === 'seller';
+
+  // Fetch product data
+  const { data: product, isLoading, allProducts } = useSellerProduct(sku);
   
+  // Local state
   const [selectedImage, setSelectedImage] = useState(0);
+  const [quantity, setQuantity] = useState(1);
   const [viewTracked, setViewTracked] = useState(false);
 
-  // B2B fields from source product
-  const costB2B = product?.source_product?.precio_mayorista || product?.precio_costo || product?.precio_venta || 0;
-  const pvp = product?.source_product?.precio_sugerido_venta || product?.precio_venta || 0;
-  const moq = product?.source_product?.moq || 1;
-  const stockB2B = product?.source_product?.stock_fisico || product?.stock || 0;
+  // Cart hooks
+  const { addItem: addItemB2C } = useCart();
+  const { addItem: addItemB2B } = useCartB2B();
 
-  // Cantidad inicial basada en rol
-  const [quantity, setQuantity] = useState(1);
+  // Derived data
+  const images = useMemo(() => {
+    if (!product) return [];
+    const imgs = product.images as any;
+    return Array.isArray(imgs) && imgs.length > 0 ? imgs : [''];
+  }, [product]);
+
+  // B2B Specific Data
+  const costB2B = product?.source_product?.precio_mayorista || 0;
+  const pvp = product?.precio_venta || 0;
+  const moq = product?.source_product?.moq || 1;
+  const stockB2B = product?.source_product?.stock_fisico || 0;
   
-  // Actualizar cantidad cuando se carga el producto
+  // Limits
+  const minQuantity = isB2BUser ? moq : 1;
+  const maxQuantity = isB2BUser ? stockB2B : (product?.stock || 0);
+
+  // Initialize quantity with MOQ for B2B
   useEffect(() => {
-    if (product && isB2BUser) {
+    if (isB2BUser && moq > 1) {
       setQuantity(moq);
     }
-  }, [product, isB2BUser, moq]);
+  }, [isB2BUser, moq]);
 
-  // Mínimo permitido
-  const minQuantity = isB2BUser ? moq : 1;
-  const maxQuantity = isB2BUser ? stockB2B : (product?.stock || 1);
-
-  // Cálculos de negocio B2B
+  // Business Logic for B2B
   const businessSummary = useMemo(() => {
     if (!isB2BUser || !product) return null;
+    
+    const investment = costB2B * quantity;
+    const estimatedRevenue = pvp * quantity;
+    const estimatedProfit = estimatedRevenue - investment;
+    const profitPercentage = costB2B > 0 ? ((pvp - costB2B) / costB2B) * 100 : 0;
+    const profitPerUnit = pvp - costB2B;
+
     return {
-      investment: quantity * costB2B,
-      estimatedRevenue: quantity * pvp,
-      estimatedProfit: quantity * (pvp - costB2B),
-      profitPerUnit: pvp - costB2B,
-      profitPercentage: costB2B > 0 ? Math.round(((pvp - costB2B) / costB2B) * 100) : 0,
+      investment,
+      estimatedRevenue,
+      estimatedProfit,
+      profitPercentage: profitPercentage.toFixed(1),
+      profitPerUnit
     };
   }, [isB2BUser, product, quantity, costB2B, pvp]);
 
-  // Parse images from product
-  const getImages = (): string[] => {
-    if (!product) return [];
-    let imgs = product.images;
-    if (typeof imgs === 'string') {
-      try {
-        imgs = JSON.parse(imgs);
-      } catch {
-        imgs = [];
-      }
-    }
-    return Array.isArray(imgs) ? imgs.filter(Boolean) : [];
-  };
-
-  const images = getImages();
-
-  // Get related products from same category
+  // Related Products Logic
   const relatedProducts = useMemo(() => {
     if (!product || !allProducts) return [];
     
@@ -109,23 +110,27 @@ const ProductPage = () => {
       .slice(0, 6);
   }, [product, allProducts]);
 
-  // Track product view
+  // Track view
   useEffect(() => {
     if (product && !viewTracked) {
-      trackView(product.id, "product_page");
+      // trackView(product.id, "product_page"); // Assuming trackView exists or will be implemented
       setViewTracked(true);
     }
-  }, [product, viewTracked, trackView]);
+  }, [product, viewTracked]);
+
+  const handleQuantityChange = (newQty: number) => {
+    const validQty = Math.max(minQuantity, Math.min(maxQuantity, newQty));
+    setQuantity(validQty);
+  };
 
   const handleAddToCart = () => {
     if (!product) return;
     
     if (isB2BUser) {
-      // Use smart cart for B2B
-      addToCart({
+      addItemB2B({
         id: product.source_product?.id || product.id,
         name: product.nombre,
-        price: pvp,
+        price: costB2B, // B2B Price
         priceB2B: costB2B,
         pvp: pvp,
         moq: moq,
@@ -135,11 +140,16 @@ const ProductPage = () => {
         storeId: product.store?.id,
         storeName: product.store?.name,
         storeWhatsapp: product.store?.whatsapp || undefined,
+        quantity: quantity
+      });
+      toast({
+        title: "Agregado al pedido B2B",
+        description: `${quantity} unidades de ${product.nombre}`,
+        className: "bg-blue-600 text-white border-none"
       });
     } else {
-      // B2C cart
       for (let i = 0; i < quantity; i++) {
-        addItem({
+        addItemB2C({
           id: product.id,
           name: product.nombre,
           price: product.precio_venta,
@@ -150,7 +160,6 @@ const ProductPage = () => {
           storeWhatsapp: product.store?.whatsapp || undefined,
         });
       }
-      
       toast({
         title: "Producto agregado",
         description: `${product.nombre} (x${quantity}) se agregó al carrito`,
@@ -158,37 +167,11 @@ const ProductPage = () => {
     }
   };
 
-  const handleAddRelatedToCart = (relatedProduct: typeof allProducts[0]) => {
-    const imgs = relatedProduct.images as any;
-    const mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : '';
-    
-    addItem({
-      id: relatedProduct.id,
-      name: relatedProduct.nombre,
-      price: relatedProduct.precio_venta,
-      image: mainImage,
-      sku: relatedProduct.sku,
-      storeId: relatedProduct.store?.id,
-      storeName: relatedProduct.store?.name,
-      storeWhatsapp: relatedProduct.store?.whatsapp || undefined,
-    });
-    
-    toast({
-      title: "Añadido al carrito",
-      description: relatedProduct.nombre,
-    });
-  };
-
-  const handleQuantityChange = (newQty: number) => {
-    const validQty = Math.max(minQuantity, Math.min(maxQuantity, newQty));
-    setQuantity(validQty);
-  };
-
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-50">
         {!isMobile && <GlobalHeader />}
-        <main className={`container mx-auto px-4 py-8 ${isMobile ? 'pb-20' : 'pb-8'}`}>
+        <main className={`container mx-auto px-4 py-8 ${isMobile ? 'pb-32' : 'pb-8'}`}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <Skeleton className="aspect-square rounded-lg" />
             <div className="space-y-4">
@@ -199,442 +182,373 @@ const ProductPage = () => {
             </div>
           </div>
         </main>
-        {!isMobile && <Footer />}
       </div>
     );
   }
 
   if (!product) {
     return (
-      <div className="min-h-screen bg-gray-50">
-        {!isMobile && <GlobalHeader />}
-        <main className={`container mx-auto px-4 py-12 text-center ${isMobile ? 'pb-20' : ''}`}>
-          <Package className="h-16 w-16 mx-auto text-gray-300 mb-4" />
-          <h2 className="text-2xl font-bold text-gray-900">Producto no encontrado</h2>
-          <p className="text-gray-600 mt-2">No pudimos encontrar el producto que buscas.</p>
-          <Button onClick={() => navigate("/")} className="mt-4">Volver al inicio</Button>
-        </main>
-        {!isMobile && <Footer />}
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <Package className="h-16 w-16 text-gray-300 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900">Producto no encontrado</h2>
+        <Button onClick={() => navigate("/")} className="mt-4">Volver al inicio</Button>
       </div>
     );
   }
 
-  // Precio a mostrar
   const displayPrice = isB2BUser ? costB2B : product.precio_venta;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 font-sans">
       {!isMobile && <GlobalHeader />}
 
-      <main className={`container mx-auto px-4 py-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
+      <main className={`container mx-auto px-4 py-4 ${isMobile ? 'pb-40' : 'pb-12'}`}>
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6 flex-wrap">
-          <button onClick={() => navigate("/")} className="hover:text-blue-600">
-            Inicio
-          </button>
-          <ChevronRight className="w-4 h-4" />
+        <nav className="flex items-center gap-2 text-xs text-gray-500 mb-4 overflow-x-auto whitespace-nowrap pb-2">
+          <button onClick={() => navigate("/")}>Inicio</button>
+          <ChevronRight className="w-3 h-3" />
           {product.source_product?.category && (
             <>
-              <Link 
-                to={`/categoria/${product.source_product.category.slug}`}
-                className="hover:text-blue-600"
-              >
+              <Link to={`/categoria/${product.source_product.category.slug}`}>
                 {product.source_product.category.name}
               </Link>
-              <ChevronRight className="w-4 h-4" />
+              <ChevronRight className="w-3 h-3" />
             </>
           )}
-          {product.store && (
-            <>
-              <button 
-                onClick={() => navigate(`/tienda/${product.store?.id}`)} 
-                className="hover:text-blue-600"
-              >
-                {product.store.name}
-              </button>
-              <ChevronRight className="w-4 h-4" />
-            </>
-          )}
-          <span className="text-gray-900 font-semibold line-clamp-1">{product.nombre}</span>
+          <span className="text-gray-900 font-medium">{product.nombre}</span>
         </nav>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
-          {/* Galería de Imágenes */}
-          <div>
-            <div className="relative bg-white rounded-lg overflow-hidden mb-4 aspect-square">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+          {/* Image Gallery */}
+          <div className="space-y-4">
+            <div className="relative bg-white rounded-2xl overflow-hidden aspect-square shadow-sm border border-gray-100">
               {images.length > 0 ? (
                 <img
                   src={images[selectedImage]}
                   alt={product.nombre}
-                  className="w-full h-full object-cover"
-                  loading="lazy"
+                  className="w-full h-full object-contain p-4"
                 />
               ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-100">
-                  <Package className="h-24 w-24 text-gray-300" />
+                <div className="w-full h-full flex items-center justify-center bg-gray-50">
+                  <Package className="h-20 w-20 text-gray-300" />
                 </div>
               )}
 
-              {/* Botones de navegación */}
+              {/* Navigation Arrows */}
               {images.length > 1 && (
                 <>
                   <button
-                    onClick={() => setSelectedImage((prev) => prev === 0 ? images.length - 1 : prev - 1)}
-                    className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImage((prev) => prev === 0 ? images.length - 1 : prev - 1);
+                    }}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/90 shadow-md rounded-full p-2 hover:bg-white"
                   >
-                    <ChevronLeft className="w-6 h-6 text-gray-900" />
+                    <ChevronLeft className="w-5 h-5 text-gray-700" />
                   </button>
                   <button
-                    onClick={() => setSelectedImage((prev) => prev === images.length - 1 ? 0 : prev + 1)}
-                    className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 transition"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedImage((prev) => prev === images.length - 1 ? 0 : prev + 1);
+                    }}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/90 shadow-md rounded-full p-2 hover:bg-white"
                   >
-                    <ChevronRight className="w-6 h-6 text-gray-900" />
+                    <ChevronRight className="w-5 h-5 text-gray-700" />
                   </button>
                 </>
               )}
 
-              <button className="absolute top-4 right-4 bg-white/80 hover:bg-white rounded-full p-2 transition">
-                <Heart className="w-6 h-6 text-gray-600" />
-              </button>
-
-              {/* B2B Badge */}
+              {/* B2B Profit Badge Overlay */}
               {isB2BUser && businessSummary && businessSummary.profitPerUnit > 0 && (
-                <Badge className="absolute top-4 left-4 bg-green-600 text-white gap-1 text-sm py-1">
-                  <TrendingUp className="h-4 w-4" />
-                  Ganancia: ${businessSummary.profitPerUnit.toFixed(2)}/u
-                </Badge>
+                <div className="absolute top-4 left-4">
+                  <Badge className="bg-green-600 hover:bg-green-700 text-white border-none px-3 py-1.5 shadow-lg flex gap-1.5 items-center text-sm">
+                    <TrendingUp className="w-4 h-4" />
+                    Ganas ${businessSummary.profitPerUnit.toFixed(2)}/u
+                  </Badge>
+                </div>
               )}
+              
+              <button className="absolute top-4 right-4 bg-white/80 hover:bg-white rounded-full p-2 shadow-sm transition">
+                <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
+              </button>
             </div>
 
-            {/* Miniaturas */}
+            {/* Thumbnails */}
             {images.length > 1 && (
-              <div className="flex gap-2 overflow-x-auto">
+              <div className="flex gap-3 overflow-x-auto pb-2 px-1">
                 {images.map((image, index) => (
                   <button
                     key={index}
                     onClick={() => setSelectedImage(index)}
-                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition ${
-                      selectedImage === index ? "border-blue-600" : "border-transparent"
+                    className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImage === index ? "border-blue-600 ring-2 ring-blue-100" : "border-transparent bg-white"
                     }`}
                   >
-                    <img src={image} alt={`Vista ${index + 1}`} className="w-full h-full object-cover" loading="lazy" />
+                    <img src={image} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Info del Producto */}
-          <div className="bg-white rounded-lg p-6">
-            {/* Category & Store Badge */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              {isB2BUser && (
-                <Badge variant="outline" className="border-blue-600 text-blue-600">
-                  Compra B2B
-                </Badge>
-              )}
-              {product.source_product?.category && (
-                <Link 
-                  to={`/categoria/${product.source_product.category.slug}`}
-                  className="inline-flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-700 rounded-full text-sm font-medium hover:bg-purple-100 transition"
-                >
-                  {product.source_product.category.name}
-                </Link>
-              )}
-              {product.store && (
-                <button 
-                  onClick={() => navigate(`/tienda/${product.store?.id}`)}
-                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-sm font-medium hover:bg-blue-100 transition"
-                >
-                  <StoreIcon className="w-4 h-4" />
-                  {product.store.name}
-                </button>
-              )}
+          {/* Product Info */}
+          <div className="space-y-6">
+            <div>
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2 mb-3">
+                {isB2BUser ? (
+                  <Badge variant="secondary" className="bg-blue-50 text-blue-700 hover:bg-blue-100 border-blue-200">
+                    Mayorista
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-gray-100 text-gray-700">
+                    Nuevo
+                  </Badge>
+                )}
+                {product.store && (
+                  <Link to={`/tienda/${product.store.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-medium hover:bg-purple-100 transition-colors">
+                    <StoreIcon className="w-3 h-3" />
+                    {product.store.name}
+                  </Link>
+                )}
+              </div>
+
+              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-2">
+                {product.nombre}
+              </h1>
+              <p className="text-sm text-gray-500">SKU: {product.sku}</p>
             </div>
 
-            {/* Nombre */}
-            <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{product.nombre}</h1>
-
-            {/* SKU */}
-            <p className="text-sm text-gray-500 mb-4">SKU: {product.sku}</p>
-
-            {/* Precio */}
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 mb-4">
-              <div className="flex items-baseline gap-2">
-                <span className="text-4xl font-bold text-gray-900">
+            {/* Price Section */}
+            <div className={`p-5 rounded-xl ${isB2BUser ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100' : 'bg-gray-50'}`}>
+              <div className="flex items-baseline gap-3 flex-wrap">
+                <span className={`text-4xl font-bold ${isB2BUser ? 'text-blue-700' : 'text-gray-900'}`}>
                   ${displayPrice.toFixed(2)}
                 </span>
                 {isB2BUser && (
-                  <span className="text-sm text-gray-600">costo mayorista</span>
+                  <span className="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                    Costo B2B
+                  </span>
                 )}
               </div>
-              
-              {/* Precio de referencia para B2B */}
-              {isB2BUser && pvp > costB2B && (
-                <div className="mt-2 text-sm text-gray-600">
-                  PVP sugerido: <span className="font-semibold text-gray-800">${pvp.toFixed(2)}</span>
+
+              {isB2BUser && (
+                <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-gray-400 line-through">${pvp.toFixed(2)}</span>
+                    <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">PVP</span>
+                  </div>
+                  <div className="h-4 w-px bg-gray-300"></div>
+                  <div className="text-green-600 font-medium">
+                    Margen: {businessSummary?.profitPercentage}%
+                  </div>
                 </div>
               )}
             </div>
 
-            {/* MOQ Indicator para B2B */}
+            {/* B2B MOQ Warning */}
             {isB2BUser && moq > 1 && (
-              <div className="flex items-center gap-2 mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <Package className="w-5 h-5 text-amber-600" />
-                <span className="text-sm text-amber-800">
-                  <strong>Mínimo de compra:</strong> {moq} unidades
+              <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg text-amber-800 text-sm">
+                <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                <p>
+                  Este producto tiene un <strong>mínimo de compra de {moq} unidades</strong> para acceder al precio mayorista.
+                </p>
+              </div>
+            )}
+
+            {/* Quantity Selector (Desktop) */}
+            {!isMobile && (
+              <div className="flex items-center gap-4">
+                <div className="flex items-center border border-gray-300 rounded-lg bg-white">
+                  <button
+                    onClick={() => handleQuantityChange(quantity - 1)}
+                    disabled={quantity <= minQuantity}
+                    className="px-4 py-2 hover:bg-gray-50 disabled:opacity-50 text-gray-600"
+                  >
+                    −
+                  </button>
+                  <input
+                    type="number"
+                    value={quantity}
+                    onChange={(e) => handleQuantityChange(parseInt(e.target.value) || minQuantity)}
+                    className="w-16 text-center border-none focus:ring-0 p-0 text-gray-900 font-medium"
+                  />
+                  <button
+                    onClick={() => handleQuantityChange(quantity + 1)}
+                    disabled={quantity >= maxQuantity}
+                    className="px-4 py-2 hover:bg-gray-50 disabled:opacity-50 text-gray-600"
+                  >
+                    +
+                  </button>
+                </div>
+                <span className="text-sm text-gray-500">
+                  {isB2BUser ? stockB2B : product.stock} disponibles
                 </span>
               </div>
             )}
 
-            {/* Stock */}
-            <div className="flex items-center gap-2 mb-6">
-              <Zap className="w-5 h-5 text-orange-500" />
-              <span className="text-sm text-gray-900">
-                <strong>{isB2BUser ? stockB2B : product.stock}</strong> unidades disponibles
-              </span>
-            </div>
-
-            {/* Cantidad */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-900 mb-2">Cantidad:</label>
-              <div className="flex items-center border border-gray-300 rounded-lg w-fit">
-                <button
-                  onClick={() => handleQuantityChange(quantity - 1)}
-                  disabled={quantity <= minQuantity}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
+            {/* Desktop Actions */}
+            {!isMobile && (
+              <div className="flex gap-3">
+                <Button 
+                  onClick={handleAddToCart}
+                  className={`flex-1 h-12 text-lg font-semibold ${isB2BUser ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-900 hover:bg-gray-800'}`}
+                  disabled={(isB2BUser ? stockB2B : product.stock) === 0}
                 >
-                  −
-                </button>
-                <input
-                  type="number"
-                  value={quantity}
-                  onChange={(e) => handleQuantityChange(parseInt(e.target.value) || minQuantity)}
-                  className="w-16 text-center border-none outline-none"
-                  min={minQuantity}
-                  max={maxQuantity}
-                />
-                <button
-                  onClick={() => handleQuantityChange(quantity + 1)}
-                  disabled={quantity >= maxQuantity}
-                  className="px-4 py-2 text-gray-600 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  +
-                </button>
+                  <ShoppingCart className="w-5 h-5 mr-2" />
+                  {isB2BUser ? 'Agregar al Pedido' : 'Agregar al Carrito'}
+                </Button>
+                <Button variant="outline" className="h-12 w-12 p-0">
+                  <Heart className="w-5 h-5" />
+                </Button>
               </div>
-              {isB2BUser && (
-                <p className="text-xs text-gray-500 mt-1">
-                  Cantidad mínima: {minQuantity} unidades
-                </p>
-              )}
-            </div>
-
-            {/* Resumen de Negocio B2B */}
-            {isB2BUser && businessSummary && (
-              <Card className="mb-6 border-green-200 bg-green-50">
-                <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-3">
-                    <Calculator className="w-5 h-5 text-green-700" />
-                    <h3 className="font-semibold text-green-800">Resumen de Negocio</h3>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <p className="text-xs text-green-700">Inversión Total</p>
-                      <p className="text-xl font-bold text-gray-900">${businessSummary.investment.toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-green-700">Utilidad Estimada</p>
-                      <p className="text-xl font-bold text-green-600">+${businessSummary.estimatedProfit.toFixed(2)}</p>
-                    </div>
-                  </div>
-                  <div className="mt-3 pt-3 border-t border-green-200 flex justify-between text-sm">
-                    <span className="text-green-700">Venta estimada (PVP):</span>
-                    <span className="font-semibold text-gray-900">${businessSummary.estimatedRevenue.toFixed(2)}</span>
-                  </div>
-                  <div className="flex justify-between text-sm">
-                    <span className="text-green-700">Margen de ganancia:</span>
-                    <span className="font-semibold text-green-600">{businessSummary.profitPercentage}%</span>
-                  </div>
-                </CardContent>
-              </Card>
             )}
 
-            {/* Botones de Acción */}
-            <div className="space-y-3 mb-6">
-              <Button 
-                onClick={handleAddToCart}
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white py-6 text-lg font-bold"
-                disabled={(isB2BUser ? stockB2B : product.stock) === 0}
-              >
-                <ShoppingCart className="w-5 h-5 mr-2" />
-                {(isB2BUser ? stockB2B : product.stock) === 0 
-                  ? 'Sin Stock' 
-                  : isB2BUser 
-                    ? `Comprar B2B (×${quantity})`
-                    : 'Agregar al Carrito'
-                }
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full border-gray-300 text-gray-700 hover:bg-gray-50 py-6"
-              >
-                <Heart className="w-5 h-5 mr-2" />
-                Añadir a Favoritos
-              </Button>
+            {/* Description */}
+            <div className="prose prose-sm max-w-none text-gray-600">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Descripción</h3>
+              <p className="whitespace-pre-line">{product.descripcion}</p>
             </div>
 
-            {/* Vendedor */}
-            {product.store && (
-              <div className="border-t border-gray-200 pt-4">
-                <h3 className="text-sm font-semibold text-gray-900 mb-3">Vendido por:</h3>
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden">
-                    {product.store.logo ? (
-                      <img
-                        src={product.store.logo}
-                        alt={product.store.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <StoreIcon className="w-8 h-8 text-gray-400" />
-                    )}
-                  </div>
-                  <div className="flex-1">
-                    <h4
-                      className="font-semibold text-gray-900 hover:text-blue-600 cursor-pointer"
-                      onClick={() => navigate(`/tienda/${product.store?.id}`)}
-                    >
-                      {product.store.name}
-                    </h4>
-                    {product.store.is_active && (
-                      <span className="text-xs text-green-600">✓ Tienda verificada</span>
-                    )}
-                  </div>
-                  {product.store.whatsapp && (
-                    <a
-                      href={`https://wa.me/${product.store.whatsapp.replace(/\D/g, '')}?text=${encodeURIComponent(`Hola, me interesa el producto: ${product.nombre}`)}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      <Button variant="outline" size="sm" className="border-green-500 text-green-600 hover:bg-green-50">
-                        <MessageCircle className="w-4 h-4" />
-                      </Button>
-                    </a>
-                  )}
+            {/* Trust Badges */}
+            <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                <Truck className="w-5 h-5 text-blue-600" />
+                <div className="text-xs">
+                  <p className="font-semibold text-gray-900">Envío Nacional</p>
+                  <p className="text-gray-500">24-48 horas</p>
                 </div>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Descripción */}
-        {product.descripcion && (
-          <div className="bg-white rounded-lg p-6 mb-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Descripción del Producto</h2>
-            <p className="text-gray-700 leading-relaxed whitespace-pre-line">{product.descripcion}</p>
-          </div>
-        )}
-
-        {/* Garantía y Envío */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          <div className="bg-blue-50 rounded-lg p-4 border border-blue-200">
-            <div className="flex items-start gap-3">
-              <Truck className="w-6 h-6 text-blue-600 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-gray-900 text-sm">Envío Rápido</h4>
-                <p className="text-xs text-gray-600">3-7 días</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-green-50 rounded-lg p-4 border border-green-200">
-            <div className="flex items-start gap-3">
-              <RotateCcw className="w-6 h-6 text-green-600 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-gray-900 text-sm">Devolución</h4>
-                <p className="text-xs text-gray-600">30 días</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-purple-50 rounded-lg p-4 border border-purple-200">
-            <div className="flex items-start gap-3">
-              <Shield className="w-6 h-6 text-purple-600 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-gray-900 text-sm">Protección</h4>
-                <p className="text-xs text-gray-600">Garantía 100%</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="bg-amber-50 rounded-lg p-4 border border-amber-200">
-            <div className="flex items-start gap-3">
-              <Award className="w-6 h-6 text-amber-600 flex-shrink-0" />
-              <div>
-                <h4 className="font-semibold text-gray-900 text-sm">Certificado</h4>
-                <p className="text-xs text-gray-600">Calidad premium</p>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-gray-50">
+                <Shield className="w-5 h-5 text-green-600" />
+                <div className="text-xs">
+                  <p className="font-semibold text-gray-900">Compra Segura</p>
+                  <p className="text-gray-500">Protección total</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Productos Relacionados */}
+        {/* Related Products */}
         {relatedProducts.length > 0 && (
-          <div className="bg-white rounded-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">
-              {product.source_product?.category 
-                ? `Más en ${product.source_product.category.name}` 
-                : 'Productos Relacionados'}
-            </h2>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-              {relatedProducts.map(relatedProduct => {
-                const imgs = relatedProduct.images as any;
-                const mainImage = Array.isArray(imgs) && imgs.length > 0 ? imgs[0] : '';
-                
-                return (
-                  <div key={relatedProduct.id} className="border border-gray-200 rounded-lg overflow-hidden hover:shadow-md transition group">
-                    <Link to={`/producto/${relatedProduct.sku}`}>
-                      <div className="aspect-square bg-gray-100 overflow-hidden">
-                        {mainImage ? (
-                          <img 
-                            src={mainImage} 
-                            alt={relatedProduct.nombre}
-                            className="w-full h-full object-cover group-hover:scale-105 transition duration-300"
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-8 w-8 text-gray-300" />
-                          </div>
-                        )}
-                      </div>
-                    </Link>
-                    <div className="p-2">
-                      <Link to={`/producto/${relatedProduct.sku}`}>
-                        <h3 className="text-xs font-medium text-gray-900 line-clamp-2 hover:text-blue-600 transition">
-                          {relatedProduct.nombre}
-                        </h3>
-                      </Link>
-                      <p className="text-sm font-bold text-blue-600 mt-1">
-                        ${relatedProduct.precio_venta.toFixed(2)}
+          <div className="mt-12">
+            <h2 className="text-xl font-bold text-gray-900 mb-6">Productos Relacionados</h2>
+            <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+              {relatedProducts.map((p) => (
+                <Link key={p.id} to={`/producto/${p.sku}`} className="group">
+                  <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all">
+                    <div className="aspect-square bg-gray-100 relative">
+                      {Array.isArray(p.images) && p.images[0] && (
+                        <img 
+                          src={p.images[0]} 
+                          alt={p.nombre}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      )}
+                    </div>
+                    <div className="p-3">
+                      <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1 group-hover:text-blue-600">
+                        {p.nombre}
+                      </h3>
+                      <p className="text-sm font-bold text-gray-900">
+                        ${p.precio_venta.toFixed(2)}
                       </p>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="w-full mt-2 h-7 text-xs"
-                        onClick={() => handleAddRelatedToCart(relatedProduct)}
-                        disabled={relatedProduct.stock <= 0}
-                      >
-                        <ShoppingCart className="h-3 w-3 mr-1" />
-                        Agregar
-                      </Button>
                     </div>
                   </div>
-                );
-              })}
+                </Link>
+              ))}
             </div>
           </div>
         )}
       </main>
+
+      {/* Mobile Sticky Footer */}
+      {isMobile && (
+        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 safe-area-bottom">
+          {isB2BUser ? (
+            // B2B Mobile Footer
+            <div className="p-4 space-y-3">
+              {/* Investment Summary */}
+              <div className="flex justify-between items-center text-sm">
+                <div>
+                  <p className="text-gray-500 text-xs">Inversión Total</p>
+                  <p className="font-bold text-gray-900 text-lg">${businessSummary?.investment.toFixed(2)}</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-green-600 text-xs font-medium">Tu Ganancia</p>
+                  <p className="font-bold text-green-600 text-lg">+${businessSummary?.estimatedProfit.toFixed(2)}</p>
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                {/* Quantity Selector Compact */}
+                <div className="flex items-center border border-gray-300 rounded-lg h-12 bg-gray-50">
+                  <button 
+                    onClick={() => handleQuantityChange(quantity - 1)}
+                    disabled={quantity <= minQuantity}
+                    className="px-3 h-full text-gray-600 disabled:opacity-30"
+                  >
+                    −
+                  </button>
+                  <span className="w-8 text-center font-medium text-sm">{quantity}</span>
+                  <button 
+                    onClick={() => handleQuantityChange(quantity + 1)}
+                    disabled={quantity >= maxQuantity}
+                    className="px-3 h-full text-gray-600 disabled:opacity-30"
+                  >
+                    +
+                  </button>
+                </div>
+
+                <Button 
+                  onClick={handleAddToCart}
+                  className="flex-1 h-12 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200"
+                  disabled={(isB2BUser ? stockB2B : product.stock) === 0}
+                >
+                  Comprar B2B
+                </Button>
+              </div>
+            </div>
+          ) : (
+            // B2C Mobile Footer
+            <div className="p-4 flex gap-3 items-center">
+              <div className="flex flex-col">
+                <span className="text-xs text-gray-500">Total</span>
+                <span className="text-xl font-bold text-gray-900">
+                  ${(product.precio_venta * quantity).toFixed(2)}
+                </span>
+              </div>
+              
+              <div className="flex items-center border border-gray-300 rounded-lg h-10 ml-auto mr-2">
+                <button 
+                  onClick={() => handleQuantityChange(quantity - 1)}
+                  disabled={quantity <= 1}
+                  className="px-2 h-full text-gray-600 disabled:opacity-30"
+                >
+                  −
+                </button>
+                <span className="w-6 text-center font-medium text-sm">{quantity}</span>
+                <button 
+                  onClick={() => handleQuantityChange(quantity + 1)}
+                  disabled={quantity >= (product.stock || 0)}
+                  className="px-2 h-full text-gray-600 disabled:opacity-30"
+                >
+                  +
+                </button>
+              </div>
+
+              <Button 
+                onClick={handleAddToCart}
+                className="flex-1 h-12 bg-gray-900 text-white font-bold rounded-xl"
+                disabled={product.stock === 0}
+              >
+                Agregar
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
 
       {!isMobile && <Footer />}
     </div>

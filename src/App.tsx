@@ -9,6 +9,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { ToastContainer } from "@/components/ToastContainer";
 import { useToast } from "@/hooks/useToastNotification";
 import { ViewModeProvider } from "@/contexts/ViewModeContext";
+import { useCartMigration } from "@/hooks/useCartMigration";
 
 // Public Pages
 import Index from "./pages/Index";
@@ -65,6 +66,7 @@ import GlobalMobileHeader from "./components/layout/GlobalMobileHeader";
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
   const { isLoading } = useAuth();
+  useCartMigration(); // Hook de migración de carrito
 
   if (isLoading) {
     return <PageLoader />;

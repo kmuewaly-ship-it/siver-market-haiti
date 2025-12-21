@@ -7,6 +7,7 @@ export interface ProductB2BCard {
   sku: string;
   nombre: string;
   precio_b2b: number;
+  precio_sugerido: number; // PVP sugerido
   moq: number;
   stock_fisico: number;
   imagen_principal: string;

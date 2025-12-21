@@ -8,7 +8,7 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 12) => {
     queryFn: async () => {
       let query = supabase
         .from("products")
-        .select("id, sku_interno, nombre, precio_mayorista, moq, stock_fisico, imagen_principal, categoria_id, stock_status", { count: "exact" })
+        .select("id, sku_interno, nombre, precio_mayorista, precio_sugerido_venta, moq, stock_fisico, imagen_principal, categoria_id, stock_status", { count: "exact" })
         .eq("is_active", true);
 
       // Filter by category
@@ -57,6 +57,7 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 12) => {
         sku: p.sku_interno,
         nombre: p.nombre,
         precio_b2b: p.precio_mayorista,
+        precio_sugerido: p.precio_sugerido_venta || p.precio_mayorista * 1.3, // Fallback si es null
         moq: p.moq,
         stock_fisico: p.stock_fisico,
         imagen_principal: p.imagen_principal || "",
@@ -74,7 +75,7 @@ export const useFeaturedProductsB2B = (limit = 6) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("products")
-        .select("id, sku_interno, nombre, precio_mayorista, moq, stock_fisico, imagen_principal, categoria_id")
+        .select("id, sku_interno, nombre, precio_mayorista, precio_sugerido_venta, moq, stock_fisico, imagen_principal, categoria_id")
         .eq("is_active", true)
         .gt("stock_fisico", 0)
         .order("created_at", { ascending: false })
@@ -87,6 +88,7 @@ export const useFeaturedProductsB2B = (limit = 6) => {
         sku: p.sku_interno,
         nombre: p.nombre,
         precio_b2b: p.precio_mayorista,
+        precio_sugerido: p.precio_sugerido_venta || p.precio_mayorista * 1.3,
         moq: p.moq,
         stock_fisico: p.stock_fisico,
         imagen_principal: p.imagen_principal || "",

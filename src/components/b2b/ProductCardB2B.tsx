@@ -1,8 +1,10 @@
 ﻿import { useState, MouseEvent } from 'react';
-import { ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, TrendingUp } from 'lucide-react';
 import { ProductB2BCard, CartItemB2B } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
 
 interface ProductCardB2BProps {
   product: ProductB2BCard;
@@ -13,6 +15,7 @@ interface ProductCardB2BProps {
 
 const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "50312345678" }: ProductCardB2BProps) => {
   const [cantidad, setCantidad] = useState(product.moq);
+  const [isSheetOpen, setIsSheetOpen] = useState(false);
   const isMobile = useIsMobile();
 
   const subtotal = cantidad * product.precio_b2b;
@@ -29,26 +32,13 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
 
   const discountPercent = getDiscount();
   const discountedPrice = product.precio_b2b * (1 - discountPercent);
+  
+  // Calculate profit based on suggested retail price
+  const profit = (product.precio_sugerido || 0) - discountedPrice;
 
   const handleAddToCart = (e: MouseEvent) => {
-    e.stopPropagation(); // Prevent card click if we add that later
-    
-    if (cantidad < product.moq || cantidad > product.stock_fisico) return;
-
-    onAddToCart({
-      productId: product.id,
-      sku: product.sku,
-      nombre: product.nombre,
-      precio_b2b: product.precio_b2b,
-      moq: product.moq,
-      stock_fisico: product.stock_fisico,
-      cantidad,
-      subtotal: cantidad * discountedPrice,
-      imagen_principal: product.imagen_principal,
-    });
-
-    // Reset cantidad a MOQ
-    setCantidad(product.moq);
+    e.stopPropagation();
+    setIsSheetOpen(true);
   };
 
   const handleWhatsApp = (e: MouseEvent) => {
@@ -63,14 +53,21 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
     }`}>
       {/* Image Section */}
       <div className="relative aspect-square bg-gray-100 overflow-hidden">
-        <img
-          src={product.imagen_principal}
-          alt={product.nombre}
-          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-        />
+        <Link to={`/producto/${product.sku}`} className="block w-full h-full">
+          <img
+            src={product.imagen_principal}
+            alt={product.nombre}
+            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+          />
+        </Link>
         
         {/* Badges Overlay */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {profit > 0 && (
+            <span className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
+              <TrendingUp className="w-3 h-3" /> Ganas: ${profit.toFixed(2)}
+            </span>
+          )}
           {discountPercent > 0 && (
             <span className="bg-[#071d7f] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
               -{Math.round(discountPercent * 100)}%
@@ -115,27 +112,31 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
       {/* Content Section */}
       <div className="p-3 flex flex-col flex-1">
         {/* Title */}
-        <h3 className="text-sm text-gray-700 line-clamp-1 mb-1 leading-snug" title={product.nombre}>
-          {product.nombre}
-        </h3>
+        <Link to={`/producto/${product.sku}`}>
+          <h3 className="text-sm text-gray-700 line-clamp-1 mb-1 leading-snug hover:text-blue-600 transition-colors" title={product.nombre}>
+            {product.nombre}
+          </h3>
+        </Link>
 
         {/* Price */}
-        <div className="mt-1">
-          <div className="flex items-baseline gap-1.5">
-            <span className="text-lg font-bold text-gray-900">
-              ${discountedPrice.toFixed(2)}
-            </span>
-            {discountPercent > 0 && (
-              <span className="text-xs text-gray-400 line-through">
-                ${product.precio_b2b.toFixed(2)}
+        <Link to={`/producto/${product.sku}`}>
+          <div className="mt-1 hover:opacity-80 transition-opacity">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-lg font-bold text-gray-900">
+                ${discountedPrice.toFixed(2)}
               </span>
-            )}
+              {product.precio_sugerido && (
+                <span className="text-xs text-gray-400 line-through">
+                  ${product.precio_sugerido.toFixed(2)}
+                </span>
+              )}
+            </div>
           </div>
-        </div>
+        </Link>
 
         {/* Min Order */}
         <div className="flex items-center justify-between mt-1">
-          <p className="text-xs text-gray-500">Min. order: {product.moq} pieces</p>
+          <p className="text-xs text-amber-600 font-medium">Mínimo: {product.moq} unidades</p>
         </div>
 
         {/* Trust Badges (Mock) */}
@@ -196,12 +197,27 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
                 disabled={isOutOfStock}
               >
                 <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                Agregar
+                Comprar B2B
               </Button>
             </div>
           )}
         </div>
       </div>
+      <ProductBottomSheet 
+        product={{
+          id: product.id,
+          name: product.nombre,
+          price: product.precio_b2b, // Fallback price
+          image: product.imagen_principal,
+          sku: product.sku,
+          priceB2B: product.precio_b2b,
+          pvp: product.precio_sugerido,
+          moq: product.moq,
+          stock: product.stock_fisico
+        }}
+        isOpen={isSheetOpen}
+        onClose={() => setIsSheetOpen(false)}
+      />
     </div>
   );
 };
