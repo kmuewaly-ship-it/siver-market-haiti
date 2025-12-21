@@ -316,7 +316,7 @@ const Header = ({
                   )}
                 </button>
               )}
-              <button className="bg-gray-900 hover:bg-gray-800 p-2 rounded-full m-0.5 transition-colors">
+              <button className="bg-[#071d7f] hover:bg-[#071d7f]/90 p-2 rounded-full m-0.5 transition-colors">
                 <Search className="w-4 h-4 text-white" strokeWidth={2} />
               </button>
             </div>
@@ -342,7 +342,7 @@ const Header = ({
           </div>
 
           {/* Mobile Categories Scroll Bar */}
-          <div className="flex items-center gap-4 px-3 py-2 overflow-x-auto bg-black text-white scrollbar-hide">
+          <div className="flex items-center gap-4 px-3 py-2 overflow-x-auto bg-[#071d7f] text-white scrollbar-hide">
             <button 
               onClick={() => handleCategoryClick(null)}
               className={cn(

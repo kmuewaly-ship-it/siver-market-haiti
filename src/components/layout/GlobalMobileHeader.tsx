@@ -333,7 +333,7 @@ const GlobalMobileHeader = ({
   const cartLink = showB2BStyle ? "/seller/carrito" : "/carrito";
   const accountLink = showB2BStyle ? "/seller/cuenta" : "/cuenta";
   const accentColor = showB2BStyle ? "bg-blue-600" : "bg-[#071d7f]";
-  const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-gray-900 hover:bg-gray-800";
+  const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-[#071d7f] hover:bg-[#071d7f]/90";
   return <header className="bg-white sticky top-0 z-40">
       {/* Top search bar */}
       <div className="flex items-center gap-3 px-3 py-2.5">
@@ -438,7 +438,7 @@ const GlobalMobileHeader = ({
               selectedCategory === null
                 ? showB2BStyle 
                   ? "bg-blue-600 text-white font-medium"
-                  : "bg-black text-white font-medium"
+                  : "bg-[#071d7f] text-white font-medium"
                 : "bg-gray-100 text-gray-600 hover:bg-gray-200"
             )}
           >
@@ -453,7 +453,7 @@ const GlobalMobileHeader = ({
                 selectedCategory === cat.id
                   ? showB2BStyle 
                     ? "bg-blue-600 text-white font-medium"
-                    : "bg-black text-white font-medium"
+                    : "bg-[#071d7f] text-white font-medium"
                   : "bg-gray-100 text-gray-600 hover:bg-gray-200"
               )}
             >
