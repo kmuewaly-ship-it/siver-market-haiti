@@ -77,7 +77,13 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
   const [whatsappNumber, setWhatsappNumber] = useState("50369596772");
 
   // Fetch products from database
-  const { data: productsData, isLoading: productsLoading, isFetching } = useProductsB2B(filters, currentPage, itemsPerPage);
+  const { 
+    data: productsData, 
+    isLoading: productsLoading, 
+    isFetching,
+    error: productsError 
+  } = useProductsB2B(filters, currentPage, itemsPerPage);
+  
   const { data: featuredProducts = [] } = useFeaturedProductsB2B(6);
   
   // Accumulate products for infinite scroll
@@ -219,15 +225,38 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
 
         {/* Resultados */}
         <div className="mb-8">
-          {productsLoading && allProducts.length === 0 ? (
+          {productsError ? (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
+              <p className="text-red-600 font-medium mb-2">Error al cargar productos</p>
+              <p className="text-sm text-red-500">{productsError.message}</p>
+              <Button 
+                variant="outline" 
+                className="mt-4 border-red-200 text-red-600 hover:bg-red-50"
+                onClick={() => window.location.reload()}
+              >
+                Reintentar
+              </Button>
+            </div>
+          ) : productsLoading && allProducts.length === 0 ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
           ) : allProducts.length === 0 ? (
             <div className="bg-white rounded-lg p-12 text-center">
-              <p className="text-gray-600">
+              <p className="text-gray-600 mb-4">
                 No se encontraron productos que coincidan con tus filtros.
               </p>
+              <Button 
+                variant="outline" 
+                onClick={() => setFilters({
+                  searchQuery: "",
+                  category: null,
+                  stockStatus: "all",
+                  sortBy: "newest"
+                })}
+              >
+                Ver todos los productos
+              </Button>
             </div>
           ) : (
             <>
