@@ -1,5 +1,5 @@
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -115,6 +115,33 @@ const useProductBySku = (sku: string | undefined) => {
 };
 
 const ProductPage = () => {
+  // Sticky nav state
+  const [showStickyNav, setShowStickyNav] = useState(false);
+  const imageRef = useRef<HTMLDivElement>(null);
+  const descRef = useRef<HTMLDivElement>(null);
+  const reviewsRef = useRef<HTMLDivElement>(null);
+  const recsRef = useRef<HTMLDivElement>(null);
+
+  // Detect scroll past image
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!imageRef.current) return;
+      const rect = imageRef.current.getBoundingClientRect();
+      setShowStickyNav(rect.bottom <= 64); // 64px header height
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Scroll to section
+  const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
+    if (ref.current) {
+      window.scrollTo({
+        top: ref.current.offsetTop - 56, // offset for sticky nav
+        behavior: 'smooth',
+      });
+    }
+  };
   const { sku } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -268,11 +295,19 @@ const ProductPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {!isMobile && <GlobalHeader />}
 
-      <main className={`container mx-auto px-4 py-4 ${isMobile ? 'pb-40' : 'pb-12'}`}>
+      {/* Sticky Nav Tabs: reemplaza la barra de categorías */}
+      {!isMobile && showStickyNav && (
+        <div className="sticky top-0 z-40 bg-white border-b flex items-center justify-center gap-4 py-2 shadow-sm animate-fade-in">
+          <button className="px-3 py-1 text-sm font-medium text-[#071d7f]" onClick={() => scrollToSection(descRef)}>Descripción</button>
+          <button className="px-3 py-1 text-sm font-medium text-[#071d7f]" onClick={() => scrollToSection(reviewsRef)}>Valoraciones</button>
+          <button className="px-3 py-1 text-sm font-medium text-[#071d7f]" onClick={() => scrollToSection(recsRef)}>Recomendados</button>
+        </div>
+      )}
+
+      <main className={`container mx-auto ${isMobile ? 'px-0 pb-52' : 'px-4 pb-12'} py-4`}>
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-xs text-gray-500 mb-4 overflow-x-auto whitespace-nowrap pb-2">
+        <nav className={`flex items-center gap-2 text-xs text-gray-500 mb-4 overflow-x-auto whitespace-nowrap pb-2 ${isMobile ? 'px-4' : ''}`}>
           <button onClick={() => navigate("/")}>Inicio</button>
           <ChevronRight className="w-3 h-3" />
           {product.source_product?.category && (
@@ -288,13 +323,13 @@ const ProductPage = () => {
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Image Gallery */}
-          <div className="space-y-4">
-            <div className="relative bg-white rounded-2xl overflow-hidden aspect-square shadow-sm border border-gray-100">
+          <div ref={imageRef} className={`space-y-4 ${isMobile ? '' : ''}`}>
+            <div className={`relative bg-white overflow-hidden shadow-sm border-gray-100 ${isMobile ? 'w-full aspect-[4/5] rounded-none border-y' : 'rounded-2xl aspect-square border'}`}>
               {images.length > 0 ? (
                 <img
                   src={images[selectedImage]}
                   alt={product.nombre}
-                  className="w-full h-full object-contain p-4"
+                  className={`w-full h-full ${isMobile ? 'object-cover' : 'object-contain p-4'}`}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-gray-50">
@@ -360,7 +395,7 @@ const ProductPage = () => {
           </div>
 
           {/* Product Info */}
-          <div className="space-y-6">
+          <div className={`space-y-6 ${isMobile ? 'px-4' : ''}`}> 
             <div>
               {/* Badges */}
               <div className="flex flex-wrap gap-2 mb-3">
@@ -381,30 +416,29 @@ const ProductPage = () => {
                 )}
               </div>
 
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 leading-tight mb-2">
+              <h1 className="text-lg md:text-xl font-semibold text-gray-900 leading-tight mb-1">
                 {product.nombre}
               </h1>
-              <p className="text-sm text-gray-500">SKU: {product.sku}</p>
             </div>
 
             {/* Price Section */}
-            <div className={`p-5 rounded-xl ${isB2BUser ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100' : 'bg-gray-50'}`}>
-              <div className="flex items-baseline gap-3 flex-wrap">
-                <span className={`text-4xl font-bold ${isB2BUser ? 'text-blue-700' : 'text-gray-900'}`}>
+            <div className={`p-4 rounded-lg ${isB2BUser ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100' : 'bg-gray-50'}`}>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className={`text-2xl font-bold ${isB2BUser ? 'text-blue-700' : 'text-gray-900'}`}> 
                   ${displayPrice.toFixed(2)}
                 </span>
                 {isB2BUser && (
-                  <span className="text-sm font-medium text-blue-600 bg-blue-100 px-2 py-1 rounded">
+                  <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
                     Costo B2B
                   </span>
                 )}
               </div>
 
               {isB2BUser && (
-                <div className="mt-3 flex items-center gap-4 text-sm text-gray-600">
+                <div className="mt-2 flex items-center gap-3 text-xs text-gray-600">
                   <div className="flex items-center gap-1.5">
-                    <span className="text-gray-400 line-through">${pvp.toFixed(2)}</span>
-                    <span className="text-xs bg-gray-200 px-1.5 py-0.5 rounded text-gray-600">PVP</span>
+                    <span className="text-green-600">${pvp.toFixed(2)}</span>
+                    <span className="text-xs bg-green-100 px-1 py-0.5 rounded text-green-700">PVP</span>
                   </div>
                   <div className="h-4 w-px bg-gray-300"></div>
                   <div className="text-green-600 font-medium">
@@ -414,15 +448,6 @@ const ProductPage = () => {
               )}
             </div>
 
-            {/* B2B MOQ Warning */}
-            {isB2BUser && moq > 1 && (
-              <div className="flex items-start gap-3 p-3 bg-amber-50 border border-amber-100 rounded-lg text-amber-800 text-sm">
-                <Info className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
-                <p>
-                  Este producto tiene un <strong>mínimo de compra de {moq} unidades</strong> para acceder al precio mayorista.
-                </p>
-              </div>
-            )}
 
             {/* Quantity Selector (Desktop) */}
             {!isMobile && (
@@ -473,9 +498,23 @@ const ProductPage = () => {
             )}
 
             {/* Description */}
-            <div className="prose prose-sm max-w-none text-gray-600">
+            <div ref={descRef} className="prose prose-sm max-w-none text-gray-600 scroll-mt-20">
               <h3 className="text-lg font-semibold text-gray-900 mb-2">Descripción</h3>
               <p className="whitespace-pre-line">{product.descripcion}</p>
+            </div>
+
+            {/* Valoraciones */}
+            <div ref={reviewsRef} className="mt-10 scroll-mt-20">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Valoraciones</h3>
+              {/* Aquí iría el componente de reviews o placeholder */}
+              <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-400">Sin valoraciones aún.</div>
+            </div>
+
+            {/* Recomendados */}
+            <div ref={recsRef} className="mt-10 scroll-mt-20">
+              <h3 className="text-lg font-semibold text-gray-900 mb-2">Recomendados</h3>
+              {/* Aquí iría el componente de recomendados o placeholder */}
+              <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-400">Sin productos recomendados.</div>
             </div>
 
             {/* Trust Badges */}
@@ -533,7 +572,7 @@ const ProductPage = () => {
 
       {/* Mobile Sticky Footer */}
       {isMobile && (
-        <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-50 safe-area-bottom">
+        <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 safe-area-bottom">
           {isB2BUser ? (
             // B2B Mobile Footer
             <div className="p-4 space-y-3">

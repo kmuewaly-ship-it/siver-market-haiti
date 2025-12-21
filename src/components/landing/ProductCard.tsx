@@ -162,7 +162,12 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
                 ${displayPrice.toFixed(2)}
               </span>
               
-              {strikethroughPrice && strikethroughPrice > displayPrice && (
+              {isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
+                <span className="text-xs text-green-600 font-semibold">
+                  ${strikethroughPrice.toFixed(2)} PVP
+                </span>
+              )}
+              {!isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
                 <span className="text-xs text-muted-foreground line-through">
                   ${strikethroughPrice.toFixed(2)}
                 </span>

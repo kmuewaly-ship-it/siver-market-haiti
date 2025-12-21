@@ -219,7 +219,6 @@ const MarketplacePage = () => {
                         {product.nombre}
                       </h3>
                     </Link>
-                    <p className="text-xs text-muted-foreground mb-2">SKU: {product.sku}</p>
                     
                     <div className="flex items-center justify-between mb-3">
                       <span className="text-lg font-bold text-primary">

@@ -284,7 +284,6 @@ const SellerPedidosPage = () => {
                           <TableCell>
                             <div>
                               <p className="font-medium">{item.nombre}</p>
-                              <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
                             </div>
                           </TableCell>
                           <TableCell className="text-center">{item.cantidad}</TableCell>

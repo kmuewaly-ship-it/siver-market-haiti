@@ -120,7 +120,6 @@ export const ProductBottomSheet = ({ product, isOpen, onClose }: ProductBottomSh
               <div className="flex-1">
                 <DrawerTitle className="text-base font-bold line-clamp-2">{product.name}</DrawerTitle>
                 <DrawerDescription className="mt-1">
-                  SKU: {product.sku}
                 </DrawerDescription>
                 <div className="mt-2 font-bold text-lg text-primary">
                   ${currentPrice.toFixed(2)}

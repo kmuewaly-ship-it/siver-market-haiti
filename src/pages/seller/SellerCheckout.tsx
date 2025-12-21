@@ -658,7 +658,6 @@ const SellerCheckout = () => {
                       <div className="flex-1">
                         <p className="font-semibold">{item.nombre}</p>
                         <p className="text-sm text-muted-foreground mb-1">
-                          SKU: {item.sku}
                         </p>
                         <div className="flex items-center gap-4 text-sm">
                           <span>{item.cantidad} unidades</span>

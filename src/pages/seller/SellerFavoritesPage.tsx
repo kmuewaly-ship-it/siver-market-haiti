@@ -58,7 +58,6 @@ const SellerFavoritesPage = () => {
                   </div>
                   <CardContent className="p-4">
                     <h3 className="font-semibold truncate mb-1">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground mb-2">SKU: {item.sku}</p>
                     <p className="text-lg font-bold text-primary mb-3">
                       ${item.price.toFixed(2)}
                     </p>

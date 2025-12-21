@@ -29,7 +29,9 @@ const GlobalHeader = ({
   const location = useLocation();
 
   // En mobile no mostramos este header (GlobalMobileHeader se encarga)
-  if (isMobile) {
+  // Ocultar header en página de producto para mostrar sticky nav personalizada
+  const isProductPage = location.pathname.startsWith('/producto/');
+  if (isMobile || isProductPage) {
     return null;
   }
 

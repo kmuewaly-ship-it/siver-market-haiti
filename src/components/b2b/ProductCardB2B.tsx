@@ -126,8 +126,8 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
                 ${discountedPrice.toFixed(2)}
               </span>
               {product.precio_sugerido && (
-                <span className="text-xs text-gray-400 line-through">
-                  ${product.precio_sugerido.toFixed(2)}
+                <span className="text-xs text-green-600 font-semibold">
+                  ${product.precio_sugerido.toFixed(2)} PVP
                 </span>
               )}
             </div>

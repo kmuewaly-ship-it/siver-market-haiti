@@ -389,7 +389,7 @@ const SellerMisComprasPage = () => {
                       <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
                         <div className="flex-1">
                           <p className="font-medium text-sm">{item.nombre}</p>
-                          <p className="text-xs text-muted-foreground">SKU: {item.sku} • Cant: {item.cantidad}</p>
+                          <p className="text-xs text-muted-foreground">Cant: {item.cantidad}</p>
                         </div>
                         <p className="font-semibold">${item.subtotal.toLocaleString()}</p>
                       </div>

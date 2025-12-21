@@ -169,7 +169,6 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                               <p className="font-medium text-sm text-gray-900 line-clamp-1">
                                 {item.nombre}
                               </p>
-                              <p className="text-xs text-gray-500">SKU: {item.sku}</p>
                             </div>
                             <button
                               onClick={() => removeItem(item.productId)}

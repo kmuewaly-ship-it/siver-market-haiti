@@ -244,7 +244,6 @@ const ProductPage = () => {
             <h1 className="text-2xl md:text-3xl font-bold text-gray-900 mb-2">{product.name}</h1>
 
             {/* SKU */}
-            <p className="text-sm text-gray-500 mb-4">SKU: {product.sku}</p>
 
             {/* Precio */}
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg p-4 mb-4">
