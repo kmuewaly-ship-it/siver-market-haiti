@@ -24,7 +24,7 @@ src/pages/
 ## 🎨 Paleta de Colores
 
 ```
-Azul Primario:     #2563eb (botones, links)
+Azul Primario:     #071d7f (botones, links)
 Naranja Acción:    #f97316 (B2B, importante)
 Rojo Descuentos:   #ef4444 (ofertas)
 Verde Disponible:  #16a34a (positivo)

@@ -158,6 +158,10 @@ const ProductPage = () => {
   const [selectedImage, setSelectedImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [viewTracked, setViewTracked] = useState(false);
+  // Title collapse/expand
+  const [titleExpanded, setTitleExpanded] = useState(false);
+  const [showTitleToggle, setShowTitleToggle] = useState(false);
+  
 
   // Cart hooks
   const { addItem: addItemB2C } = useCart();
@@ -215,7 +219,19 @@ const ProductPage = () => {
       // trackView(product.id, "product_page"); // Assuming trackView exists or will be implemented
       setViewTracked(true);
     }
+    // Decide whether to show the "Mostrar más" toggle for long titles (>60 chars)
+    if (product && product.nombre) {
+      setShowTitleToggle(product.nombre.length > 60);
+    }
   }, [product, viewTracked]);
+
+  // DEBUG: log when product loads so developer can confirm updated bundle is used
+  useEffect(() => {
+    if (product) {
+      // eslint-disable-next-line no-console
+      console.log('[ProductPage] loaded product:', product.nombre, 'length:', product.nombre?.length);
+    }
+  }, [product]);
 
   const handleQuantityChange = (newQty: number) => {
     const validQty = Math.max(minQuantity, Math.min(maxQuantity, newQty));
@@ -416,9 +432,22 @@ const ProductPage = () => {
                 )}
               </div>
 
-              <h1 className="text-lg md:text-xl font-semibold text-gray-900 leading-tight mb-1">
-                {product.nombre}
-              </h1>
+              <div className="flex flex-col gap-2">
+                <h1 className={`text-lg md:text-xl font-semibold text-gray-900 leading-tight mb-0`}>
+                  {titleExpanded ? product.nombre : (product.nombre.length <= 60 ? product.nombre : `${product.nombre.slice(0,60).trim()}...`)}
+                </h1>
+                {showTitleToggle && (
+                  <div>
+                    <button
+                      onClick={() => setTitleExpanded(prev => !prev)}
+                      className="text-sm text-blue-600 hover:underline"
+                      aria-expanded={titleExpanded}
+                    >
+                      {titleExpanded ? 'Mostrar menos' : 'Mostrar más'}
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
 
             {/* Price Section */}
