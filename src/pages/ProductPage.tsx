@@ -10,8 +10,11 @@ import { useCartB2B } from "@/hooks/useCartB2B";
 import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/useStore';
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useProductVariants } from "@/hooks/useProductVariants";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
+import VariantSelector from "@/components/products/VariantSelector";
+import ProductReviews from "@/components/products/ProductReviews";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -749,45 +752,53 @@ const ProductPage = () => {
               )}
             </div>
 
-              {/* Variations box (below price) - allows selecting qty per variation */}
-              <div className="mt-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+              {/* Variant Selector - Uses database variants */}
+              <div className="mt-3">
                 <h4 className="text-sm font-semibold text-gray-800 mb-2">Variaciones</h4>
-                <div className="space-y-2">
-                  {variations.map((v) => (
-                    <div key={v.id} className="flex items-center justify-between gap-4">
-                      <div className="text-sm text-gray-700">{v.label}</div>
+                <VariantSelector
+                  productId={product.source_product?.id || product.id}
+                  basePrice={isB2BUser ? costB2B : product.precio_venta}
+                  isB2B={isB2BUser}
+                  onSelectionChange={(selections, totalQty, totalPrice) => {
+                    // Update variations state for cart integration
+                    setVariations(selections.map(s => ({
+                      id: s.variantId,
+                      label: s.variantId,
+                      quantity: s.quantity,
+                    })));
+                  }}
+                />
+                
+                {/* Fallback simple selector if no DB variants */}
+                {variations.length === 0 && (
+                  <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="text-sm text-gray-700">Cantidad</div>
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => updateVariationQty(v.id, (v.quantity || 0) - 1)}
-                          disabled={(v.quantity || 0) <= 0}
+                          onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))}
+                          disabled={quantity <= minQuantity}
                           className="px-2 py-0.5 border rounded bg-white text-gray-700"
                         >
                           −
                         </button>
-                        <div className="w-10 text-center text-sm font-medium">{v.quantity || 0}</div>
+                        <div className="w-10 text-center text-sm font-medium">{quantity}</div>
                         <button
-                          onClick={() => updateVariationQty(v.id, (v.quantity || 0) + 1)}
+                          onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))}
+                          disabled={quantity >= maxQuantity}
                           className="px-2 py-0.5 border rounded bg-white text-gray-700"
                         >
                           +
                         </button>
                       </div>
                     </div>
-                  ))}
-
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="text-sm text-gray-600">Total seleccionado:</div>
-                    <div className="text-sm font-bold text-gray-900">{totalSelectedQty}</div>
+                    <div className="mt-3">
+                      <Button onClick={handleAddToCart} className="w-full h-10 text-sm font-semibold">
+                        {isB2BUser ? 'Agregar al Pedido' : 'Agregar al Carrito'}
+                      </Button>
+                    </div>
                   </div>
-
-                  {/* Removed MOQ warning message as user can decrement variations with '-' button */}
-
-                  <div className="mt-3">
-                    <Button onClick={handleQuickAdd} className="w-full h-10 text-sm font-semibold" disabled={totalSelectedQty === 0 && isB2BUser}>
-                      {isB2BUser ? 'Agregar al Pedido' : 'Agregar al Carrito'}
-                    </Button>
-                  </div>
-                </div>
+                )}
               </div>
 
               {/* Mobile Tabs (compact, scrollable) */}
@@ -891,11 +902,13 @@ const ProductPage = () => {
               <p className="whitespace-pre-line">{product.descripcion}</p>
             </div>
 
-            {/* Valoraciones */}
+            {/* Valoraciones - Using ProductReviews component */}
             <div id="section-reviews" ref={reviewsRef} className="mt-10 scroll-mt-20">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Valoraciones</h3>
-              {/* Aquí iría el componente de reviews o placeholder */}
-              <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-400">Sin valoraciones aún.</div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Valoraciones</h3>
+              <ProductReviews 
+                productId={product.source_product?.id || product.id}
+                productName={product.nombre}
+              />
             </div>
 
             {/* Recomendados */}
