@@ -861,6 +861,124 @@ export type Database = {
           },
         ]
       }
+      product_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string
+          helpful_count: number | null
+          id: string
+          images: Json | null
+          is_anonymous: boolean | null
+          is_verified_purchase: boolean | null
+          product_id: string
+          rating: number
+          title: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string
+          helpful_count?: number | null
+          id?: string
+          images?: Json | null
+          is_anonymous?: boolean | null
+          is_verified_purchase?: boolean | null
+          product_id: string
+          rating: number
+          title?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string
+          helpful_count?: number | null
+          id?: string
+          images?: Json | null
+          is_anonymous?: boolean | null
+          is_verified_purchase?: boolean | null
+          product_id?: string
+          rating?: number
+          title?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      product_variants: {
+        Row: {
+          created_at: string
+          id: string
+          images: Json | null
+          is_active: boolean | null
+          metadata: Json | null
+          moq: number
+          name: string
+          option_type: string
+          option_value: string
+          precio_promocional: number | null
+          price: number | null
+          product_id: string
+          sku: string
+          sort_order: number | null
+          stock: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          images?: Json | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          moq?: number
+          name: string
+          option_type: string
+          option_value: string
+          precio_promocional?: number | null
+          price?: number | null
+          product_id: string
+          sku: string
+          sort_order?: number | null
+          stock?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          images?: Json | null
+          is_active?: boolean | null
+          metadata?: Json | null
+          moq?: number
+          name?: string
+          option_type?: string
+          option_value?: string
+          precio_promocional?: number | null
+          price?: number | null
+          product_id?: string
+          sku?: string
+          sort_order?: number | null
+          stock?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_views: {
         Row: {
           id: string
@@ -901,6 +1019,7 @@ export type Database = {
           categoria_id: string | null
           costo_base_excel: number | null
           created_at: string
+          currency_code: string | null
           descripcion_corta: string | null
           descripcion_larga: string | null
           dimensiones_cm: Json | null
@@ -913,8 +1032,14 @@ export type Database = {
           nombre: string
           peso_kg: number | null
           precio_mayorista: number
+          precio_promocional: number | null
           precio_sugerido_venta: number | null
+          promo_active: boolean | null
+          promo_ends_at: string | null
+          promo_starts_at: string | null
           proveedor_id: string | null
+          rating: number | null
+          reviews_count: number | null
           sku_interno: string
           stock_fisico: number
           stock_status: Database["public"]["Enums"]["stock_status"]
@@ -925,6 +1050,7 @@ export type Database = {
           categoria_id?: string | null
           costo_base_excel?: number | null
           created_at?: string
+          currency_code?: string | null
           descripcion_corta?: string | null
           descripcion_larga?: string | null
           dimensiones_cm?: Json | null
@@ -937,8 +1063,14 @@ export type Database = {
           nombre: string
           peso_kg?: number | null
           precio_mayorista?: number
+          precio_promocional?: number | null
           precio_sugerido_venta?: number | null
+          promo_active?: boolean | null
+          promo_ends_at?: string | null
+          promo_starts_at?: string | null
           proveedor_id?: string | null
+          rating?: number | null
+          reviews_count?: number | null
           sku_interno: string
           stock_fisico?: number
           stock_status?: Database["public"]["Enums"]["stock_status"]
@@ -949,6 +1081,7 @@ export type Database = {
           categoria_id?: string | null
           costo_base_excel?: number | null
           created_at?: string
+          currency_code?: string | null
           descripcion_corta?: string | null
           descripcion_larga?: string | null
           dimensiones_cm?: Json | null
@@ -961,8 +1094,14 @@ export type Database = {
           nombre?: string
           peso_kg?: number | null
           precio_mayorista?: number
+          precio_promocional?: number | null
           precio_sugerido_venta?: number | null
+          promo_active?: boolean | null
+          promo_ends_at?: string | null
+          promo_starts_at?: string | null
           proveedor_id?: string | null
+          rating?: number | null
+          reviews_count?: number | null
           sku_interno?: string
           stock_fisico?: number
           stock_status?: Database["public"]["Enums"]["stock_status"]
@@ -1499,6 +1638,14 @@ export type Database = {
         Returns: boolean
       }
       is_admin: { Args: { _user_id: string }; Returns: boolean }
+      is_promo_active: {
+        Args: {
+          p_promo_active: boolean
+          p_promo_ends_at: string
+          p_promo_starts_at: string
+        }
+        Returns: boolean
+      }
       is_seller: { Args: { _user_id: string }; Returns: boolean }
       match_products: {
         Args: {
@@ -1510,6 +1657,7 @@ export type Database = {
           categoria_id: string | null
           costo_base_excel: number | null
           created_at: string
+          currency_code: string | null
           descripcion_corta: string | null
           descripcion_larga: string | null
           dimensiones_cm: Json | null
@@ -1522,8 +1670,14 @@ export type Database = {
           nombre: string
           peso_kg: number | null
           precio_mayorista: number
+          precio_promocional: number | null
           precio_sugerido_venta: number | null
+          promo_active: boolean | null
+          promo_ends_at: string | null
+          promo_starts_at: string | null
           proveedor_id: string | null
+          rating: number | null
+          reviews_count: number | null
           sku_interno: string
           stock_fisico: number
           stock_status: Database["public"]["Enums"]["stock_status"]
