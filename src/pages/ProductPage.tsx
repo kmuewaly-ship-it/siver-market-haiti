@@ -492,6 +492,8 @@ const ProductPage = () => {
   }
   const displayPrice = isB2BUser ? costB2B : product.precio_venta;
   return <div className="min-h-screen bg-gray-50 font-sans">
+      {/* Desktop Header */}
+      {!isMobile && <GlobalHeader />}
 
       {/* Sticky Nav Tabs: reemplaza la barra de categorías */}
       {!isMobile && showStickyNav && <div className="sticky top-0 z-40 bg-white border-b py-2 shadow-sm animate-fade-in">

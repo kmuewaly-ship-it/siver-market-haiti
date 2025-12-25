@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useGroupedVariants, ProductVariant } from "@/hooks/useProductVariants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +25,12 @@ const VariantSelector = ({
 }: VariantSelectorProps) => {
   const { grouped, variants, isLoading } = useGroupedVariants(productId);
   const [selections, setSelections] = useState<Record<string, number>>({});
+  const onSelectionChangeRef = useRef(onSelectionChange);
+  
+  // Keep ref updated
+  useEffect(() => {
+    onSelectionChangeRef.current = onSelectionChange;
+  }, [onSelectionChange]);
 
   // Calculate totals
   const totalQty = Object.values(selections).reduce((sum, qty) => sum + qty, 0);
@@ -34,15 +40,15 @@ const VariantSelector = ({
     return sum + price * qty;
   }, 0) || 0;
 
-  // Notify parent of changes
+  // Notify parent of changes - using ref to avoid dependency loop
   useEffect(() => {
-    if (onSelectionChange && variants) {
+    if (onSelectionChangeRef.current && variants) {
       const selectionsList = Object.entries(selections)
         .filter(([_, qty]) => qty > 0)
         .map(([variantId, quantity]) => ({ variantId, quantity }));
-      onSelectionChange(selectionsList, totalQty, totalPrice);
+      onSelectionChangeRef.current(selectionsList, totalQty, totalPrice);
     }
-  }, [selections, totalQty, totalPrice, onSelectionChange, variants]);
+  }, [selections, totalQty, totalPrice, variants]);
 
   const updateQuantity = (variantId: string, delta: number, variant: ProductVariant) => {
     setSelections((prev) => {
