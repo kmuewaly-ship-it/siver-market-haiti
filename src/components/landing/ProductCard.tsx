@@ -24,6 +24,12 @@ interface Product {
   pvp?: number;
   moq?: number;
   stock?: number;
+  // Promo fields from database
+  precio_promocional?: number | null;
+  promo_active?: boolean | null;
+  promo_starts_at?: string | null;
+  promo_ends_at?: string | null;
+  currency_code?: string | null;
 }
 
 interface ProductB2BData {
@@ -53,19 +59,44 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
   const moq = b2bData?.moq || product.moq || 1;
   
   const profit = pvp - costB2B;
-  // const profitPercentage = costB2B > 0 ? Math.round((profit / costB2B) * 100) : 0;
+  
+  // Check if promo is active using database fields
+  const isPromoActive = (): boolean => {
+    if (!product.promo_active || !product.precio_promocional) return false;
+    const now = new Date();
+    const startsAt = product.promo_starts_at ? new Date(product.promo_starts_at) : null;
+    const endsAt = product.promo_ends_at ? new Date(product.promo_ends_at) : null;
+    
+    if (startsAt && now < startsAt) return false;
+    if (endsAt && now > endsAt) return false;
+    return true;
+  };
+  
+  const promoActive = isPromoActive();
+  const promoPrice = promoActive ? product.precio_promocional : null;
+  const currency = product.currency_code || 'USD';
 
-  const discountPercentage = product.originalPrice
-    ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
-    : product.discount || 0;
+  // Calculate discount percentage for promo or legacy
+  const discountPercentage = promoActive && promoPrice && product.price > promoPrice
+    ? Math.round(((product.price - promoPrice) / product.price) * 100)
+    : product.originalPrice
+      ? Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)
+      : product.discount || 0;
 
   // Precio a mostrar según rol
-  const displayPrice = isSeller ? costB2B : product.price;
+  // B2C: si hay promo activa, mostrar precio promo, sino precio normal
+  // Seller: precio B2B
+  const displayPrice = isSeller 
+    ? costB2B 
+    : (promoActive && promoPrice ? promoPrice : product.price);
   
   // Precio tachado/referencia
   // Si es seller: mostramos PVP tachado
-  // Si es cliente: mostramos originalPrice tachado
-  const strikethroughPrice = isSeller ? pvp : product.originalPrice;
+  // Si es cliente B2C con promo: mostramos precio original tachado
+  // Si es cliente sin promo: mostramos originalPrice si existe
+  const strikethroughPrice = isSeller 
+    ? pvp 
+    : (promoActive && promoPrice ? product.price : product.originalPrice);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -91,10 +122,10 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
             </div>
           )}
 
-          {/* Discount Badge - Solo para B2C */}
+          {/* Promo/Discount Badge - Solo para B2C */}
           {!isSeller && discountPercentage > 0 && (
-            <div className="absolute top-2 left-2 bg-[#071d7f] text-white px-2 py-1 rounded text-xs font-bold z-10">
-              {discountPercentage}% DESC
+            <div className={`absolute top-2 left-2 ${promoActive ? 'bg-red-600' : 'bg-[#071d7f]'} text-white px-2 py-1 rounded text-xs font-bold z-10`}>
+              {promoActive ? `🔥 ${discountPercentage}% OFF` : `${discountPercentage}% DESC`}
             </div>
           )}
 
@@ -158,10 +189,10 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
           {/* Precios */}
           <Link to={product.sku ? `/producto/${product.sku}` : '#'}>
             <div className="flex items-baseline gap-2 flex-wrap hover:opacity-80 transition-opacity">
-              {/* Price badge with color #94111f and currency (default USD) */}
+              {/* Price badge with currency from database */}
               <span className="inline-flex items-center gap-1 bg-[#fff5f6] border border-[#f2dede] px-2 py-0.5 rounded-md">
                 <span className="text-[#94111f] font-bold text-base">${displayPrice.toFixed(2)}</span>
-                <span className="text-[10px] font-medium text-[#94111f]">USD</span>
+                <span className="text-[10px] font-medium text-[#94111f]">{currency}</span>
               </span>
               
               {isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
