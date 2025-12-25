@@ -13,6 +13,8 @@ import { useProductVariants } from "@/hooks/useProductVariants";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 import VariantSelector from "@/components/products/VariantSelector";
+import VariantDrawer from '@/components/products/VariantDrawer';
+import useVariantDrawerStore from '@/stores/useVariantDrawerStore';
 import ProductReviews from "@/components/products/ProductReviews";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -671,36 +673,44 @@ const ProductPage = () => {
 
               {/* Variant Selector - Uses database variants */}
               <div className="mt-3">
+                {/* The VariantDrawer handles variant selection & add-to-cart flow. Open it via store */}
                 <h4 className="text-sm font-semibold text-gray-800 mb-2">Variaciones</h4>
-                <VariantSelector productId={product.source_product?.id || product.id} basePrice={isB2BUser ? costB2B : product.precio_venta} isB2B={isB2BUser} onSelectionChange={(selections, totalQty, totalPrice) => {
-              // Update variations state for cart integration
-              setVariations(selections.map(s => ({
-                id: s.variantId,
-                label: s.variantId,
-                quantity: s.quantity
-              })));
-            }} />
-                
-                {/* Fallback simple selector if no DB variants */}
-                {variations.length === 0 && <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
-                    <div className="flex items-center justify-between gap-4">
-                      <div className="text-sm text-gray-700">Cantidad</div>
-                      <div className="flex items-center gap-2">
-                        <button onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))} disabled={quantity <= minQuantity} className="px-2 py-0.5 border rounded bg-white text-gray-700">
-                          −
-                        </button>
-                        <div className="w-10 text-center text-sm font-medium">{quantity}</div>
-                        <button onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity} className="px-2 py-0.5 border rounded bg-white text-gray-700">
-                          +
-                        </button>
-                      </div>
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
+                  <div className="flex items-center justify-between gap-4">
+                    <div className="text-sm text-gray-700">Cantidad</div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setQuantity(Math.max(minQuantity, quantity - 1))} disabled={quantity <= minQuantity} className="px-2 py-0.5 border rounded bg-white text-gray-700">
+                        −
+                      </button>
+                      <div className="w-10 text-center text-sm font-medium">{quantity}</div>
+                      <button onClick={() => setQuantity(Math.min(maxQuantity, quantity + 1))} disabled={quantity >= maxQuantity} className="px-2 py-0.5 border rounded bg-white text-gray-700">
+                        +
+                      </button>
                     </div>
-                    <div className="mt-3">
-                      <Button onClick={handleAddToCart} className="w-full h-10 text-sm font-semibold">
-                        {isB2BUser ? 'Agregar al Pedido' : 'Agregar al Carrito'}
-                      </Button>
-                    </div>
-                  </div>}
+                  </div>
+                  <div className="mt-3">
+                    <Button onClick={() => useVariantDrawerStore.getState().open({
+                      id: product.id,
+                      sku: product.sku,
+                      nombre: product.nombre,
+                      images: images,
+                      price: isB2BUser ? costB2B : product.precio_venta,
+                      costB2B: costB2B,
+                      moq: moq,
+                      stock: isB2BUser ? stockB2B : product.stock,
+                      source_product_id: product.source_product?.id,
+                    }, () => {
+                      // onComplete: scroll to recommendations
+                      if (recsRef.current) {
+                        const offset = isMobile ? 72 : 64;
+                        const top = recsRef.current.getBoundingClientRect().top + window.scrollY - offset;
+                        window.scrollTo({ top, behavior: 'smooth' });
+                      }
+                    })} className="w-full h-10 text-sm font-semibold">
+                      {isB2BUser ? 'Agregar al Pedido' : 'Agregar al Carrito'}
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               {/* Mobile Tabs (compact, scrollable) */}
@@ -796,7 +806,7 @@ const ProductPage = () => {
           </div>
         </div>
 
-        {/* Related Products */}
+          {/* Related Products */}
         {relatedProducts.length > 0 && <div className="mt-12">
             <h2 className="text-xl font-bold text-gray-900 mb-6">Productos Relacionados</h2>
             <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
@@ -818,6 +828,9 @@ const ProductPage = () => {
             </div>
           </div>}
       </main>
+
+      {/* Variant Drawer portal */}
+      <VariantDrawer />
 
       {/* Mobile Sticky Footer */}
       {isMobile && <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 safe-area-bottom">
