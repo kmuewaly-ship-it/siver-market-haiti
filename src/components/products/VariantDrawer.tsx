@@ -20,6 +20,8 @@ const VariantDrawer: React.FC = () => {
 
   const { user, role } = useAuth();
   const b2bCart = useB2BCartSupabase();
+  const b2cCart = useB2CCartSupabase();
+  const localCart = useCart();
   const { toast } = useToast();
 
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;

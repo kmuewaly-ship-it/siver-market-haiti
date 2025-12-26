@@ -32,6 +32,8 @@ interface Product {
   promo_starts_at?: string | null;
   promo_ends_at?: string | null;
   currency_code?: string | null;
+  // Source product reference
+  source_product_id?: string;
 }
 
 interface ProductB2BData {
