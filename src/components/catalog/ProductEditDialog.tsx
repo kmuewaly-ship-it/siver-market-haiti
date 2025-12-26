@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Upload, Trash2, Image as ImageIcon, Package, DollarSign, Ruler, History, X, Cpu } from 'lucide-react';
+import { Loader2, Upload, Trash2, Image as ImageIcon, Package, DollarSign, Ruler, History, X, Cpu, Layers } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -21,6 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 import EmbeddingService from '@/services/ai/embeddingService';
+import VariantManager from './VariantManager';
 
 interface ProductEditDialogProps {
   productId: string;
@@ -293,10 +294,14 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <Tabs defaultValue="general" className="w-full">
-              <TabsList className="w-full grid grid-cols-4">
+              <TabsList className="w-full grid grid-cols-5">
                 <TabsTrigger value="general" className="gap-1">
                   <Package className="h-4 w-4" />
                   General
+                </TabsTrigger>
+                <TabsTrigger value="variants" className="gap-1">
+                  <Layers className="h-4 w-4" />
+                  Variantes
                 </TabsTrigger>
                 <TabsTrigger value="pricing" className="gap-1">
                   <DollarSign className="h-4 w-4" />
@@ -425,6 +430,16 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
                     </FormItem>
                   )}
                 />
+              </TabsContent>
+
+              <TabsContent value="variants" className="space-y-4 mt-4">
+                {product && (
+                  <VariantManager 
+                    productId={productId} 
+                    productSku={product.sku_interno}
+                    basePrice={product.precio_mayorista}
+                  />
+                )}
               </TabsContent>
 
               <TabsContent value="pricing" className="space-y-4 mt-4">
