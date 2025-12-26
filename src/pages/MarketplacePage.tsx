@@ -251,8 +251,21 @@ const MarketplacePage = () => {
       {isMobile && selectedProduct && (
         <ProductBottomSheet 
           isOpen={isSheetOpen} 
-          onOpenChange={setIsSheetOpen}
-          product={selectedProduct}
+          onClose={() => setIsSheetOpen(false)}
+          product={{
+            id: selectedProduct.id,
+            name: selectedProduct.nombre,
+            price: selectedProduct.precio_venta,
+            image: Array.isArray(selectedProduct.images) && selectedProduct.images.length > 0 
+              ? selectedProduct.images[0] as string 
+              : '',
+            sku: selectedProduct.sku,
+            stock: selectedProduct.stock,
+            priceB2B: selectedProduct.precio_costo,
+            pvp: selectedProduct.precio_venta,
+            moq: 1,
+            source_product_id: selectedProduct.source_product?.id,
+          }}
         />
       )}
 

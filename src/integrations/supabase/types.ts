@@ -688,6 +688,47 @@ export type Database = {
           },
         ]
       }
+      order_refunds: {
+        Row: {
+          amount: number
+          completed_at: string | null
+          id: string
+          order_id: string
+          reason: string | null
+          requested_at: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          amount?: number
+          completed_at?: string | null
+          id?: string
+          order_id: string
+          reason?: string | null
+          requested_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          amount?: number
+          completed_at?: string | null
+          id?: string
+          order_id?: string
+          reason?: string | null
+          requested_at?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_b2b"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders_b2b: {
         Row: {
           buyer_id: string | null
@@ -1400,6 +1441,8 @@ export type Database = {
           phone: string | null
           updated_at: string
           user_id: string | null
+          verification_badge_active: boolean | null
+          verification_date: string | null
         }
         Insert: {
           business_name?: string | null
@@ -1411,6 +1454,8 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string | null
+          verification_badge_active?: boolean | null
+          verification_date?: string | null
         }
         Update: {
           business_name?: string | null
@@ -1422,6 +1467,8 @@ export type Database = {
           phone?: string | null
           updated_at?: string
           user_id?: string | null
+          verification_badge_active?: boolean | null
+          verification_date?: string | null
         }
         Relationships: []
       }
@@ -1497,6 +1544,11 @@ export type Database = {
       }
       stores: {
         Row: {
+          account_holder: string | null
+          account_number: string | null
+          account_type: string | null
+          allow_comments: boolean | null
+          bank_name: string | null
           banner: string | null
           city: string | null
           country: string | null
@@ -1505,17 +1557,26 @@ export type Database = {
           facebook: string | null
           id: string
           instagram: string | null
+          is_accepting_orders: boolean | null
           is_active: boolean | null
           logo: string | null
           metadata: Json | null
           name: string
           owner_user_id: string
+          return_policy: string | null
+          shipping_policy: string | null
+          show_stock: boolean | null
           slug: string | null
           tiktok: string | null
           updated_at: string | null
           whatsapp: string | null
         }
         Insert: {
+          account_holder?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          allow_comments?: boolean | null
+          bank_name?: string | null
           banner?: string | null
           city?: string | null
           country?: string | null
@@ -1524,17 +1585,26 @@ export type Database = {
           facebook?: string | null
           id?: string
           instagram?: string | null
+          is_accepting_orders?: boolean | null
           is_active?: boolean | null
           logo?: string | null
           metadata?: Json | null
           name: string
           owner_user_id: string
+          return_policy?: string | null
+          shipping_policy?: string | null
+          show_stock?: boolean | null
           slug?: string | null
           tiktok?: string | null
           updated_at?: string | null
           whatsapp?: string | null
         }
         Update: {
+          account_holder?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          allow_comments?: boolean | null
+          bank_name?: string | null
           banner?: string | null
           city?: string | null
           country?: string | null
@@ -1543,11 +1613,15 @@ export type Database = {
           facebook?: string | null
           id?: string
           instagram?: string | null
+          is_accepting_orders?: boolean | null
           is_active?: boolean | null
           logo?: string | null
           metadata?: Json | null
           name?: string
           owner_user_id?: string
+          return_policy?: string | null
+          shipping_policy?: string | null
+          show_stock?: boolean | null
           slug?: string | null
           tiktok?: string | null
           updated_at?: string | null
@@ -1593,6 +1667,39 @@ export type Database = {
           name?: string
           notes?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      user_notification_preferences: {
+        Row: {
+          created_at: string | null
+          email_notifications: boolean | null
+          id: string
+          order_notifications: boolean | null
+          promotional_emails: boolean | null
+          updated_at: string | null
+          user_id: string
+          whatsapp_notifications: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          order_notifications?: boolean | null
+          promotional_emails?: boolean | null
+          updated_at?: string | null
+          user_id: string
+          whatsapp_notifications?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          email_notifications?: boolean | null
+          id?: string
+          order_notifications?: boolean | null
+          promotional_emails?: boolean | null
+          updated_at?: string | null
+          user_id?: string
+          whatsapp_notifications?: boolean | null
         }
         Relationships: []
       }
