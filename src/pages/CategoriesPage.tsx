@@ -45,17 +45,9 @@ const CategoriesPage = () => {
   const selectedRoot = categories.find(c => c.id === selectedRootId);
   const selectedSecondary = categories.find(c => c.id === selectedSecondaryId);
 
-  // Auto-select first root category on load if none selected
-  useEffect(() => {
-    if (rootCategories.length > 0 && !selectedRootId) {
-      // Use replace to avoid adding to history
-      setSearchParams({ cat: rootCategories[0].id }, { replace: true });
-    }
-  }, [rootCategories, selectedRootId, setSearchParams]);
-
   // Auto-select first secondary when root changes
   useEffect(() => {
-    if (secondaryCategories.length > 0) {
+    if (selectedRootId && secondaryCategories.length > 0) {
       setSelectedSecondaryId(secondaryCategories[0].id);
     } else {
       setSelectedSecondaryId(null);

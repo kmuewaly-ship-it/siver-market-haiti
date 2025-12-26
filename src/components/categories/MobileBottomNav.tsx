@@ -45,7 +45,7 @@ const MobileBottomNav = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-[9999] bg-[#ffdcdc] border-t border-gray-200 lg:hidden shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)]">
-      <div className="flex items-center justify-around h-14 px-1">
+      <div className="flex items-center justify-around h-12 px-1 bg-[#fff3f3]">
         {navItems.map((item) => {
           const isActive = location.pathname === item.href || 
             (item.href === "/categorias" && location.pathname.startsWith("/categoria"));
@@ -58,14 +58,15 @@ const MobileBottomNav = () => {
               to={item.href}
               className={cn(
                 "flex flex-col items-center justify-center gap-0.5 min-w-[60px] h-full",
-                "transition-colors"
+                "transition-colors",
+                isActive ? "bg-[#071d7f]" : ""
               )}
             >
               <div className="relative">
                 <IconComponent 
                   className={cn(
                     "w-5 h-5",
-                    isActive ? "text-gray-900" : "text-gray-500"
+                    isActive ? "text-white" : "text-gray-500"
                   )} 
                   strokeWidth={isActive ? 2 : 1.5}
                 />
@@ -80,7 +81,7 @@ const MobileBottomNav = () => {
               </div>
               <span className={cn(
                 "text-[10px]",
-                isActive ? "text-gray-900 font-medium" : "text-gray-500"
+                isActive ? "text-white font-medium" : "text-gray-500"
               )}>
                 {item.label}
               </span>

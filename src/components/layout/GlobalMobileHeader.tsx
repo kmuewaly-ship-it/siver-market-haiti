@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
-import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package, Eye, EyeOff, User } from "lucide-react";
+import { Mail, Search, Heart, X, Loader2, Mic, MicOff, Camera, ShoppingBag, Package, Eye, EyeOff, User, Home } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -200,11 +200,12 @@ const GlobalMobileHeader = ({
   const urlParams = new URLSearchParams(location.search);
   const selectedCatParam = urlParams.get('cat');
   
+  // Selected category: null means "Todo" is selected (only on /categorias without cat param)
   const selectedCategory = isCategoriesPage 
-    ? selectedCatParam 
+    ? selectedCatParam || null
     : categorySlug 
       ? categories.find(c => c.slug === categorySlug)?.id || null 
-      : null;
+      : undefined;  // undefined = not on categories/category page, don't show selection
   
   const handleCategorySelect = (categoryId: string | null) => {
     if (categoryId === null) {
@@ -218,6 +219,11 @@ const GlobalMobileHeader = ({
       // On other pages, navigate to categories page with filter
       navigate(`/categorias?cat=${categoryId}`);
     }
+  };
+
+  const handleClearFilters = () => {
+    // Navega a /categorias sin parámetros para limpiar todos los filtros
+    navigate('/categorias', { replace: true });
   };
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -336,7 +342,7 @@ const GlobalMobileHeader = ({
   const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-[#071d7f] hover:bg-[#071d7f]/90";
   return <header className="bg-[#ffdcdc] sticky top-0 z-40">
       {/* Top search bar */}
-      <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="flex items-center gap-3 px-3 py-2.5 bg-[#fff3f3]">
         {/* Logo/Icon - cambia según el modo */}
         {showB2BStyle ? (
           <button className="relative flex-shrink-0">
@@ -429,17 +435,22 @@ const GlobalMobileHeader = ({
       </div>
 
       {/* Category tabs - horizontal scroll with dynamic background */}
-      <div className="overflow-x-auto scrollbar-hide border-b border-gray-200">
+      <div className="overflow-x-auto scrollbar-hide border-b border-gray-200 bg-[#071d7f]">
         <div className="flex px-2 py-2 gap-1 min-w-max">
           <button
-            onClick={() => handleCategorySelect(null)}
+            onClick={() => navigate("/")}
+            className="px-3 py-1.5 text-white hover:bg-white/20 rounded-full transition-all flex items-center justify-center"
+            title="Ir a inicio"
+          >
+            <Home className="w-4 h-4" />
+          </button>
+          <button
+            onClick={() => handleClearFilters()}
             className={cn(
               "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all",
               selectedCategory === null
-                ? showB2BStyle 
-                  ? "bg-blue-600 text-white font-medium"
-                  : "bg-[#071d7f] text-white font-medium"
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                ? "bg-white text-[#071d7f] font-medium"
+                : "bg-white text-[#94111f] hover:bg-gray-100"
             )}
           >
             Todo
@@ -451,10 +462,8 @@ const GlobalMobileHeader = ({
               className={cn(
                 "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all",
                 selectedCategory === cat.id
-                  ? showB2BStyle 
-                    ? "bg-blue-600 text-white font-medium"
-                    : "bg-[#071d7f] text-white font-medium"
-                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                  ? "bg-white text-[#071d7f] font-medium"
+                  : "bg-white text-[#94111f] hover:bg-gray-100"
               )}
             >
               {cat.name}

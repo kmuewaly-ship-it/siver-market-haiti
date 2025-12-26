@@ -1,4 +1,4 @@
-import { Heart, Package, Store, TrendingUp } from "lucide-react";
+import { Heart, Package, Store, TrendingUp, ShoppingCart, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useSmartCart } from "@/hooks/useSmartCart";
@@ -169,6 +169,18 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
             </div>
           )}
 
+          {/* Review Rating Badge - Link to Reviews */}
+          <Link 
+            to={product.sku ? `/producto/${product.sku}#reviews` : '#'} 
+            onClick={(e) => {
+              e.stopPropagation();
+            }}
+            className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-white/70 hover:bg-white/90 text-gray-900 text-[9px] rounded flex items-center gap-0.5 z-10 shadow-md border border-[#29892a] transition-all"
+          >
+            <span className="text-yellow-400 text-[10px]">★</span>
+            <span className="font-bold text-[9px]">5.0</span>
+          </Link>
+
           {/* Favorite Button */}
           <button
             onClick={(e) => {
@@ -190,7 +202,7 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
       {/* Product Info */}
       <div className="p-3 flex flex-col flex-1">
         <Link to={product.sku ? `/producto/${product.sku}` : '#'}>
-          <h3 className="text-sm font-medium text-foreground line-clamp-2 mb-1 hover:text-primary transition h-10">
+          <h3 className="text-sm font-medium text-foreground line-clamp-1 mb-1 hover:text-primary transition h-5">
             {product.name}
           </h3>
         </Link>
@@ -202,38 +214,50 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
           </div>
         )}
 
-        <div className="mt-auto space-y-2">
-          {/* Precios */}
-          <Link to={product.sku ? `/producto/${product.sku}` : '#'}>
-            <div className="flex items-baseline gap-2 flex-wrap hover:opacity-80 transition-opacity">
-              {/* Price badge with currency from database */}
-              <span className="inline-flex items-center gap-1 bg-[#fff5f6] border border-[#f2dede] px-2 py-0.5 rounded-md">
-                <span className="text-[#94111f] font-bold text-base">${displayPrice.toFixed(2)}</span>
-                <span className="text-[10px] font-medium text-[#94111f]">{currency}</span>
+        {/* Precios */}
+        <Link to={product.sku ? `/producto/${product.sku}` : '#'}>
+          <div className="flex items-baseline gap-2 flex-wrap hover:opacity-80 transition-opacity mb-3">
+            {/* Price badge with currency from database */}
+            <span className="inline-flex items-center gap-1 bg-[#ef481b] border border-[#ef481b] px-1 py-0.5 rounded-md animate-pulse">
+              <span className="text-white font-bold text-xs">${displayPrice.toFixed(2)}</span>
+              <span className="text-[7px] font-medium text-white">{currency}</span>
+            </span>
+            
+            {isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
+              <span className="text-[9px] text-green-600 font-semibold">
+                ${strikethroughPrice.toFixed(2)} PVP
               </span>
-              
-              {isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
-                <span className="text-xs text-green-600 font-semibold">
-                  ${strikethroughPrice.toFixed(2)} PVP
-                </span>
-              )}
-              {!isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
-                <span className="text-xs text-muted-foreground line-through">
-                  ${strikethroughPrice.toFixed(2)}
-                </span>
-              )}
-            </div>
-          </Link>
+            )}
+            {!isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
+              <span className="text-[9px] text-muted-foreground line-through">
+                ${strikethroughPrice.toFixed(2)}
+              </span>
+            )}
+          </div>
+        </Link>
 
+        {/* Action Buttons - Footer */}
+        <div className="mt-auto flex items-center gap-1.5 pt-3">
+          {/* WhatsApp Contact Button */}
+          <a
+            href={product.storeWhatsapp ? `https://wa.me/${product.storeWhatsapp.replace(/\D/g, '')}` : '#'}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded-lg transition shadow-sm flex items-center justify-center bg-green-500 hover:bg-green-600 text-white"
+            title="Contactar por WhatsApp"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-3.5 h-3.5">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+            </svg>
+          </a>
+          
+          {/* Cart Button */}
           <button 
             onClick={handleAddToCart}
-            className={`w-full py-2 rounded-lg text-sm font-medium transition shadow-sm ${
-              isSeller 
-                ? "bg-primary hover:bg-primary/90 text-white" 
-                : "bg-primary hover:bg-primary/90 text-white"
-            }`}
+            className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition shadow-sm flex items-center justify-center gap-1 bg-primary hover:bg-primary/90 text-white`}
           >
-            {isSeller ? "Comprar B2B" : "Añadir al carrito"}
+            <ShoppingCart className="w-3.5 h-3.5" />
+            {isSeller ? "B2B" : "Carrito"}
           </button>
         </div>
       </div>

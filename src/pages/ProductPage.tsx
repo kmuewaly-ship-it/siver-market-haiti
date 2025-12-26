@@ -140,11 +140,10 @@ const ProductPage = () => {
       setShowCompactHeader(shouldShow);
       setShowStickyNav(shouldShow);
 
-      // Detect if buy button is not visible
+      // Detect if buy button is scrolled above view (show floating cart when button disappears up)
       if (buyButtonRef.current && isMobile) {
         const buttonRect = buyButtonRef.current.getBoundingClientRect();
-        const isButtonVisible = buttonRect.bottom > 0 && buttonRect.top < window.innerHeight;
-        setShowFloatingCart(!isButtonVisible);
+        setShowFloatingCart(buttonRect.bottom < 0);
       }
     };
     window.addEventListener('scroll', handleScroll);
@@ -681,19 +680,8 @@ const ProductPage = () => {
                   </button>
                 </>}
 
-              {/* Rating overlay bottom-right */}
-              <div className="absolute bottom-4 right-4">
-                <button onClick={() => scrollToSection(reviewsRef)} className="inline-flex items-center gap-2 bg-white/90 hover:bg-white rounded-lg px-3 py-1 shadow-md border border-gray-100">
-                  <Star className="w-4 h-4 text-yellow-400" />
-                  <div className="text-sm text-gray-800 font-medium leading-none">
-                    {(product as any).rating ? (product as any).rating.toFixed ? (product as any).rating.toFixed(1) : (product as any).rating : '0.0'}
-                    <div className="text-xs text-gray-500">({(product as any).reviews ?? 0})</div>
-                  </div>
-                  <ChevronRight className="w-4 h-4 text-gray-400" />
-                </button>
-              </div>
               {/* B2B Profit Badge Overlay */}
-              {isB2BUser && businessSummary && businessSummary.profitPerUnit > 0 && <div className="absolute top-4 left-4">
+              {isB2BUser && businessSummary && businessSummary.profitPerUnit > 0 && <div className="absolute top-4 left-4 animate-blink">
                   <Badge className="bg-green-600 hover:bg-green-700 text-white border-none px-3 py-1.5 shadow-lg flex gap-1.5 items-center text-sm">
                     <TrendingUp className="w-4 h-4" />
                     Ganas ${businessSummary.profitPerUnit.toFixed(2)}/u
@@ -723,9 +711,13 @@ const ProductPage = () => {
                   </Badge> : <Badge variant="secondary" className="bg-gray-100 text-gray-700">
                     Nuevo
                   </Badge>}
-                {product.store && <Link to={`/tienda/${product.store.id}`} className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-medium hover:bg-purple-100 transition-colors">
+                {product.store && <Link to={`/tienda/${product.store.id}`} className="inline-flex items-center gap-2 px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 text-xs font-medium hover:bg-purple-100 transition-colors">
                     <StoreIcon className="w-3 h-3" />
                     {product.store.name}
+                    <div className="flex items-center gap-0.5 ml-1 pl-1 border-l border-purple-200">
+                      <Star className="w-3 h-3 fill-yellow-400 text-yellow-400" />
+                      <span className="font-semibold">5.0</span>
+                    </div>
                   </Link>}
               </div>
 

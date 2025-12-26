@@ -269,6 +269,12 @@ const CategoryProductsPage = () => {
                       <img src={image} alt={name} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" loading="lazy" />
                       {discount && <div className="absolute top-2 left-2 bg-[#071d7f] text-white px-2 py-1 rounded text-xs font-bold">-{discount}%</div>}
                       {badge && <div className="absolute top-2 right-2 bg-blue-500 text-white px-2 py-1 rounded text-xs font-bold">{badge}</div>}
+                      
+                      {/* Review Rating Badge */}
+                      <div className="absolute bottom-2 right-2 px-1.5 py-0.5 bg-white/70 hover:bg-white/90 text-gray-900 text-[9px] rounded flex items-center gap-0.5 z-10 shadow-md border border-[#29892a] transition-all cursor-pointer" onClick={(e) => { e.stopPropagation(); navigate(`/producto/${sku}#reviews`); }}>
+                        <span className="text-yellow-400 text-[10px]">★</span>
+                        <span className="font-bold text-[9px]">5.0</span>
+                      </div>
                     </div>
 
                     <div className="p-4 flex-1 flex flex-col">

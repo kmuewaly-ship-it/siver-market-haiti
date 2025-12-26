@@ -85,7 +85,7 @@ const Index = () => {
 
         {/* Productos Destacados */}
         <ProductCarousel
-          title="🔥 PRODUCTOS DESTACADOS"
+          title="Productos destacados"
           products={featuredProducts}
           itemsPerView={5}
           isLoading={isLoading}

@@ -107,23 +107,6 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
 
   return (
     <>
-      {/* Botón flotante */}
-      <button
-        onClick={onToggle}
-        className="fixed bottom-24 right-6 z-40 text-white rounded-full p-4 shadow-2xl flex items-center justify-center transition-all duration-300 hover:scale-110"
-        style={{ backgroundColor: '#071d7f' }}
-      >
-        <ShoppingCart className="w-6 h-6" />
-        {cart.totalItems > 0 && (
-          <span 
-            className="absolute -top-1 -right-1 text-white text-xs font-bold rounded-full w-6 h-6 flex items-center justify-center"
-            style={{ backgroundColor: '#071d7f' }}
-          >
-            {cart.totalItems}
-          </span>
-        )}
-      </button>
-
       {/* Sidebar */}
       {isOpen && (
         <div className="fixed inset-0 z-50 bg-black/40" onClick={onToggle} />

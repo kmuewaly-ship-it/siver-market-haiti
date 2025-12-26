@@ -55,23 +55,30 @@ const ProductCarousel = ({
 
   if (isLoading) {
     return (
-      <section className="container mx-auto px-4 py-12">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-            {title}
-          </h2>
-        </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="bg-card rounded-lg overflow-hidden">
-              <Skeleton className="aspect-[3/4] w-full" />
-              <div className="p-3 space-y-2">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-2/3" />
-                <Skeleton className="h-8 w-full" />
-              </div>
+      <section className="w-full">
+        {/* Box Container */}
+        <div className="bg-[#fff3f3] border-2 border-gray-300 shadow-sm">
+          {/* Header */}
+          <div className="bg-gray-100 px-4 py-1 border-b border-gray-200">
+            <h2 className="text-sm font-bold text-foreground">
+              {title}
+            </h2>
+          </div>
+          {/* Content */}
+          <div className="p-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+              {Array.from({ length: 5 }).map((_, i) => (
+                <div key={i} className="bg-card rounded-lg overflow-hidden">
+                  <Skeleton className="aspect-[3/4] w-full" />
+                  <div className="p-3 space-y-2">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-8 w-full" />
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
         </div>
       </section>
     );
@@ -82,45 +89,50 @@ const ProductCarousel = ({
   }
 
   return (
-    <section className="container mx-auto px-4 py-12">
-      {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-foreground">
-          {title}
-        </h2>
-        <a href={linkTo} className="text-primary hover:text-primary/80 font-medium">
-          Ver Todo →
-        </a>
-      </div>
-
-      {/* Carousel Container */}
-      <div className="relative">
-        {/* Left Arrow */}
-        {currentIndex > 0 && (
-          <button
-            onClick={() => scroll("left")}
-            className="absolute -left-4 top-1/2 transform -translate-y-1/2 z-10 bg-muted hover:bg-muted/80 p-2 rounded-full transition"
-          >
-            <ChevronLeft className="w-5 h-5 text-foreground" />
-          </button>
-        )}
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4 overflow-hidden">
-          {visibleProducts.map((product) => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+    <section className="w-full">
+      {/* Box Container */}
+      <div className="bg-[#fff3f3] border-2 border-gray-300 shadow-sm">
+        {/* Header */}
+        <div className="bg-gray-100 px-4 py-0 border-b border-gray-200">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xs font-bold text-foreground">
+              {title}
+            </h2>
+            <a href={linkTo} className="inline-flex items-center justify-center w-6 h-6 border-2 border-[#94111f] rounded hover:bg-[#94111f]/10 transition">
+              <ChevronRight className="w-3 h-3 text-[#94111f]" />
+            </a>
+          </div>
         </div>
 
-        {/* Right Arrow */}
-        {currentIndex < products.length - itemsPerView && (
-          <button
-            onClick={() => scroll("right")}
-            className="absolute -right-4 top-1/2 transform -translate-y-1/2 z-10 bg-muted hover:bg-muted/80 p-2 rounded-full transition"
-          >
-            <ChevronRight className="w-5 h-5 text-foreground" />
-          </button>
-        )}
+        {/* Carousel Container */}
+        <div className="relative p-2">
+          {/* Left Arrow */}
+          {currentIndex > 0 && (
+            <button
+              onClick={() => scroll("left")}
+              className="absolute -left-2 top-1/2 transform -translate-y-1/2 z-10 bg-muted hover:bg-muted/80 p-2 rounded-full transition"
+            >
+              <ChevronLeft className="w-5 h-5 text-foreground" />
+            </button>
+          )}
+
+          {/* Products Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 overflow-hidden">
+            {visibleProducts.map((product) => (
+              <ProductCard key={product.id} product={product} />
+            ))}
+          </div>
+
+          {/* Right Arrow */}
+          {currentIndex < products.length - itemsPerView && (
+            <button
+              onClick={() => scroll("right")}
+              className="absolute -right-2 top-1/2 transform -translate-y-1/2 z-10 bg-muted hover:bg-muted/80 p-2 rounded-full transition"
+            >
+              <ChevronRight className="w-5 h-5 text-foreground" />
+            </button>
+          )}
+        </div>
       </div>
     </section>
   );

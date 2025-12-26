@@ -95,27 +95,7 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
           )}
         </div>
 
-        {/* Mobile Action Buttons on Image */}
-        {isMobile && !isOutOfStock && (
-          <div className="absolute top-2 right-2 flex flex-col gap-2">
-            <Button
-              size="icon"
-              variant="outline"
-              className="h-8 w-8 rounded-full border-green-600 text-green-600 bg-white/90 hover:bg-green-50 shadow-sm"
-              onClick={handleWhatsApp}
-            >
-              <MessageCircle className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              className="h-8 w-8 rounded-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm"
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-            >
-              <ShoppingCart className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+
 
         {isOutOfStock && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
@@ -169,55 +149,27 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         <div className="flex-1"></div>
 
         {/* Actions Row */}
-        <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100">
-          {/* Quantity Selector - Compact */}
-          <div className="flex items-center border border-gray-200 rounded-md h-8 bg-white">
-            <button
-              onClick={() => setCantidad(Math.max(product.moq, cantidad - 1))}
-              disabled={isOutOfStock || cantidad <= product.moq}
-              className="px-2 h-full text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center justify-center"
-            >
-              -
-            </button>
-            <input
-              type="number"
-              value={cantidad}
-              onChange={(e) => setCantidad(Math.max(product.moq, parseInt(e.target.value) || product.moq))}
-              className="w-10 text-center text-xs border-none p-0 h-full focus:ring-0"
-              disabled={isOutOfStock}
-            />
-            <button
-              onClick={() => setCantidad(Math.min(product.stock_fisico, cantidad + 1))}
-              disabled={isOutOfStock || cantidad >= product.stock_fisico}
-              className="px-2 h-full text-gray-500 hover:bg-gray-50 disabled:opacity-30 flex items-center justify-center"
-            >
-              +
-            </button>
-          </div>
-
-          {/* Desktop Action Buttons */}
-          {!isMobile && (
-            <div className="flex gap-2 flex-1 justify-end">
-              <Button
-                variant="outline"
-                size="sm"
-                className="h-8 px-3 text-xs font-medium border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-600 transition-colors"
-                onClick={handleWhatsApp}
-              >
-                <MessageCircle className="w-3.5 h-3.5 mr-1.5" />
-                Contactar
-              </Button>
-              <Button
-                size="sm"
-                className="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
-                onClick={handleAddToCart}
-                disabled={isOutOfStock}
-              >
-                <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-                Comprar B2B
-              </Button>
-            </div>
-          )}
+        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-gray-100">
+          {/* Contact Button - Left */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-8 w-8 p-0 rounded-lg border-emerald-500 text-emerald-600 hover:bg-emerald-50 hover:border-emerald-600 transition-colors"
+            onClick={handleWhatsApp}
+          >
+            <MessageCircle className="w-4 h-4" />
+          </Button>
+          
+          {/* B2B Button - Right */}
+          <Button
+            size="sm"
+            className="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
+            onClick={handleAddToCart}
+            disabled={isOutOfStock}
+          >
+            <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
+            B2B
+          </Button>
         </div>
       </div>
       <ProductBottomSheet 

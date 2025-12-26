@@ -111,6 +111,10 @@ export default {
           "50%": { transform: "translateX(8px) rotateZ(0deg)" },
           "100%": { transform: "translateX(0) rotateZ(180deg)" },
         },
+        "blink": {
+          "0%, 49%": { opacity: "1" },
+          "50%, 100%": { opacity: "0.5" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -118,6 +122,7 @@ export default {
         "cart-shake": "cart-shake 0.4s ease-in-out",
         "heart-shake": "heart-shake 0.6s ease-in-out",
         "float-horizontal": "float-horizontal 4s ease-in-out infinite",
+        "blink": "blink 1.5s ease-in-out infinite",
       },
     },
   },
