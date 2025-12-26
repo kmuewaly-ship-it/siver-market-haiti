@@ -106,12 +106,18 @@ export default {
           "60%": { transform: "scale(1.05) rotate(2deg)" },
           "75%": { transform: "scale(1) rotate(0deg)" },
         },
+        "float-horizontal": {
+          "0%": { transform: "translateX(0) rotateZ(-180deg)" },
+          "50%": { transform: "translateX(8px) rotateZ(0deg)" },
+          "100%": { transform: "translateX(0) rotateZ(180deg)" },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
         "cart-shake": "cart-shake 0.4s ease-in-out",
         "heart-shake": "heart-shake 0.6s ease-in-out",
+        "float-horizontal": "float-horizontal 4s ease-in-out infinite",
       },
     },
   },

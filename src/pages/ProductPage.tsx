@@ -22,7 +22,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronRight, ChevronLeft, ShoppingCart, Heart, Store as StoreIcon, Package, TrendingUp, Calculator, Shield, Truck, RotateCcw, Award, MessageCircle, Zap, Info, Star } from "lucide-react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+} from "@/components/ui/drawer";
+import { ChevronRight, ChevronLeft, ShoppingCart, Heart, Store as StoreIcon, Package, TrendingUp, Calculator, Shield, Truck, RotateCcw, Award, MessageCircle, Zap, Info, Star, X, ArrowLeft, Search, Share2, MoreVertical } from "lucide-react";
 
 // Hook to fetch product from both seller_catalog and products table
 const useProductBySku = (sku: string | undefined) => {
@@ -102,21 +108,48 @@ const ProductPage = () => {
   // Sticky nav state
   const [showStickyNav, setShowStickyNav] = useState(false);
   const [isBottomSheetOpen, setIsBottomSheetOpen] = useState(false);
+  const [showCompactHeader, setShowCompactHeader] = useState(false);
+  const [showFloatingCart, setShowFloatingCart] = useState(false);
   const imageRef = useRef<HTMLDivElement>(null);
   const descRef = useRef<HTMLDivElement>(null);
   const reviewsRef = useRef<HTMLDivElement>(null);
   const recsRef = useRef<HTMLDivElement>(null);
+  const buySection = useRef<HTMLDivElement>(null);
+  const buyButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Detect scroll past image
+  // Get isMobile hook early (needed for useEffect)
+  const isMobile = useIsMobile();
+
+  // Detect scroll to buy section and past image - consolidated handler
   useEffect(() => {
     const handleScroll = () => {
-      if (!imageRef.current) return;
-      const rect = imageRef.current.getBoundingClientRect();
-      setShowStickyNav(rect.bottom <= 64); // 64px header height
+      let shouldShow = false;
+
+      // Check if buy section is visible
+      if (buySection.current) {
+        const buyRect = buySection.current.getBoundingClientRect();
+        shouldShow = buyRect.top <= 500;
+      }
+
+      // Also check if scrolled past image
+      if (imageRef.current) {
+        const imageRect = imageRef.current.getBoundingClientRect();
+        shouldShow = shouldShow || imageRect.bottom <= 64;
+      }
+
+      setShowCompactHeader(shouldShow);
+      setShowStickyNav(shouldShow);
+
+      // Detect if buy button is not visible
+      if (buyButtonRef.current && isMobile) {
+        const buttonRect = buyButtonRef.current.getBoundingClientRect();
+        const isButtonVisible = buttonRect.bottom > 0 && buttonRect.top < window.innerHeight;
+        setShowFloatingCart(!isButtonVisible);
+      }
     };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  }, [isMobile]);
 
   // Scroll to section
   const scrollToSection = (ref: React.RefObject<HTMLDivElement>) => {
@@ -139,7 +172,6 @@ const ProductPage = () => {
   const {
     toast
   } = useToast();
-  const isMobile = useIsMobile();
   const { isFavorite, toggleFavorite } = useFavorites();
 
   // Determine if user is B2B (Seller)
@@ -177,6 +209,7 @@ const ProductPage = () => {
   };
   const [variations, setVariations] = useState<Variation[]>([]);
   const [showBottomSheet, setShowBottomSheet] = useState(false);
+  const [isDescriptionDrawerOpen, setIsDescriptionDrawerOpen] = useState(false);
 
   // Derive variations from product fields (flexible: soporta varias estructuras)
   useEffect(() => {
@@ -506,13 +539,96 @@ const ProductPage = () => {
   }
   const displayPrice = isB2BUser ? costB2B : product.precio_venta;
   return <div className="min-h-screen bg-gray-50 font-sans">
+      {/* Mobile Header Hide - Apply to body via style */}
+      {isMobile && showCompactHeader && (
+        <style>{`header { display: none !important; }`}</style>
+      )}
+
       {/* Desktop Header */}
       {!isMobile && <GlobalHeader />}
+
+      {/* Mobile Header - Hidden when compact header shows */}
+      {isMobile && !showCompactHeader && <GlobalHeader />}
+
+      {/* tabsstickyHeader - Compact Header + Sticky Tabs (Mobile) */}
+      {isMobile && showCompactHeader && (
+        <div className="sticky top-0 z-50">
+          {/* Compact Search Header */}
+          <div className="bg-[#071d7f] border-b border-gray-300 px-3 py-1.5 flex items-center justify-between gap-2">
+            <button onClick={() => navigate(-1)} className="flex-shrink-0 p-1.5 hover:bg-white/10 rounded">
+              <ArrowLeft className="w-5 h-5 text-white" />
+            </button>
+            
+            {/* Search Bar with Product Name */}
+            <div className="flex-1 min-w-0 bg-white/20 rounded-full px-3 py-1 flex items-center gap-2">
+              <Search className="w-4 h-4 text-white/70 flex-shrink-0" />
+              <input
+                type="text"
+                placeholder={product?.nombre || "Buscar..."}
+                defaultValue={product?.nombre || ""}
+                className="flex-1 bg-transparent text-sm text-white placeholder-white/60 outline-none"
+                readOnly
+              />
+            </div>
+
+            <button 
+              onClick={() => {
+                if (product) {
+                  toggleFavorite({
+                    id: product.id,
+                    name: product.nombre,
+                    price: isB2BUser ? product.precio_costo : product.precio_venta,
+                    image: images[0] || '',
+                    sku: product.sku,
+                  });
+                }
+              }}
+              className="flex-shrink-0 p-1.5 hover:bg-white/10 rounded"
+            >
+              <Heart className={`w-5 h-5 ${product && isFavorite(product.id) ? 'fill-red-400 text-red-400' : 'text-white'}`} />
+            </button>
+
+            <button className="flex-shrink-0 p-1.5 hover:bg-white/10 rounded">
+              <Share2 className="w-5 h-5 text-white" />
+            </button>
+
+            <button className="flex-shrink-0 p-1.5 hover:bg-white/10 rounded">
+              <MoreVertical className="w-5 h-5 text-white" />
+            </button>
+          </div>
+
+          {/* Sticky Tabs */}
+          <div role="tablist" aria-label="Product sections mobile" className="bg-white border-b py-2 shadow-sm animate-fade-in px-4 flex gap-1 flex-wrap justify-center">
+            <div className="w-auto rounded-md border border-[#071d7f] bg-white px-2 py-1 flex gap-1 flex-nowrap items-center justify-start">
+              <button id="tab-desc-mobile" role="tab" aria-selected={activeTab === 'desc'} aria-controls="section-desc" tabIndex={activeTab === 'desc' ? 0 : -1} onClick={() => {
+                setActiveTab('desc');
+                scrollToSection(descRef);
+              }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'desc' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
+                Descripción
+              </button>
+
+              <button id="tab-reviews-mobile" role="tab" aria-selected={activeTab === 'reviews'} aria-controls="section-reviews" tabIndex={activeTab === 'reviews' ? 0 : -1} onClick={() => {
+                setActiveTab('reviews');
+                scrollToSection(reviewsRef);
+              }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'reviews' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
+                Valoraciones
+              </button>
+
+              <button id="tab-recs-mobile" role="tab" aria-selected={activeTab === 'recs'} aria-controls="section-recs" tabIndex={activeTab === 'recs' ? 0 : -1} onClick={() => {
+                setActiveTab('recs');
+                scrollToSection(recsRef);
+              }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'recs' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
+                Recomendados
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Sticky Nav Tabs: reemplaza la barra de categorías */}
       {!isMobile && showStickyNav && <div className="sticky top-0 z-40 bg-white border-b py-2 shadow-sm animate-fade-in">
           <div role="tablist" aria-label="Product sections" className="max-w-3xl mx-auto w-full px-2 py-1 flex items-center justify-center">
-            <div className="w-full max-w-md mx-auto rounded-md border border-[#071d7f] bg-white px-2 py-1 flex items-center justify-center gap-1">
+            <div className="w-auto rounded-md border border-[#071d7f] bg-white px-2 py-1 flex items-center justify-center gap-1">
               <button id="tab-desc" role="tab" aria-selected={activeTab === 'desc'} aria-controls="section-desc" tabIndex={activeTab === 'desc' ? 0 : -1} onClick={() => {
             setActiveTab('desc');
             scrollToSection(descRef);
@@ -537,7 +653,7 @@ const ProductPage = () => {
           </div>
         </div>}
 
-      <main className={`container mx-auto ${isMobile ? 'px-0 pb-52' : 'px-4 pb-12'} py-4`}>
+      <main className={`container mx-auto ${isMobile ? 'px-0 pb-12' : 'px-4 pb-12'} py-4`}>
         {/* Breadcrumb */}
         
 
@@ -633,7 +749,7 @@ const ProductPage = () => {
             </div>
 
             {/* Price Section */}
-            <div className={`p-2 rounded-md ${isB2BUser ? 'bg-gradient-to-br from-blue-50 to-indigo-50 border border-blue-100' : 'bg-gray-50'}`}>
+            <div className={`p-2 rounded-md ${isB2BUser ? 'bg-white' : 'bg-gray-50'}`}>
               <div className="flex items-baseline gap-2 flex-wrap justify-between">
                 {/* Price area: promo price (left badge) + original price (right, struck) with discount badge */}
                 {(() => {
@@ -666,7 +782,7 @@ const ProductPage = () => {
                         </>}
                     </div>;
               })()}
-                {isB2BUser && <span className="text-xs font-medium text-blue-600 bg-blue-100 px-2 py-0.5 rounded">
+                {isB2BUser && <span className="text-xs font-medium text-white bg-[#94111f] px-2 py-0.5 rounded animate-bounce">
                     B2B
                   </span>}
               </div>
@@ -674,7 +790,7 @@ const ProductPage = () => {
               {isB2BUser && <div className="mt-2 flex items-center gap-3 text-xs text-gray-600">
                   <div className="flex items-center gap-1.5">
                     <span className="text-green-600 font-bold">${pvp.toFixed(2)}</span>
-                    <span className="text-xs bg-green-100 px-1 py-0.5 rounded text-green-700 font-bold">PVP</span>
+                    <span className="text-xs bg-[#29892a] px-1 py-0.5 rounded text-white font-bold animate-bounce">PVP</span>
                   </div>
                   <div className="h-4 w-px bg-gray-300"></div>
                   <div className="text-green-600 font-medium">
@@ -684,7 +800,7 @@ const ProductPage = () => {
             </div>
 
               {/* Variant Selector - Uses database variants */}
-              <div className="mt-3">
+              <div className="mt-3" ref={buySection}>
                 {/* Open ProductBottomSheet on mobile, VariantDrawer on desktop */}
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-100">
                   <div className="mt-3 flex items-center gap-3">
@@ -724,7 +840,8 @@ const ProductPage = () => {
                           }
                         });
                       }
-                    }} className="w-auto px-3 h-10 text-sm font-semibold flex items-center gap-2">
+                    }} className="w-auto px-3 h-10 text-sm font-semibold flex items-center gap-2"
+                    ref={buyButtonRef}>
                       <ShoppingCart className="w-4 h-4" />
                       {isB2BUser ? 'Comprar B2B' : 'Comprar'}
                     </Button>
@@ -732,38 +849,60 @@ const ProductPage = () => {
                 </div>
               </div>
 
-              {/* Mobile Tabs (compact, scrollable) */}
-              {isMobile && <div role="tablist" aria-label="Product sections mobile" className="mt-3 px-4 flex gap-1 flex-wrap">
-                  <div className="w-full rounded-md border border-[#071d7f] bg-white px-2 py-1 flex gap-1 flex-nowrap items-center justify-start">
-                    <button id="tab-desc-mobile" role="tab" aria-selected={activeTab === 'desc'} aria-controls="section-desc" tabIndex={activeTab === 'desc' ? 0 : -1} onClick={() => {
-                setActiveTab('desc');
-                scrollToSection(descRef);
-              }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'desc' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
-                    Descripción
-                  </button>
-
-                  <button id="tab-reviews-mobile" role="tab" aria-selected={activeTab === 'reviews'} aria-controls="section-reviews" tabIndex={activeTab === 'reviews' ? 0 : -1} onClick={() => {
-                setActiveTab('reviews');
-                scrollToSection(reviewsRef);
-              }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'reviews' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
-                    Valoraciones
-                  </button>
-
-                  <button id="tab-recs-mobile" role="tab" aria-selected={activeTab === 'recs'} aria-controls="section-recs" tabIndex={activeTab === 'recs' ? 0 : -1} onClick={() => {
-                setActiveTab('recs');
-                scrollToSection(recsRef);
-              }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'recs' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
-                    Recomendados
-                  </button>
-                  </div>
-                </div>}
-
-
             {/* Description */}
-            <div id="section-desc" ref={descRef} className="prose prose-sm max-w-none text-gray-600 scroll-mt-20">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Descripción</h3>
-              <p className="whitespace-pre-line">{product.descripcion}</p>
-            </div>
+            {isMobile ? (
+              <div className="mt-10 scroll-mt-20">
+                <Button
+                  onClick={() => setIsDescriptionDrawerOpen(true)}
+                  variant="outline"
+                  className="w-full border-2 text-sm font-semibold"
+                  style={{ borderColor: '#94111f', color: '#94111f' }}
+                >
+                  Ver Descripción
+                </Button>
+              </div>
+            ) : (
+              <div id="section-desc" ref={descRef} className="scroll-mt-20">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Descripción</h3>
+                <div 
+                  className="border-2 rounded-lg p-4 bg-white"
+                  style={{ borderColor: '#94111f' }}
+                >
+                  <p className="text-sm text-gray-700 whitespace-pre-line prose prose-sm max-w-none text-gray-600">
+                    {product?.descripcion}
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* Description Drawer for Mobile */}
+            <Drawer open={isDescriptionDrawerOpen} onOpenChange={setIsDescriptionDrawerOpen}>
+              <DrawerContent className="max-h-[50vh] h-[50vh]">
+                <div className="mx-auto w-full max-w-sm flex flex-col h-[45vh]">
+                  <DrawerHeader className="flex-shrink-0 flex items-center justify-between">
+                    <DrawerTitle className="text-lg font-bold">Descripción del Producto</DrawerTitle>
+                    <button
+                      onClick={() => setIsDescriptionDrawerOpen(false)}
+                      className="p-1.5 rounded-md hover:bg-gray-100 transition-colors"
+                      style={{ backgroundColor: '#94111f', color: 'white' }}
+                      aria-label="Close description"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </DrawerHeader>
+                  <div className="flex-1 overflow-y-auto px-4 pb-6">
+                    <div 
+                      className="border-2 rounded-lg p-4 bg-white"
+                      style={{ borderColor: '#94111f' }}
+                    >
+                      <p className="text-sm text-gray-700 whitespace-pre-line">
+                        {product?.descripcion}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </DrawerContent>
+            </Drawer>
 
             {/* Valoraciones - Using ProductReviews component */}
             <div id="section-reviews" ref={reviewsRef} className="mt-10 scroll-mt-20">
@@ -824,46 +963,17 @@ const ProductPage = () => {
       {/* Variant Drawer portal */}
       <VariantDrawer />
 
-      {/* Mobile Sticky Footer */}
-      {isMobile && <div className="fixed bottom-14 left-0 right-0 bg-white border-t border-gray-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] z-40 safe-area-bottom">
-          {isB2BUser ?
-      // B2B Mobile Footer
-      <div className="p-4 space-y-3">
-              {/* Investment Summary */}
-              <div className="flex justify-between items-center text-sm">
-                <div>
-                  <p className="text-gray-500 text-xs">Inversión Total</p>
-                  <p className="font-bold text-gray-900 text-lg">${businessSummary?.investment.toFixed(2)}</p>
-                </div>
-                <div className="text-right">
-                  <p className="text-green-600 text-xs font-medium">Tu Ganancia</p>
-                  <p className="font-bold text-green-600 text-lg">+${businessSummary?.estimatedProfit.toFixed(2)}</p>
-                </div>
-              </div>
-              
-              <div className="flex gap-3">
-                {/* Quantity Selector Compact */}
-                <button onClick={() => setIsBottomSheetOpen(true)} className="flex items-center border border-gray-300 rounded-lg h-12 bg-gray-50 hover:bg-gray-100">
-                  <button onClick={(e) => { e.stopPropagation(); handleQuantityChange(quantity - 1); }} disabled={quantity <= minQuantity} className="px-3 h-full text-gray-600 disabled:opacity-30">
-                    −
-                  </button>
-                  <span className="w-8 text-center font-medium text-sm">{quantity}</span>
-                  <button onClick={(e) => { e.stopPropagation(); handleQuantityChange(quantity + 1); }} disabled={quantity >= maxQuantity} className="px-3 h-full text-gray-600 disabled:opacity-30">
-                    +
-                  </button>
-                </button>
-                
-                <Button onClick={() => setIsBottomSheetOpen(true)} className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200" disabled={(isB2BUser ? stockB2B : product.stock) === 0}>
-                  Comprar B2B
-                </Button>
-              </div>
-            </div> :
-      null
-    }
-    </div>}
-
-      {/* Variant Drawer portal */}
-      <VariantDrawer />
+      {/* Floating Cart Icon - appears when buy button is not visible */}
+      {isMobile && showFloatingCart && (
+        <button
+          onClick={() => setIsBottomSheetOpen(true)}
+          className="fixed bottom-32 right-6 z-40 bg-transparent border border-[#94111f] p-1 rounded-full shadow-lg hover:shadow-xl hover:scale-110 transition-all duration-300 active:scale-95"
+        >
+          <svg className="w-8 h-8" viewBox="0 0 24 24" fill="#29892a" xmlns="http://www.w3.org/2000/svg">
+            <path d="M7 18C5.9 18 5 18.9 5 20s.9 2 2 2 2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.16.12-.33.12-.5 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-2 .9-2 2s.9 2 2 2 2-.9 2-2-.9-2-2-2z"/>
+          </svg>
+        </button>
+      )}
 
       {/* ProductBottomSheet for mobile */}
       {isMobile && product && (

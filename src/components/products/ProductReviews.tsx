@@ -8,7 +8,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, ThumbsUp, Trash2, User, MessageSquare } from "lucide-react";
+import { Star, ThumbsUp, Trash2, User, MessageSquare, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -17,6 +17,17 @@ interface ProductReviewsProps {
   productId: string;
   productName?: string;
 }
+
+// Función para ofuscar email: j***o@email.com
+const obfuscateEmail = (email: string): string => {
+  if (!email) return "";
+  const [localPart, domain] = email.split("@");
+  if (localPart.length <= 1) return email;
+  const firstChar = localPart[0];
+  const lastChar = localPart[localPart.length - 1];
+  const asterisks = "*".repeat(Math.max(1, localPart.length - 2));
+  return `${firstChar}${asterisks}${lastChar}@${domain}`;
+};
 
 const StarRating = ({
   rating,
@@ -71,65 +82,47 @@ const ReviewCard = ({
   onDelete: (reviewId: string) => void;
 }) => {
   const isOwner = currentUserId === review.user_id;
+  const displayName = review.user_email ? obfuscateEmail(review.user_email) : review.user_name;
 
   return (
-    <Card className="border-border/50">
-      <CardContent className="p-4">
-        <div className="flex items-start gap-3">
-          <Avatar className="h-10 w-10">
-            <AvatarImage src={review.user_avatar} />
-            <AvatarFallback>
-              <User className="h-5 w-5" />
-            </AvatarFallback>
-          </Avatar>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <div>
-                <p className="font-medium text-sm text-foreground">
-                  {review.user_name}
-                </p>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <StarRating rating={review.rating} size="sm" />
-                  {review.is_verified_purchase && (
-                    <span className="text-xs text-green-600 font-medium">
-                      ✓ Compra verificada
-                    </span>
-                  )}
-                </div>
-              </div>
-              <span className="text-xs text-muted-foreground whitespace-nowrap">
-                {format(new Date(review.created_at), "d MMM yyyy", { locale: es })}
-              </span>
-            </div>
+    <div className="border-b pb-4 last:border-b-0">
+      <div className="flex items-start gap-3">
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <p className="font-medium text-sm text-foreground">
+              {displayName}
+            </p>
+            <span className="text-xs text-gray-500 whitespace-nowrap">
+              {format(new Date(review.created_at), "MMM d, yyyy", { locale: es })}
+            </span>
+          </div>
+          
+          <div className="flex items-center gap-2 mb-2">
+            <StarRating rating={review.rating} size="sm" />
+          </div>
 
-            {review.title && (
-              <h4 className="font-semibold text-sm mt-2">{review.title}</h4>
-            )}
-            {review.comment && (
-              <p className="text-sm text-muted-foreground mt-1">
-                {review.comment}
-              </p>
-            )}
+          {review.title && (
+            <p className="text-sm text-gray-600 mb-1">{review.title}</p>
+          )}
 
-            <div className="flex items-center gap-3 mt-3">
-              <button className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
-                <ThumbsUp className="h-3 w-3" />
-                <span>Útil ({review.helpful_count})</span>
-              </button>
-              {isOwner && (
-                <button
-                  onClick={() => onDelete(review.id)}
-                  className="flex items-center gap-1 text-xs text-destructive hover:text-destructive/80 transition-colors"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span>Eliminar</span>
-                </button>
-              )}
-            </div>
+          {review.comment && (
+            <p className="text-sm text-gray-700 mb-2 line-clamp-3">
+              {review.comment}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3 mt-2">
+            <button className="flex items-center gap-1 text-xs text-gray-600 hover:text-foreground transition-colors">
+              <ThumbsUp className="h-4 w-4" />
+              <span>Útil ({review.helpful_count})</span>
+            </button>
+            <button className="text-gray-600 hover:text-foreground">
+              <span className="text-xl">⋯</span>
+            </button>
           </div>
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 };
 
@@ -183,35 +176,76 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Stats Summary */}
-      <div className="flex flex-col md:flex-row gap-6 p-4 bg-muted/30 rounded-lg">
-        <div className="flex flex-col items-center justify-center md:border-r md:pr-6">
-          <div className="text-4xl font-bold text-foreground">
-            {stats.averageRating.toFixed(1)}
-          </div>
-          <StarRating rating={stats.averageRating} size="md" />
-          <p className="text-sm text-muted-foreground mt-1">
-            {stats.totalReviews} reseña{stats.totalReviews !== 1 ? "s" : ""}
-          </p>
-        </div>
+    <div className="space-y-6 bg-gray-50 rounded-lg p-4">
+      {/* Header con Ver todo */}
+      <div className="flex items-center justify-between">
+        <h3 className="text-xl font-bold text-gray-900">Comentarios ({stats.totalReviews}+)</h3>
+        <button className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+          Ver todo <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
 
-        <div className="flex-1 space-y-1">
-          {[5, 4, 3, 2, 1].map((star) => {
-            const count = stats.distribution[star] || 0;
-            const percent = stats.totalReviews > 0 ? (count / stats.totalReviews) * 100 : 0;
-            return (
-              <div key={star} className="flex items-center gap-2">
-                <span className="text-xs w-3 text-muted-foreground">{star}</span>
-                <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-                <Progress value={percent} className="h-2 flex-1" />
-                <span className="text-xs w-6 text-muted-foreground text-right">
-                  {count}
-                </span>
+      {/* Stats Summary - Diseño compacto */}
+      <div className="bg-gray-100 rounded-lg p-4">
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          {/* Rating Promedio */}
+          <div className="flex items-start gap-3">
+            <div>
+              <div className="text-3xl font-bold text-gray-900">
+                {stats.averageRating.toFixed(2)}
               </div>
-            );
-          })}
+              <StarRating rating={stats.averageRating} size="sm" />
+            </div>
+          </div>
+
+          {/* Atributos de calidad */}
+          <div className="flex flex-col gap-2 col-span-2 md:col-span-1">
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-600">Ajuste</span>
+              <span className="font-bold text-gray-900">4.23</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-600">Comodidad</span>
+              <span className="font-bold text-gray-900">4.40</span>
+            </div>
+            <div className="flex justify-between text-xs">
+              <span className="text-gray-600">Calidad</span>
+              <span className="font-bold text-gray-900">4.24</span>
+            </div>
+          </div>
+
+          {/* Taller/Size info */}
+          <div className="col-span-2 md:col-span-1 flex items-center gap-2 text-xs">
+            <span>👕</span>
+            <span className="text-gray-600">Taller</span>
+          </div>
         </div>
+      </div>
+
+      {/* Reseñas locales */}
+      <div className="flex items-center justify-between p-3 bg-gray-100 rounded-lg">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-bold text-gray-900">Reseñas locales</span>
+          <span className="font-bold text-gray-900">4.94</span>
+          <div className="flex gap-0.5">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="w-3 h-3 text-yellow-400 fill-yellow-400" />
+            ))}
+          </div>
+        </div>
+        <button className="text-gray-600 hover:text-gray-900">
+          <ChevronRight className="w-4 h-4" />
+        </button>
+      </div>
+
+      {/* Keywords/Chips */}
+      <div className="flex flex-wrap gap-2">
+        <span className="px-3 py-1 bg-yellow-50 border border-yellow-200 rounded-full text-xs text-gray-700">
+          lo volveré a comprar (10)
+        </span>
+        <span className="px-3 py-1 bg-yellow-50 border border-yellow-200 rounded-full text-xs text-gray-700">
+          elaborado con buen material (100+)
+        </span>
       </div>
 
       {/* Add Review Button / Form */}
@@ -310,24 +344,23 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
       )}
 
       {/* Reviews List */}
-      <div className="space-y-3">
+      <div className="space-y-4">
         {reviews && reviews.length > 0 ? (
-          reviews.map((review) => (
-            <ReviewCard
-              key={review.id}
-              review={review}
-              currentUserId={user?.id}
-              onDelete={handleDelete}
-            />
-          ))
+          <>
+            {reviews.slice(0, 3).map((review) => (
+              <ReviewCard
+                key={review.id}
+                review={review}
+                currentUserId={user?.id}
+                onDelete={handleDelete}
+              />
+            ))}
+          </>
         ) : (
           <div className="text-center py-8">
-            <MessageSquare className="h-12 w-12 text-muted-foreground/50 mx-auto mb-3" />
-            <p className="text-muted-foreground">
+            <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+            <p className="text-gray-500">
               Aún no hay reseñas para este producto
-            </p>
-            <p className="text-sm text-muted-foreground">
-              ¡Sé el primero en compartir tu opinión!
             </p>
           </div>
         )}

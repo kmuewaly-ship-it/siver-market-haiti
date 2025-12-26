@@ -18,6 +18,7 @@ export interface ProductReview {
   // Joined data
   user_name?: string;
   user_avatar?: string;
+  user_email?: string;
 }
 
 export interface ReviewStats {

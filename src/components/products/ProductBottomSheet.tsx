@@ -8,7 +8,7 @@ import VariantSelector from './VariantSelector';
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, ShoppingCart, TrendingUp, DollarSign, Package } from "lucide-react";
+import { Minus, Plus, ShoppingCart, TrendingUp, DollarSign, Package, X } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -30,6 +30,7 @@ interface Product {
   storeId?: string;
   storeName?: string;
   storeWhatsapp?: string;
+  description?: string;
   // B2B fields
   priceB2B?: number;
   pvp?: number;
@@ -58,6 +59,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
   const b2bCart = useCartB2B();
   const [quantity, setQuantity] = useState(1);
   const [selections, setSelections] = useState<any[]>([]);
+  const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
 
   const isSeller = user?.role === UserRole.SELLER;
 
@@ -169,8 +171,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       <DrawerContent className="max-h-[90vh]">
         {product ? (
         <div className="mx-auto w-full max-w-sm flex flex-col max-h-[85vh]">
-          <DrawerHeader className="flex-shrink-0 pb-2">
-            <div className="flex gap-3 items-start text-left">
+          <DrawerHeader className="flex-shrink-0 pb-2 flex items-center justify-between">
+            <div className="flex gap-3 items-start text-left flex-1">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                 <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
               </div>
@@ -184,6 +186,14 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 </div>
               </div>
             </div>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-md hover:bg-gray-100 transition-colors flex-shrink-0"
+              style={{ backgroundColor: '#94111f', color: 'white' }}
+              aria-label="Close product sheet"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </DrawerHeader>
 
           <div className="px-4 pb-2 overflow-y-auto flex-1">
@@ -197,57 +207,30 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               />
             </div>
 
-            {/* Total Quantity Display - show sum of all variant quantities */}
-            {selections.length > 0 && (() => {
-              const totalVariantQty = selections.reduce((sum, v) => sum + (v.quantity || 0), 0);
-              const isUnderMOQ = isSeller && totalVariantQty < moq;
-              
-              return (
-                <div className="mb-4 sm:mb-6">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs sm:text-sm font-medium text-gray-700">Cantidad Total:</span>
-                    <div className="px-4 py-2 bg-gray-100 rounded-md">
-                      <span className="text-sm sm:text-base font-bold text-gray-900">{totalVariantQty}</span>
-                    </div>
-                  </div>
-                  {isUnderMOQ && (
-                    <p className="text-xs sm:text-sm text-red-600 font-medium">
-                      ⚠️ Cantidad mínima requerida: {moq} unidades. Faltan {moq - totalVariantQty} unidades.
-                    </p>
-                  )}
+            {/* Buy Button - always visible */}
+            <div className="flex items-center justify-between gap-3 mb-4 sm:mb-6">
+              <Badge className="bg-white text-foreground hover:bg-white border-2 w-auto px-3 py-2 h-10 flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm font-medium" style={{ borderColor: '#071d7f' }}>
+                <Package className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary" />
+                <span>{quantity} uds</span>
+                <div className="text-base sm:text-lg font-bold" style={{ color: '#29892a' }}>
+                  ${(currentPrice * quantity).toFixed(2)}
                 </div>
-              );
-            })()}
-
-            {/* Quantity Selector - only show when no variant selections */}
-            {selections.length === 0 && (
-              <div className="flex items-center justify-between mb-4 sm:mb-6">
-                <span className="text-xs sm:text-sm font-medium text-gray-700">Cantidad:</span>
-                <div className="flex items-center border border-gray-200 rounded-md">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-none"
-                    onClick={() => handleQuantityChange(-1)}
-                    disabled={quantity <= 1}
-                  >
-                    <Minus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </Button>
-                  <div className="w-12 sm:w-16 text-center text-sm sm:text-base font-medium">
-                    {quantity}
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8 sm:h-10 sm:w-10 rounded-none"
-                    onClick={() => handleQuantityChange(1)}
-                    disabled={quantity >= stock}
-                  >
-                    <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                  </Button>
-                </div>
-              </div>
-            )}
+              </Badge>
+              <Button 
+                onClick={() => handleAddToCart(selections.length > 0 ? selections : selectedVariations)} 
+                className="w-auto px-3 py-2 h-10 text-sm font-semibold flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white shadow-lg shadow-blue-200" 
+                disabled={(() => {
+                  if (stock === 0) return true;
+                  if (isSeller && selections.length === 0) {
+                    return quantity < moq;
+                  }
+                  return false;
+                })()}
+              >
+                <ShoppingCart className="w-4 h-4" style={{ color: '#29892a' }} />
+                {isSeller ? 'Comprar B2B' : 'Comprar'}
+              </Button>
+            </div>
 
             {/* B2B Business Panel - compact for mobile */}
             {isSeller && (
@@ -284,30 +267,19 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 Envío calculado en el checkout.
               </div>
             )}
-          </div>
 
-          <DrawerFooter className="pb-6 sm:pb-8 pt-2 flex-shrink-0">
-            <Button 
-              onClick={() => handleAddToCart(selections.length > 0 ? selections : selectedVariations)} 
-              className="h-12 px-6 bg-blue-600 hover:bg-blue-700 text-white font-bold shadow-lg shadow-blue-200 md:hidden" 
-              disabled={(() => {
-                if (stock === 0) return true;
-                if (isSeller && selections.length > 0) {
-                  const totalVariantQty = selections.reduce((sum, v) => sum + (v.quantity || 0), 0);
-                  return totalVariantQty < moq;
-                }
-                if (isSeller && selections.length === 0) {
-                  return quantity < moq;
-                }
-                return false;
-              })()}
-            >
-              {isSeller ? 'Comprar B2B' : 'Comprar'}
-            </Button>
-            <DrawerClose asChild>
-              <Button variant="outline" className="h-9 sm:h-10 text-sm">Cancelar</Button>
-            </DrawerClose>
-          </DrawerFooter>
+            {/* Description Button */}
+            {product.description && (
+              <Button
+                variant="outline"
+                onClick={() => setIsDescriptionOpen(true)}
+                className="w-full mt-4 border-2 text-sm font-semibold"
+                style={{ borderColor: '#94111f', color: '#94111f' }}
+              >
+                Ver Descripción
+              </Button>
+            )}
+          </div>
         </div>
         ) : (
           <div className="py-8 text-center text-gray-500">
@@ -315,6 +287,27 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
           </div>
         )}
       </DrawerContent>
+
+      {/* Description Drawer */}
+      <Drawer open={isDescriptionOpen} onOpenChange={setIsDescriptionOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <div className="mx-auto w-full max-w-sm flex flex-col max-h-[80vh]">
+            <DrawerHeader className="flex-shrink-0">
+              <DrawerTitle className="text-lg font-bold">Descripción del Producto</DrawerTitle>
+            </DrawerHeader>
+            <div className="flex-1 overflow-y-auto px-4 pb-6">
+              <div 
+                className="border-2 rounded-lg p-4 bg-white"
+                style={{ borderColor: '#94111f' }}
+              >
+                <p className="text-sm text-gray-700 whitespace-pre-line">
+                  {product?.description}
+                </p>
+              </div>
+            </div>
+          </div>
+        </DrawerContent>
+      </Drawer>
     </Drawer>
   );
 };
