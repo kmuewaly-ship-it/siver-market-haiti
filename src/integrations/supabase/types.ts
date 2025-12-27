@@ -453,6 +453,75 @@ export type Database = {
           },
         ]
       }
+      commission_debts: {
+        Row: {
+          commission_amount: number
+          created_at: string | null
+          id: string
+          is_paid: boolean | null
+          metadata: Json | null
+          order_id: string | null
+          order_type: string | null
+          paid_at: string | null
+          paid_from_wallet: boolean | null
+          payment_method: string
+          sale_amount: number
+          seller_id: string
+          tax_amount: number | null
+          total_debt: number
+          wallet_id: string | null
+        }
+        Insert: {
+          commission_amount: number
+          created_at?: string | null
+          id?: string
+          is_paid?: boolean | null
+          metadata?: Json | null
+          order_id?: string | null
+          order_type?: string | null
+          paid_at?: string | null
+          paid_from_wallet?: boolean | null
+          payment_method: string
+          sale_amount: number
+          seller_id: string
+          tax_amount?: number | null
+          total_debt: number
+          wallet_id?: string | null
+        }
+        Update: {
+          commission_amount?: number
+          created_at?: string | null
+          id?: string
+          is_paid?: boolean | null
+          metadata?: Json | null
+          order_id?: string | null
+          order_type?: string | null
+          paid_at?: string | null
+          paid_from_wallet?: boolean | null
+          payment_method?: string
+          sale_amount?: number
+          seller_id?: string
+          tax_amount?: number | null
+          total_debt?: number
+          wallet_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_debts_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_debts_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "seller_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       credit_movements: {
         Row: {
           amount: number
@@ -633,6 +702,78 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      order_deliveries: {
+        Row: {
+          confirmed_at: string | null
+          confirmed_by: string | null
+          created_at: string | null
+          delivery_code: string
+          escrow_release_at: string | null
+          expires_at: string | null
+          funds_released: boolean | null
+          funds_released_at: string | null
+          id: string
+          metadata: Json | null
+          order_id: string
+          order_type: string
+          pickup_point_id: string | null
+          qr_code_data: string | null
+          status: string
+          updated_at: string | null
+        }
+        Insert: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          delivery_code: string
+          escrow_release_at?: string | null
+          expires_at?: string | null
+          funds_released?: boolean | null
+          funds_released_at?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id: string
+          order_type: string
+          pickup_point_id?: string | null
+          qr_code_data?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Update: {
+          confirmed_at?: string | null
+          confirmed_by?: string | null
+          created_at?: string | null
+          delivery_code?: string
+          escrow_release_at?: string | null
+          expires_at?: string | null
+          funds_released?: boolean | null
+          funds_released_at?: string | null
+          id?: string
+          metadata?: Json | null
+          order_id?: string
+          order_type?: string
+          pickup_point_id?: string | null
+          qr_code_data?: string | null
+          status?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_deliveries_confirmed_by_fkey"
+            columns: ["confirmed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_deliveries_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       order_items_b2b: {
         Row: {
@@ -834,6 +975,125 @@ export type Database = {
           total_quantity?: number
           updated_at?: string
           whatsapp_sent_at?: string | null
+        }
+        Relationships: []
+      }
+      pickup_point_staff: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          pickup_point_id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pickup_point_id: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          pickup_point_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_point_staff_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pickup_point_staff_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pickup_points: {
+        Row: {
+          address: string
+          city: string
+          country: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          manager_user_id: string | null
+          metadata: Json | null
+          name: string
+          operating_hours: Json | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          address: string
+          city: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_user_id?: string | null
+          metadata?: Json | null
+          name: string
+          operating_hours?: Json | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          address?: string
+          city?: string
+          country?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          manager_user_id?: string | null
+          metadata?: Json | null
+          name?: string
+          operating_hours?: Json | null
+          phone?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pickup_points_manager_user_id_fkey"
+            columns: ["manager_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      platform_settings: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: number
         }
         Relationships: []
       }
@@ -1356,6 +1616,60 @@ export type Database = {
           },
         ]
       }
+      seller_commission_overrides: {
+        Row: {
+          commission_fixed: number | null
+          commission_percentage: number | null
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          reason: string | null
+          seller_id: string
+          tax_tca_percentage: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          commission_fixed?: number | null
+          commission_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          seller_id: string
+          tax_tca_percentage?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          commission_fixed?: number | null
+          commission_percentage?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          seller_id?: string
+          tax_tca_percentage?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_commission_overrides_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_commission_overrides_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: true
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_credits: {
         Row: {
           activated_at: string | null
@@ -1426,6 +1740,53 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_wallets: {
+        Row: {
+          available_balance: number
+          commission_debt: number
+          created_at: string | null
+          currency: string
+          id: string
+          pending_balance: number
+          seller_id: string
+          total_earned: number
+          total_withdrawn: number
+          updated_at: string | null
+        }
+        Insert: {
+          available_balance?: number
+          commission_debt?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          pending_balance?: number
+          seller_id: string
+          total_earned?: number
+          total_withdrawn?: number
+          updated_at?: string | null
+        }
+        Update: {
+          available_balance?: number
+          commission_debt?: number
+          created_at?: string | null
+          currency?: string
+          id?: string
+          pending_balance?: number
+          seller_id?: string
+          total_earned?: number
+          total_withdrawn?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_wallets_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: true
+            referencedRelation: "sellers"
             referencedColumns: ["id"]
           },
         ]
@@ -1724,11 +2085,163 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          created_at: string | null
+          description: string | null
+          fee_amount: number | null
+          id: string
+          metadata: Json | null
+          net_amount: number
+          processed_by: string | null
+          reference_id: string | null
+          reference_type: string | null
+          release_at: string | null
+          released_at: string | null
+          status: Database["public"]["Enums"]["wallet_transaction_status"]
+          tax_amount: number | null
+          type: Database["public"]["Enums"]["wallet_transaction_type"]
+          updated_at: string | null
+          wallet_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string | null
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          metadata?: Json | null
+          net_amount: number
+          processed_by?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          release_at?: string | null
+          released_at?: string | null
+          status?: Database["public"]["Enums"]["wallet_transaction_status"]
+          tax_amount?: number | null
+          type: Database["public"]["Enums"]["wallet_transaction_type"]
+          updated_at?: string | null
+          wallet_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string | null
+          description?: string | null
+          fee_amount?: number | null
+          id?: string
+          metadata?: Json | null
+          net_amount?: number
+          processed_by?: string | null
+          reference_id?: string | null
+          reference_type?: string | null
+          release_at?: string | null
+          released_at?: string | null
+          status?: Database["public"]["Enums"]["wallet_transaction_status"]
+          tax_amount?: number | null
+          type?: Database["public"]["Enums"]["wallet_transaction_type"]
+          updated_at?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_transactions_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "wallet_transactions_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "seller_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      withdrawal_requests: {
+        Row: {
+          admin_notes: string | null
+          amount: number
+          bank_details: Json | null
+          created_at: string | null
+          currency: string
+          fee_amount: number | null
+          id: string
+          net_amount: number
+          payment_method: string
+          processed_at: string | null
+          processed_by: string | null
+          seller_id: string
+          status: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at: string | null
+          wallet_id: string
+        }
+        Insert: {
+          admin_notes?: string | null
+          amount: number
+          bank_details?: Json | null
+          created_at?: string | null
+          currency?: string
+          fee_amount?: number | null
+          id?: string
+          net_amount: number
+          payment_method: string
+          processed_at?: string | null
+          processed_by?: string | null
+          seller_id: string
+          status?: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at?: string | null
+          wallet_id: string
+        }
+        Update: {
+          admin_notes?: string | null
+          amount?: number
+          bank_details?: Json | null
+          created_at?: string | null
+          currency?: string
+          fee_amount?: number | null
+          id?: string
+          net_amount?: number
+          payment_method?: string
+          processed_at?: string | null
+          processed_by?: string | null
+          seller_id?: string
+          status?: Database["public"]["Enums"]["withdrawal_status"]
+          updated_at?: string | null
+          wallet_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "withdrawal_requests_processed_by_fkey"
+            columns: ["processed_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "withdrawal_requests_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "seller_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      generate_delivery_code: { Args: never; Returns: string }
       get_trending_products: {
         Args: { days_back?: number; limit_count?: number }
         Returns: {
@@ -1800,7 +2313,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user" | "seller"
+      app_role: "admin" | "moderator" | "user" | "seller" | "staff_pickup"
       approval_request_type:
         | "kyc_verification"
         | "referral_bonus"
@@ -1816,6 +2329,29 @@ export type Database = {
         | "pending_verification"
         | "verified"
         | "rejected"
+      wallet_transaction_status:
+        | "pending"
+        | "processing"
+        | "completed"
+        | "cancelled"
+        | "failed"
+      wallet_transaction_type:
+        | "sale_escrow"
+        | "escrow_release"
+        | "commission_charge"
+        | "tax_charge"
+        | "withdrawal_request"
+        | "withdrawal_completed"
+        | "refund"
+        | "debt_compensation"
+        | "manual_adjustment"
+      withdrawal_status:
+        | "pending"
+        | "approved"
+        | "processing"
+        | "completed"
+        | "rejected"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1943,7 +2479,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin", "moderator", "user", "seller"],
+      app_role: ["admin", "moderator", "user", "seller", "staff_pickup"],
       approval_request_type: [
         "kyc_verification",
         "referral_bonus",
@@ -1960,6 +2496,32 @@ export const Constants = {
         "pending_verification",
         "verified",
         "rejected",
+      ],
+      wallet_transaction_status: [
+        "pending",
+        "processing",
+        "completed",
+        "cancelled",
+        "failed",
+      ],
+      wallet_transaction_type: [
+        "sale_escrow",
+        "escrow_release",
+        "commission_charge",
+        "tax_charge",
+        "withdrawal_request",
+        "withdrawal_completed",
+        "refund",
+        "debt_compensation",
+        "manual_adjustment",
+      ],
+      withdrawal_status: [
+        "pending",
+        "approved",
+        "processing",
+        "completed",
+        "rejected",
+        "cancelled",
       ],
     },
   },
