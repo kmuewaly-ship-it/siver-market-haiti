@@ -322,7 +322,7 @@ const SellerMisComprasPage = () => {
                 )}
 
                 {/* Tracking Section */}
-                {(selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered') && selectedOrder.metadata?.tracking_number && (
+                {selectedOrder && (selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered') && selectedOrder.metadata?.tracking_number && (
                   <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-base flex items-center gap-2 text-purple-700">

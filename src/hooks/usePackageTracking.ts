@@ -34,6 +34,13 @@ export const usePackageTracking = (orderId: string) => {
 
   useEffect(() => {
     const fetchTracking = async () => {
+      // Don't fetch if orderId is empty
+      if (!orderId || orderId.trim() === '') {
+        setTracking(null);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setError(null);
 
@@ -65,9 +72,7 @@ export const usePackageTracking = (orderId: string) => {
       }
     };
 
-    if (orderId) {
-      fetchTracking();
-    }
+    fetchTracking();
   }, [orderId]);
 
   const updateTrackingStatus = async (
