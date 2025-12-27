@@ -11,6 +11,8 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
 import { useBuyerOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from '@/hooks/useBuyerOrders';
+import { usePackageTracking } from '@/hooks/usePackageTracking';
+import { TrackingWidget } from '@/components/tracking/TrackingWidget';
 import { 
   Package, 
   Clock, 
@@ -69,6 +71,11 @@ const SellerMisComprasPage = () => {
 
   const { data: orders, isLoading } = useBuyerOrders(statusFilter === 'all' ? undefined : statusFilter);
   const cancelOrder = useCancelBuyerOrder();
+  
+  // Package tracking
+  const { tracking, isLoading: trackingLoading, getCarrierTrackingUrl } = usePackageTracking(
+    selectedOrder?.id || ''
+  );
 
   const getStatusBadge = (status: BuyerOrderStatus) => {
     const config = statusConfig[status];
@@ -305,6 +312,15 @@ const SellerMisComprasPage = () => {
               </DialogHeader>
 
               <div className="space-y-6 mt-4">
+                {/* Package Tracking Widget */}
+                {selectedOrder && ['shipped', 'delivered'].includes(selectedOrder.status) && (
+                  <TrackingWidget 
+                    tracking={tracking}
+                    isLoading={trackingLoading}
+                    getCarrierTrackingUrl={getCarrierTrackingUrl}
+                  />
+                )}
+
                 {/* Tracking Section */}
                 {(selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered') && selectedOrder.metadata?.tracking_number && (
                   <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
