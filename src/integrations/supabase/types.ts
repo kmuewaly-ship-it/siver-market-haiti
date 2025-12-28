@@ -703,6 +703,48 @@ export type Database = {
         }
         Relationships: []
       }
+      notifications: {
+        Row: {
+          created_at: string
+          data: Json | null
+          id: string
+          is_email_sent: boolean
+          is_read: boolean
+          is_whatsapp_sent: boolean
+          message: string
+          read_at: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          is_email_sent?: boolean
+          is_read?: boolean
+          is_whatsapp_sent?: boolean
+          message: string
+          read_at?: string | null
+          title: string
+          type: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          data?: Json | null
+          id?: string
+          is_email_sent?: boolean
+          is_read?: boolean
+          is_whatsapp_sent?: boolean
+          message?: string
+          read_at?: string | null
+          title?: string
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       order_deliveries: {
         Row: {
           confirmed_at: string | null
@@ -1025,6 +1067,8 @@ export type Database = {
           created_at: string | null
           id: string
           is_active: boolean | null
+          latitude: number | null
+          longitude: number | null
           manager_user_id: string | null
           metadata: Json | null
           name: string
@@ -1039,6 +1083,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           manager_user_id?: string | null
           metadata?: Json | null
           name: string
@@ -1053,6 +1099,8 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_active?: boolean | null
+          latitude?: number | null
+          longitude?: number | null
           manager_user_id?: string | null
           metadata?: Json | null
           name?: string
