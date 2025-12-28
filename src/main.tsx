@@ -55,10 +55,56 @@ window.addEventListener('unhandledrejection', (e) => {
   showRuntimeOverlay(e.reason || 'Unhandled promise rejection');
 });
 
-createRoot(document.getElementById("root")!).render(
-  <QueryClientProvider client={queryClient}>
-    <ErrorBoundary>
-      <App />
-    </ErrorBoundary>
-  </QueryClientProvider>
-);
+// Check for required environment variables
+const checkEnvironment = () => {
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+  
+  if (!supabaseUrl || !supabaseKey) {
+    const missingVars = [];
+    if (!supabaseUrl) missingVars.push('VITE_SUPABASE_URL');
+    if (!supabaseKey) missingVars.push('VITE_SUPABASE_PUBLISHABLE_KEY');
+    
+    console.error('❌ Missing environment variables:', missingVars.join(', '));
+    return false;
+  }
+  return true;
+};
+
+// Only render if environment is valid
+if (checkEnvironment()) {
+  createRoot(document.getElementById("root")!).render(
+    <QueryClientProvider client={queryClient}>
+      <ErrorBoundary>
+        <App />
+      </ErrorBoundary>
+    </QueryClientProvider>
+  );
+} else {
+  const root = document.getElementById("root");
+  if (root) {
+    root.innerHTML = `
+      <div style="min-height: 100vh; display: flex; align-items: center; justify-content: center; background: linear-gradient(135deg, #071d7f 0%, #1e40af 100%); color: white; padding: 20px;">
+        <div style="max-width: 600px; background: rgba(0, 0, 0, 0.3); padding: 40px; border-radius: 12px; border: 2px solid rgba(255, 255, 255, 0.2);">
+          <h1 style="margin-top: 0; font-size: 28px;">⚙️ Configuración requerida</h1>
+          <p style="font-size: 16px; line-height: 1.6; margin: 20px 0;">
+            La aplicación no se pudo inicializar porque faltan variables de entorno críticas.
+          </p>
+          <div style="background: rgba(0, 0, 0, 0.5); padding: 16px; border-radius: 8px; margin: 20px 0; font-family: monospace; font-size: 14px;">
+            <p style="margin: 8px 0;">Faltantes:</p>
+            <ul style="margin: 8px 0; padding-left: 20px;">
+              <li>VITE_SUPABASE_URL</li>
+              <li>VITE_SUPABASE_PUBLISHABLE_KEY</li>
+            </ul>
+          </div>
+          <p style="font-size: 14px; color: rgba(255, 255, 255, 0.8); margin: 20px 0;">
+            Por favor, configura estas variables en tu ambiente de deployment o .env.local
+          </p>
+          <p style="font-size: 12px; color: rgba(255, 255, 255, 0.6);">
+            Abre la consola del navegador (F12) para más detalles.
+          </p>
+        </div>
+      </div>
+    `;
+  }
+}
