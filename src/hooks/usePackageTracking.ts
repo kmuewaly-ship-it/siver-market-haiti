@@ -1,5 +1,4 @@
-import { useState, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { useState } from 'react';
 
 export type TrackingStatus = 'pending' | 'in_transit' | 'out_for_delivery' | 'delivered' | 'exception';
 
@@ -27,102 +26,10 @@ export interface PackageTracking {
   updated_at: string;
 }
 
+// Mock hook - Supabase tables need to be created first
 export const usePackageTracking = (orderId: string) => {
-  const [tracking, setTracking] = useState<PackageTracking | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    const fetchTracking = async () => {
-      // Don't fetch if orderId is empty
-      if (!orderId || orderId.trim() === '') {
-        setTracking(null);
-        setIsLoading(false);
-        return;
-      }
-
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const { data, error: queryError } = await supabase
-          .from('package_tracking')
-          .select(`
-            *,
-            tracking_events(*)
-          `)
-          .eq('order_id', orderId)
-          .single();
-
-        if (queryError) {
-          if (queryError.code === 'PGRST116') {
-            // No tracking found - this is ok
-            setTracking(null);
-          } else {
-            throw queryError;
-          }
-        } else if (data) {
-          setTracking(data as PackageTracking);
-        }
-      } catch (err) {
-        console.error('Error fetching tracking:', err);
-        setError('No se pudo cargar el rastreo');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTracking();
-  }, [orderId]);
-
-  const updateTrackingStatus = async (
-    trackingId: string,
-    status: TrackingStatus,
-    location: string,
-    description: string
-  ) => {
-    try {
-      // Add event
-      const { error: eventError } = await supabase
-        .from('tracking_events')
-        .insert([{
-          package_tracking_id: trackingId,
-          status,
-          location,
-          description,
-        }]);
-
-      if (eventError) throw eventError;
-
-      // Update tracking status
-      const { error: updateError } = await supabase
-        .from('package_tracking')
-        .update({
-          current_status: status,
-          current_location: location,
-          updated_at: new Date().toISOString(),
-          is_delivered: status === 'delivered',
-        })
-        .eq('id', trackingId);
-
-      if (updateError) throw updateError;
-
-      // Refetch
-      const { data } = await supabase
-        .from('package_tracking')
-        .select('*, tracking_events(*)')
-        .eq('id', trackingId)
-        .single();
-
-      if (data) {
-        setTracking(data as PackageTracking);
-      }
-    } catch (err) {
-      console.error('Error updating tracking:', err);
-      setError('Error al actualizar rastreo');
-      throw err;
-    }
-  };
+  const [tracking] = useState<PackageTracking | null>(null);
+  const [isLoading] = useState(false);
 
   const getCarrierTrackingUrl = (carrier: string, trackingNumber: string): string => {
     const urls: Record<string, string> = {
@@ -140,8 +47,7 @@ export const usePackageTracking = (orderId: string) => {
   return {
     tracking,
     isLoading,
-    error,
-    updateTrackingStatus,
+    error: null,
     getCarrierTrackingUrl,
   };
 };
