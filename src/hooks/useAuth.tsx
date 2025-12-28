@@ -92,6 +92,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Safety timeout: if auth doesn't complete within 3 seconds, show the app anyway
+    const safetyTimeout = setTimeout(() => {
+      console.warn('Auth initialization timeout - showing app anyway');
+      setIsLoading(false);
+    }, 3000);
+
     // Set up auth state listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
@@ -111,6 +117,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setUser(appUser);
             setRole(userRole);
             setIsLoading(false);
+            clearTimeout(safetyTimeout);
 
             // Solo redirigir si es un nuevo login desde una página PROTEGIDA o LOGIN
             if (event === 'SIGNED_IN') {
@@ -152,6 +159,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           setUser(null);
           setRole(null);
           setIsLoading(false);
+          clearTimeout(safetyTimeout);
         }
       }
     );
@@ -172,8 +180,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         setUser(appUser);
         setRole(userRole);
         setIsLoading(false);
+        clearTimeout(safetyTimeout);
       } else {
         setIsLoading(false);
+        clearTimeout(safetyTimeout);
       }
       
       // Marcar como inicializado después de cargar la sesión
