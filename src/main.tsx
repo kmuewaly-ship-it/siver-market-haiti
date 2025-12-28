@@ -47,13 +47,7 @@ function showRuntimeOverlay(err: { message?: string; stack?: string } | string) 
 
 window.addEventListener('error', (e) => {
   console.error('Global error caught:', e.error || e.message, e.error?.stack);
-  // Solo mostrar overlay si el error es "forwardRef" relacionado
-  if ((e.error?.message || String(e)).includes('forwardRef')) {
-    console.warn('forwardRef error detected - attempting reload in 2 seconds');
-    setTimeout(() => window.location.reload(), 2000);
-  } else {
-    showRuntimeOverlay(e.error || e.message || String(e));
-  }
+  showRuntimeOverlay(e.error || e.message || String(e));
 });
 
 window.addEventListener('unhandledrejection', (e) => {
