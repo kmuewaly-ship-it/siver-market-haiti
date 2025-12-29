@@ -1,19 +1,10 @@
 import { useEffect, useRef, useState, useMemo } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import type * as LType from 'leaflet';
 import { PickupPoint } from '@/hooks/usePickupPoints';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { MapPin, Navigation, Loader2, Phone, Clock, CheckCircle } from 'lucide-react';
-
-// Fix for default marker icons in Leaflet
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
-  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
-  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
-});
+import { MapPin, Navigation, Loader2, Phone, CheckCircle } from 'lucide-react';
 
 interface PickupPointsMapProps {
   pickupPoints: PickupPoint[];
@@ -54,9 +45,9 @@ export const calculateDistance = (
 export const geocodeAddress = async (
   address: string,
   city: string,
-  country: string
+  country: string | null
 ): Promise<{ lat: number; lng: number } | null> => {
-  const fullAddress = `${address}, ${city}, ${country}`;
+  const fullAddress = `${address}, ${city}, ${country || 'Haiti'}`;
   
   // Check cache first
   if (geocodeCache[fullAddress]) {
@@ -95,15 +86,46 @@ const PickupPointsMap = ({
   showDistances = true,
   height = '400px',
 }: PickupPointsMapProps) => {
-  const mapRef = useRef<L.Map | null>(null);
+  const mapRef = useRef<LType.Map | null>(null);
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const markersRef = useRef<Record<string, L.Marker>>({});
+  const markersRef = useRef<Record<string, LType.Marker>>({});
+  const leafletRef = useRef<typeof LType | null>(null);
   const [isLocating, setIsLocating] = useState(false);
+  const [isLeafletLoaded, setIsLeafletLoaded] = useState(false);
   const [currentUserLocation, setCurrentUserLocation] = useState<{ lat: number; lng: number } | null>(
     userLocation || null
   );
   const [pointCoordinates, setPointCoordinates] = useState<Record<string, { lat: number; lng: number }>>({});
   const [isLoadingCoords, setIsLoadingCoords] = useState(true);
+
+  // Load Leaflet dynamically
+  useEffect(() => {
+    const loadLeaflet = async () => {
+      try {
+        const L = await import('leaflet');
+        await import('leaflet/dist/leaflet.css');
+        
+        // Fix for default marker icons
+        try {
+          delete (L.Icon.Default.prototype as any)._getIconUrl;
+          L.Icon.Default.mergeOptions({
+            iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+            iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+            shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+          });
+        } catch (e) {
+          console.warn('Leaflet icon fix failed:', e);
+        }
+        
+        leafletRef.current = L;
+        setIsLeafletLoaded(true);
+      } catch (error) {
+        console.error('Failed to load Leaflet:', error);
+      }
+    };
+    
+    loadLeaflet();
+  }, []);
 
   // Geocode all pickup points on mount
   useEffect(() => {
@@ -112,14 +134,18 @@ const PickupPointsMap = ({
       const coords: Record<string, { lat: number; lng: number }> = {};
       
       for (const point of pickupPoints) {
-        // Check if point has coordinates in metadata
-        const metadata = point.metadata as Record<string, any> | null;
-        if (metadata?.lat && metadata?.lng) {
-          coords[point.id] = { lat: metadata.lat, lng: metadata.lng };
+        // Check if point has coordinates in metadata or directly
+        if (point.latitude && point.longitude) {
+          coords[point.id] = { lat: point.latitude, lng: point.longitude };
         } else {
-          const result = await geocodeAddress(point.address, point.city, point.country);
-          if (result) {
-            coords[point.id] = result;
+          const metadata = point.metadata as Record<string, any> | null;
+          if (metadata?.lat && metadata?.lng) {
+            coords[point.id] = { lat: metadata.lat, lng: metadata.lng };
+          } else {
+            const result = await geocodeAddress(point.address, point.city, point.country);
+            if (result) {
+              coords[point.id] = result;
+            }
           }
         }
       }
@@ -161,7 +187,9 @@ const PickupPointsMap = ({
 
   // Initialize map
   useEffect(() => {
-    if (!mapContainerRef.current || mapRef.current) return;
+    if (!mapContainerRef.current || mapRef.current || !isLeafletLoaded || !leafletRef.current) return;
+    
+    const L = leafletRef.current;
     
     mapRef.current = L.map(mapContainerRef.current, {
       center: [HAITI_CENTER.lat, HAITI_CENTER.lng],
@@ -179,17 +207,19 @@ const PickupPointsMap = ({
         mapRef.current = null;
       }
     };
-  }, []);
+  }, [isLeafletLoaded]);
 
   // Add markers when coordinates are loaded
   useEffect(() => {
-    if (!mapRef.current || isLoadingCoords) return;
+    if (!mapRef.current || isLoadingCoords || !isLeafletLoaded || !leafletRef.current) return;
+
+    const L = leafletRef.current;
 
     // Clear existing markers
     Object.values(markersRef.current).forEach(marker => marker.remove());
     markersRef.current = {};
 
-    const bounds: L.LatLngBounds = L.latLngBounds([]);
+    const bounds = L.latLngBounds([]);
 
     // Add pickup point markers
     pickupPoints.forEach(point => {
@@ -230,7 +260,7 @@ const PickupPointsMap = ({
         <div style="min-width: 200px;">
           <strong>${point.name}</strong><br/>
           <small>${point.address}</small><br/>
-          <small>${point.city}, ${point.country}</small>
+          <small>${point.city}, ${point.country || 'Haiti'}</small>
           ${point.phone ? `<br/><small>📞 ${point.phone}</small>` : ''}
         </div>
       `);
@@ -270,7 +300,7 @@ const PickupPointsMap = ({
     if (bounds.isValid()) {
       mapRef.current.fitBounds(bounds, { padding: [50, 50] });
     }
-  }, [pointCoordinates, selectedPointId, currentUserLocation, isLoadingCoords, pickupPoints, onSelectPoint]);
+  }, [pointCoordinates, selectedPointId, currentUserLocation, isLoadingCoords, pickupPoints, onSelectPoint, isLeafletLoaded]);
 
   // Center on selected point
   useEffect(() => {
@@ -313,7 +343,7 @@ const PickupPointsMap = ({
     );
   };
 
-  if (isLoadingCoords) {
+  if (isLoadingCoords || !isLeafletLoaded) {
     return (
       <div className="flex items-center justify-center bg-muted rounded-lg" style={{ height }}>
         <div className="text-center">
@@ -357,23 +387,23 @@ const PickupPointsMap = ({
                 key={point.id}
                 className={`p-3 cursor-pointer transition-all ${
                   isSelected
-                    ? 'border-[#071d7f] bg-blue-50/50 ring-2 ring-[#071d7f]/20'
+                    ? 'border-primary bg-primary/5 ring-2 ring-primary/20'
                     : 'hover:border-muted-foreground'
                 }`}
                 onClick={() => onSelectPoint(point.id)}
               >
                 <div className="flex items-start gap-3">
-                  <div className={`p-2 rounded-full ${isSelected ? 'bg-[#071d7f] text-white' : 'bg-muted'}`}>
+                  <div className={`p-2 rounded-full ${isSelected ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
                     <MapPin className="h-4 w-4" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="font-semibold text-sm truncate">{point.name}</p>
-                      {isSelected && <CheckCircle className="h-4 w-4 text-[#071d7f]" />}
+                      {isSelected && <CheckCircle className="h-4 w-4 text-primary" />}
                     </div>
                     <p className="text-xs text-muted-foreground truncate">{point.address}</p>
                     <p className="text-xs text-muted-foreground">
-                      {point.city}, {point.country}
+                      {point.city}, {point.country || 'Haiti'}
                     </p>
                     {point.phone && (
                       <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1">

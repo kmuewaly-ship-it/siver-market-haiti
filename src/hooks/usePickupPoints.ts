@@ -8,14 +8,16 @@ export interface PickupPoint {
   name: string;
   address: string;
   city: string;
-  country: string;
+  country: string | null;
   phone: string | null;
+  latitude: number | null;
+  longitude: number | null;
   manager_user_id: string | null;
-  is_active: boolean;
+  is_active: boolean | null;
   operating_hours: Json;
   metadata: Json;
-  created_at: string;
-  updated_at: string;
+  created_at: string | null;
+  updated_at: string | null;
 }
 
 export interface OrderDelivery {
