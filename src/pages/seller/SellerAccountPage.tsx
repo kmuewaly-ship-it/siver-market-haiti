@@ -7,13 +7,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from "@/components/ui/accordion";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  User, Store, Mail, Calendar, Shield, LogOut, Settings, Bell, Edit, Phone, MessageCircle, Eye, EyeOff, CheckCircle, CreditCard, Package, Clock, Truck, XCircle, DollarSign, ShoppingCart, AlertCircle, ExternalLink, MapPin, RefreshCw, AlertTriangle, Ban, ChevronRight, Loader2, Save, Star, Users, BarChart3
+  User, Store, Mail, Calendar, Shield, LogOut, Settings, Bell, Edit, Phone, MessageCircle, Eye, EyeOff, CheckCircle, CreditCard, Package, Clock, Truck, XCircle, DollarSign, ShoppingCart, AlertCircle, ExternalLink, MapPin, RefreshCw, AlertTriangle, Ban, ChevronRight, Loader2, Save, Star, Users, BarChart3, Smartphone
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -40,6 +41,7 @@ const SellerAccountPage = () => {
   const [showStatusViewer, setShowStatusViewer] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showPaymentMethods, setShowPaymentMethods] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -207,12 +209,12 @@ const SellerAccountPage = () => {
     <SellerLayout>
       <div className="min-h-screen bg-gray-50/50 pb-12 w-full font-sans">
         {/* Main Content */}
-        <div className="container mx-auto px-4 md:px-6 mt-0">
+        <div className="w-full">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             
-            {/* Sticky Navigation Bar */}
-            <div className="fixed top-24 left-0 right-0 z-40 w-full bg-white border-b shadow-md">
-              <div className="container mx-auto px-2 md:px-6 py-0">
+            {/* Fixed Navigation Bar */}
+            <div className="fixed top-24 left-0 right-0 z-50 bg-white border-b shadow-md">
+              <div className="container mx-auto px-4 md:px-6">
                 <TabsList className="grid w-full grid-cols-5 gap-0 bg-transparent rounded-none p-0 h-auto border-b-0 mb-0">
                   <TabsTrigger 
                     value="informacion" 
@@ -259,10 +261,9 @@ const SellerAccountPage = () => {
             </div>
 
             {/* Tab Contents */}
-            <div className="mt-40">
-              
-              {/* Información Tab */}
-              <TabsContent value="informacion" className="space-y-6 md:space-y-8 mt-0">
+            <div className="w-full px-4 md:px-6">
+              <div className="container mx-auto">
+              <TabsContent value="informacion" className="space-y-6 md:space-y-8 -mt-6">
                 <div className="w-full max-w-2xl mx-auto">
                   <Card className="shadow-lg border-none overflow-hidden">
                     {/* Header */}
@@ -633,130 +634,214 @@ const SellerAccountPage = () => {
                   </CardContent>
                 </Card>
 
-                {/* Store Management Sections */}
-                <div className="grid md:grid-cols-2 gap-6">
-                  {/* Store Information */}
-                  <Card className="shadow-lg border-none">
-                    <CardHeader className="bg-gradient-to-r from-blue-50 to-blue-100 border-b">
-                      <h3 className="text-lg font-bold text-[#071d7f] flex items-center gap-2">
-                        <Mail className="h-5 w-5" />
-                        Información de la Tienda
-                      </h3>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="store-name" className="text-sm font-medium">Nombre de la Tienda</Label>
-                        <Input id="store-name" placeholder={store?.name || "Nombre de tu tienda"} className="border-gray-300" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="store-description" className="text-sm font-medium">Descripción</Label>
-                        <Textarea id="store-description" placeholder={store?.description || "Describe tu tienda"} rows={3} className="border-gray-300" />
-                      </div>
-                      <Button className="w-full bg-[#071d7f] hover:bg-[#071d7f]/90">
-                        <Save className="h-4 w-4 mr-2" />
-                        Guardar Cambios
-                      </Button>
-                    </CardContent>
-                  </Card>
+                {/* Store Management Sections - Accordion */}
+                <Card className="shadow-lg border-none">
+                  <Accordion type="single" collapsible className="w-full">
+                    {/* Store Information */}
+                    <AccordionItem value="store-info">
+                      <AccordionTrigger className="hover:no-underline px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Mail className="h-5 w-5 text-[#071d7f]" />
+                          <h3 className="text-lg font-bold text-[#071d7f]">Información de la Tienda</h3>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
+                          <div className="space-y-2">
+                            <Label htmlFor="store-name" className="text-sm font-medium">Nombre de la Tienda</Label>
+                            <Input id="store-name" placeholder={store?.name || "Nombre de tu tienda"} className="border-gray-300" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="store-description" className="text-sm font-medium">Descripción</Label>
+                            <Textarea id="store-description" placeholder={store?.description || "Describe tu tienda"} rows={3} className="border-gray-300" />
+                          </div>
+                          <Button className="w-full bg-[#071d7f] hover:bg-[#071d7f]/90">
+                            <Save className="h-4 w-4 mr-2" />
+                            Guardar Cambios
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                  {/* Store Settings */}
-                  <Card className="shadow-lg border-none">
-                    <CardHeader className="bg-gradient-to-r from-green-50 to-green-100 border-b">
-                      <h3 className="text-lg font-bold text-green-700 flex items-center gap-2">
-                        <Settings className="h-5 w-5" />
-                        Configuración de Tienda
-                      </h3>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <Label className="cursor-pointer flex items-center gap-2 flex-1">
-                            <Checkbox defaultChecked />
-                            <span className="text-sm font-medium">Tienda Abierta</span>
-                          </Label>
+                    {/* Store Settings */}
+                    <AccordionItem value="store-settings">
+                      <AccordionTrigger className="hover:no-underline px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Settings className="h-5 w-5 text-green-700" />
+                          <h3 className="text-lg font-bold text-green-700">Configuración de Tienda</h3>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <Label className="cursor-pointer flex items-center gap-2 flex-1">
-                            <Checkbox defaultChecked />
-                            <span className="text-sm font-medium">Permitir comentarios</span>
-                          </Label>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-4 bg-green-50 p-4 rounded-lg">
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                              <Label className="cursor-pointer flex items-center gap-2 flex-1">
+                                <Checkbox defaultChecked />
+                                <span className="text-sm font-medium">Tienda Abierta</span>
+                              </Label>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                              <Label className="cursor-pointer flex items-center gap-2 flex-1">
+                                <Checkbox defaultChecked />
+                                <span className="text-sm font-medium">Permitir comentarios</span>
+                              </Label>
+                            </div>
+                            <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                              <Label className="cursor-pointer flex items-center gap-2 flex-1">
+                                <Checkbox />
+                                <span className="text-sm font-medium">Mostrar stock</span>
+                              </Label>
+                            </div>
+                          </div>
+                          <Button className="w-full bg-green-600 hover:bg-green-700">
+                            <CheckCircle className="h-4 w-4 mr-2" />
+                            Actualizar Configuración
+                          </Button>
                         </div>
-                        <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                          <Label className="cursor-pointer flex items-center gap-2 flex-1">
-                            <Checkbox />
-                            <span className="text-sm font-medium">Mostrar stock</span>
-                          </Label>
-                        </div>
-                      </div>
-                      <Button className="w-full bg-green-600 hover:bg-green-700">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Actualizar Configuración
-                      </Button>
-                    </CardContent>
-                  </Card>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                  {/* Policies */}
-                  <Card className="shadow-lg border-none md:col-span-2">
-                    <CardHeader className="bg-gradient-to-r from-amber-50 to-amber-100 border-b">
-                      <h3 className="text-lg font-bold text-amber-700 flex items-center gap-2">
-                        <Shield className="h-5 w-5" />
-                        Políticas de la Tienda
-                      </h3>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="return-policy" className="text-sm font-medium">Política de Devoluciones</Label>
-                        <Textarea id="return-policy" placeholder="Describe tu política de devoluciones" rows={2} className="border-gray-300" />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="shipping-policy" className="text-sm font-medium">Política de Envío</Label>
-                        <Textarea id="shipping-policy" placeholder="Describe tu política de envío" rows={2} className="border-gray-300" />
-                      </div>
-                      <Button className="w-full bg-amber-600 hover:bg-amber-700">
-                        <Save className="h-4 w-4 mr-2" />
-                        Guardar Políticas
-                      </Button>
-                    </CardContent>
-                  </Card>
+                    {/* Policies */}
+                    <AccordionItem value="policies">
+                      <AccordionTrigger className="hover:no-underline px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Shield className="h-5 w-5 text-amber-700" />
+                          <h3 className="text-lg font-bold text-amber-700">Políticas de la Tienda</h3>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-4 bg-amber-50 p-4 rounded-lg">
+                          <div className="space-y-2">
+                            <Label htmlFor="return-policy" className="text-sm font-medium">Política de Devoluciones</Label>
+                            <Textarea id="return-policy" placeholder="Describe tu política de devoluciones" rows={2} className="border-gray-300" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="shipping-policy" className="text-sm font-medium">Política de Envío</Label>
+                            <Textarea id="shipping-policy" placeholder="Describe tu política de envío" rows={2} className="border-gray-300" />
+                          </div>
+                          <Button className="w-full bg-amber-600 hover:bg-amber-700">
+                            <Save className="h-4 w-4 mr-2" />
+                            Guardar Políticas
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
 
-                  {/* Bank Information */}
-                  <Card className="shadow-lg border-none md:col-span-2">
-                    <CardHeader className="bg-gradient-to-r from-purple-50 to-purple-100 border-b">
-                      <h3 className="text-lg font-bold text-purple-700 flex items-center gap-2">
-                        <DollarSign className="h-5 w-5" />
-                        Información Bancaria
-                      </h3>
-                    </CardHeader>
-                    <CardContent className="p-6 space-y-4">
-                      <div className="grid md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="bank-name" className="text-sm font-medium">Banco</Label>
-                          <Input id="bank-name" placeholder="Nombre del banco" className="border-gray-300" />
+                    {/* Bank Information */}
+                    <AccordionItem value="bank-info">
+                      <AccordionTrigger className="hover:no-underline px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <DollarSign className="h-5 w-5 text-purple-700" />
+                          <h3 className="text-lg font-bold text-purple-700">Información Bancaria</h3>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="account-type" className="text-sm font-medium">Tipo de Cuenta</Label>
-                          <select className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
-                            <option>Seleccionar tipo</option>
-                            <option>Ahorros</option>
-                            <option>Corriente</option>
-                          </select>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-4 bg-purple-50 p-4 rounded-lg">
+                          <div className="grid md:grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                              <Label htmlFor="bank-name" className="text-sm font-medium">Banco</Label>
+                              <Input id="bank-name" placeholder="Nombre del banco" className="border-gray-300" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="account-type" className="text-sm font-medium">Tipo de Cuenta</Label>
+                              <select className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                                <option>Seleccionar tipo</option>
+                                <option>Ahorros</option>
+                                <option>Corriente</option>
+                              </select>
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="account-number" className="text-sm font-medium">Número de Cuenta</Label>
+                              <Input id="account-number" placeholder="Número de cuenta" className="border-gray-300" type="password" />
+                            </div>
+                            <div className="space-y-2">
+                              <Label htmlFor="account-holder" className="text-sm font-medium">Titular de la Cuenta</Label>
+                              <Input id="account-holder" placeholder="Nombre del titular" className="border-gray-300" />
+                            </div>
+                          </div>
+                          <Button className="w-full bg-purple-600 hover:bg-purple-700">
+                            <Save className="h-4 w-4 mr-2" />
+                            Guardar Información Bancaria
+                          </Button>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="account-number" className="text-sm font-medium">Número de Cuenta</Label>
-                          <Input id="account-number" placeholder="Número de cuenta" className="border-gray-300" type="password" />
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Moncash Configuration */}
+                    <AccordionItem value="moncash">
+                      <AccordionTrigger className="hover:no-underline px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Smartphone className="h-5 w-5" style={{ color: '#94111f' }} />
+                          <h3 className="text-lg font-bold" style={{ color: '#94111f' }}>Configuración Moncash</h3>
                         </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="account-holder" className="text-sm font-medium">Titular de la Cuenta</Label>
-                          <Input id="account-holder" placeholder="Nombre del titular" className="border-gray-300" />
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: '#94111f20' }}>
+                          <div className="bg-white border rounded-lg p-3 mb-2" style={{ borderColor: '#94111f' }}>
+                            <p className="text-sm" style={{ color: '#94111f' }}>
+                              <span className="font-semibold">Moncash</span> es una billetera digital haitiana. Configura tu cuenta para recibir pagos y retiros.
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="moncash-number" className="text-sm font-medium">Número de Teléfono Moncash</Label>
+                            <Input id="moncash-number" placeholder="+509 XXXX XXXX" className="border-gray-300" />
+                            <p className="text-xs text-gray-500">Formato: +509 seguido del número de teléfono</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="moncash-name" className="text-sm font-medium">Nombre en Moncash</Label>
+                            <Input id="moncash-name" placeholder="Nombre asociado a tu cuenta" className="border-gray-300" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="moncash-pin" className="text-sm font-medium">PIN de Seguridad (Opcional)</Label>
+                            <Input id="moncash-pin" placeholder="PIN de tu cuenta Moncash" className="border-gray-300" type="password" />
+                            <p className="text-xs text-gray-500">Se almacenará de forma segura y encriptada</p>
+                          </div>
+                          <Button className="w-full" style={{ backgroundColor: '#94111f' }}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Guardar Información Moncash
+                          </Button>
                         </div>
-                      </div>
-                      <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                        <Save className="h-4 w-4 mr-2" />
-                        Guardar Información Bancaria
-                      </Button>
-                    </CardContent>
-                  </Card>
-                </div>
+                      </AccordionContent>
+                    </AccordionItem>
+
+                    {/* Natcash Configuration */}
+                    <AccordionItem value="natcash">
+                      <AccordionTrigger className="hover:no-underline px-6 py-4">
+                        <div className="flex items-center gap-3">
+                          <Smartphone className="h-5 w-5" style={{ color: '#071d7f' }} />
+                          <h3 className="text-lg font-bold" style={{ color: '#071d7f' }}>Configuración Natcash</h3>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="px-6 pb-6">
+                        <div className="space-y-4 p-4 rounded-lg" style={{ backgroundColor: '#071d7f20' }}>
+                          <div className="bg-white border rounded-lg p-3 mb-2" style={{ borderColor: '#071d7f' }}>
+                            <p className="text-sm" style={{ color: '#071d7f' }}>
+                              <span className="font-semibold">Natcash</span> es una billetera digital haitiana. Configura tu cuenta para recibir pagos y retiros.
+                            </p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="natcash-number" className="text-sm font-medium">Número de Teléfono Natcash</Label>
+                            <Input id="natcash-number" placeholder="+509 XXXX XXXX" className="border-gray-300" />
+                            <p className="text-xs text-gray-500">Formato: +509 seguido del número de teléfono</p>
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="natcash-name" className="text-sm font-medium">Nombre en Natcash</Label>
+                            <Input id="natcash-name" placeholder="Nombre asociado a tu cuenta" className="border-gray-300" />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="natcash-pin" className="text-sm font-medium">PIN de Seguridad (Opcional)</Label>
+                            <Input id="natcash-pin" placeholder="PIN de tu cuenta Natcash" className="border-gray-300" type="password" />
+                            <p className="text-xs text-gray-500">Se almacenará de forma segura y encriptada</p>
+                          </div>
+                          <Button className="w-full" style={{ backgroundColor: '#071d7f' }}>
+                            <Save className="h-4 w-4 mr-2" />
+                            Guardar Información Natcash
+                          </Button>
+                        </div>
+                      </AccordionContent>
+                    </AccordionItem>
+                  </Accordion>
+                </Card>
 
                 {/* Store Stats */}
                 <Card className="shadow-lg border-none">
@@ -819,7 +904,9 @@ const SellerAccountPage = () => {
                   <CardContent className="p-6">
                     <div className="grid gap-4 grid-cols-2 md:grid-cols-3">
                       {/* Payment Methods Card */}
-                      <button className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left">
+                      <button 
+                        onClick={() => setShowPaymentMethods(true)}
+                        className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left">
                         <div className="p-2 rounded-xl bg-blue-50 text-[#071d7f] group-hover:bg-[#071d7f] group-hover:text-white transition-colors mb-3 shadow-sm">
                           <CreditCard className="h-5 w-5" />
                         </div>
@@ -854,29 +941,12 @@ const SellerAccountPage = () => {
                           Contraseña y accesos.
                         </p>
                       </button>
-
-                      {/* Logout Card */}
-                      <button
-                        onClick={signOut}
-                        className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-red-100 transition-all duration-300 group text-left bg-gradient-to-r hover:from-red-50 hover:to-white md:col-span-3"
-                      >
-                        <div className="flex flex-col items-start w-full">
-                          <div className="p-2 rounded-xl bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors shadow-sm mb-3">
-                            <LogOut className="h-5 w-5" />
-                          </div>
-                          <div>
-                            <h4 className="font-bold text-base text-gray-900 group-hover:text-red-700 transition-colors">Cerrar Sesión</h4>
-                            <p className="text-xs text-gray-500 mt-1">
-                              Salir de tu cuenta.
-                            </p>
-                          </div>
-                        </div>
-                      </button>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
 
+              </div>
             </div>
           </Tabs>
         </div>
@@ -1266,6 +1336,128 @@ const SellerAccountPage = () => {
                 <XCircle className="h-4 w-4 mr-2" />
               )}
               Confirmar Cancelación
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Payment Methods Dialog */}
+      <Dialog open={showPaymentMethods} onOpenChange={setShowPaymentMethods}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#071d7f]">Métodos de Pago</DialogTitle>
+            <DialogDescription>
+              Configura los métodos de pago que aceptarás para recibir pagos
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Mon Cash Card */}
+            <Card className="border-orange-200 bg-orange-50/50">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2 rounded-lg bg-orange-100 text-orange-600 mt-1">
+                      <Smartphone className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Mon Cash</h4>
+                      <p className="text-sm text-gray-600">Billetera digital haitiana</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200">Activo</Badge>
+                        <span className="text-xs text-gray-500">Comisión: 1.5%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-orange-600 border-orange-300 hover:bg-orange-100"
+                    onClick={() => {
+                      setShowPaymentMethods(false);
+                      setActiveTab('tienda');
+                    }}
+                  >
+                    Configurar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Nat Cash Card */}
+            <Card className="border-cyan-200 bg-cyan-50/50">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2 rounded-lg bg-cyan-100 text-cyan-600 mt-1">
+                      <Smartphone className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Nat Cash</h4>
+                      <p className="text-sm text-gray-600">Billetera digital haitiana</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200">Activo</Badge>
+                        <span className="text-xs text-gray-500">Comisión: 1.5%</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-cyan-600 border-cyan-300 hover:bg-cyan-100"
+                    onClick={() => {
+                      setShowPaymentMethods(false);
+                      setActiveTab('tienda');
+                    }}
+                  >
+                    Configurar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Bank Transfer Card */}
+            <Card className="border-green-200 bg-green-50/50">
+              <CardContent className="p-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <div className="p-2 rounded-lg bg-green-100 text-green-600 mt-1">
+                      <DollarSign className="h-5 w-5" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-gray-900">Transferencia Bancaria</h4>
+                      <p className="text-sm text-gray-600">Transferencias desde cuentas bancarias</p>
+                      <div className="mt-2 flex items-center gap-2">
+                        <Badge className="bg-green-100 text-green-700 hover:bg-green-200">Activo</Badge>
+                        <span className="text-xs text-gray-500">Comisión: Flexible</span>
+                      </div>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    className="text-green-600 border-green-300 hover:bg-green-100"
+                    onClick={() => {
+                      setShowPaymentMethods(false);
+                      setActiveTab('tienda');
+                    }}
+                  >
+                    Configurar
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+            <p className="text-sm text-blue-800">
+              <span className="font-semibold">💡 Nota:</span> Configura tus métodos de pago (Moncash, Natcash y Transferencia Bancaria) en la sección "Mi Tienda" para recibir pagos. Stripe está disponible globalmente para todos los clientes.
+            </p>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowPaymentMethods(false)}>
+              Cerrar
             </Button>
           </DialogFooter>
         </DialogContent>
