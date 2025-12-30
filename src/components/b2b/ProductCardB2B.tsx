@@ -64,6 +64,11 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         
         {/* Badges Overlay */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
+          {product.variant_count && product.variant_count > 1 && (
+            <span className="bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+              {product.variant_count} variantes
+            </span>
+          )}
           {profit > 0 && (
             <span className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
               <TrendingUp className="w-3 h-3" /> Ganas: ${profit.toFixed(2)}
