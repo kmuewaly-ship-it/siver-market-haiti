@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Package, Palette, Check, Ruler } from "lucide-react";
+import { Minus, Plus, Package, Palette, Check, Ruler, Zap, Box, Layers } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useProductVariantsWithAttributes } from "@/hooks/useEAVAttributes";
 
 interface VariantInfo {
   id: string;
@@ -10,10 +11,10 @@ interface VariantInfo {
   label: string;
   precio: number;
   stock: number;
-  option_type?: string; // 'color', 'size', etc.
-  color_code?: string; // For color variants
-  parent_product_id?: string; // Which product this variant belongs to
-  image?: string; // Image for color variants
+  option_type?: string;
+  color_code?: string;
+  parent_product_id?: string;
+  image?: string;
 }
 
 interface ColorOption {
@@ -35,18 +36,39 @@ interface VariantSelection {
 }
 
 interface VariantSelectorB2BProps {
+  productId?: string; // For EAV-based loading
   variants: VariantInfo[];
   colorOptions?: ColorOption[];
   basePrice: number;
   onSelectionChange?: (selections: VariantSelection[], totalQty: number, totalPrice: number) => void;
 }
 
+// Attribute type to render configuration
+const ATTRIBUTE_RENDER_CONFIG: Record<string, {
+  icon: typeof Palette;
+  renderType: 'swatches' | 'chips' | 'buttons' | 'dropdown';
+  categoryHint: string;
+}> = {
+  color: { icon: Palette, renderType: 'swatches', categoryHint: 'fashion' },
+  size: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion' },
+  talla: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion' },
+  voltage: { icon: Zap, renderType: 'chips', categoryHint: 'electronics' },
+  wattage: { icon: Zap, renderType: 'chips', categoryHint: 'electronics' },
+  capacity: { icon: Zap, renderType: 'chips', categoryHint: 'electronics' },
+  material: { icon: Box, renderType: 'dropdown', categoryHint: 'general' },
+  style: { icon: Layers, renderType: 'chips', categoryHint: 'fashion' },
+  age_group: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion' },
+};
+
 /**
- * Professional Variant Selector for B2B products
- * Handles multiple option types (color, size, material, etc.)
- * Style inspired by AliExpress/Shein wholesale interface
+ * Adaptive Variant Selector for B2B products
+ * Renders different controls based on attribute type:
+ * - Fashion (color): Visual swatches with color circles
+ * - Fashion (size): Size buttons
+ * - Electronics: Technical chips (Watts, Voltage, mAh)
  */
 const VariantSelectorB2B = ({
+  productId,
   variants,
   colorOptions = [],
   basePrice,
@@ -56,10 +78,29 @@ const VariantSelectorB2B = ({
   const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
   const onSelectionChangeRef = useRef(onSelectionChange);
   
+  // Load EAV attributes if productId is provided
+  const { data: eavVariants } = useProductVariantsWithAttributes(productId);
+
   // Keep ref updated
   useEffect(() => {
     onSelectionChangeRef.current = onSelectionChange;
   }, [onSelectionChange]);
+
+  // Use EAV variants if available, otherwise use provided variants
+  const effectiveVariants = useMemo(() => {
+    if (eavVariants && eavVariants.length > 0) {
+      return eavVariants.map(v => ({
+        id: v.id,
+        sku: v.sku,
+        label: v.name || v.option_value,
+        precio: v.price || basePrice,
+        stock: v.stock,
+        option_type: v.option_type,
+        attributeValues: v.attributeValues,
+      }));
+    }
+    return variants;
+  }, [eavVariants, variants, basePrice]);
 
   // Auto-select first color if colors exist
   useEffect(() => {
@@ -70,36 +111,54 @@ const VariantSelectorB2B = ({
 
   // Group variants by option_type
   const grouped = useMemo(() => {
-    return variants.reduce((acc, variant) => {
-      const type = variant.option_type || 'size';
-      if (!acc[type]) {
-        acc[type] = [];
+    return effectiveVariants.reduce((acc, variant: any) => {
+      // If variant has EAV attributeValues, group by each attribute
+      if (variant.attributeValues && variant.attributeValues.length > 0) {
+        variant.attributeValues.forEach((av: any) => {
+          const attrType = av.attribute?.slug || av.attribute?.name || 'other';
+          if (!acc[attrType]) {
+            acc[attrType] = [];
+          }
+          // Avoid duplicates
+          if (!acc[attrType].find((v: any) => v.id === variant.id)) {
+            acc[attrType].push({
+              ...variant,
+              option_type: attrType,
+              label: av.option?.display_value || variant.label,
+              color_code: av.option?.color_hex,
+            });
+          }
+        });
+      } else {
+        const type = variant.option_type || 'size';
+        if (!acc[type]) {
+          acc[type] = [];
+        }
+        acc[type].push(variant);
       }
-      acc[type].push(variant);
       return acc;
-    }, {} as Record<string, VariantInfo[]>);
-  }, [variants]);
+    }, {} as Record<string, any[]>);
+  }, [effectiveVariants]);
 
-  // Filter variants by selected color (if colors exist)
+  // Filter variants by selected color
   const filteredVariants = useMemo(() => {
     if (colorOptions.length === 0 || !selectedColorId) {
-      return variants;
+      return effectiveVariants;
     }
-    return variants.filter(v => v.parent_product_id === selectedColorId);
-  }, [variants, colorOptions, selectedColorId]);
+    return effectiveVariants.filter((v: any) => v.parent_product_id === selectedColorId);
+  }, [effectiveVariants, colorOptions, selectedColorId]);
 
-  // Group filtered variants by option_type
+  // Group filtered variants
   const filteredGrouped = useMemo(() => {
-    return filteredVariants.reduce((acc, variant) => {
+    return filteredVariants.reduce((acc, variant: any) => {
       const type = variant.option_type || 'size';
-      // Skip color type if we have separate color options
       if (type === 'color' && colorOptions.length > 0) return acc;
       if (!acc[type]) {
         acc[type] = [];
       }
       acc[type].push(variant);
       return acc;
-    }, {} as Record<string, VariantInfo[]>);
+    }, {} as Record<string, any[]>);
   }, [filteredVariants, colorOptions]);
 
   const optionTypes = Object.keys(filteredGrouped);
@@ -111,12 +170,12 @@ const VariantSelectorB2B = ({
   const totalPrice = useMemo(() => {
     return Object.entries(selections).reduce((sum, [variantId, qty]) => {
       if (qty <= 0) return sum;
-      const variant = variants.find(v => v.id === variantId);
+      const variant = effectiveVariants.find((v: any) => v.id === variantId);
       const color = colorOptions.find(c => c.productId === variantId);
-      const price = variant?.precio || color?.price || basePrice;
+      const price = (variant as any)?.precio || color?.price || basePrice;
       return sum + price * qty;
     }, 0);
-  }, [selections, variants, colorOptions, basePrice]);
+  }, [selections, effectiveVariants, colorOptions, basePrice]);
 
   // Notify parent of changes
   useEffect(() => {
@@ -124,20 +183,20 @@ const VariantSelectorB2B = ({
       const selectionsList: VariantSelection[] = Object.entries(selections)
         .filter(([_, qty]) => qty > 0)
         .map(([variantId, quantity]) => {
-          const variant = variants.find(v => v.id === variantId);
+          const variant = effectiveVariants.find((v: any) => v.id === variantId);
           const color = colorOptions.find(c => c.productId === variantId);
           return {
             variantId,
-            sku: variant?.sku || '',
-            label: variant?.label || color?.label || '',
+            sku: (variant as any)?.sku || '',
+            label: (variant as any)?.label || color?.label || '',
             quantity,
-            price: variant?.precio || color?.price || basePrice,
+            price: (variant as any)?.precio || color?.price || basePrice,
             colorLabel: color?.label,
           };
         });
       onSelectionChangeRef.current(selectionsList, totalQty, totalPrice);
     }
-  }, [selections, totalQty, totalPrice, variants, colorOptions, basePrice]);
+  }, [selections, totalQty, totalPrice, effectiveVariants, colorOptions, basePrice]);
 
   const updateQuantity = (variantId: string, delta: number, maxStock: number) => {
     setSelections((prev) => {
@@ -148,14 +207,24 @@ const VariantSelectorB2B = ({
     });
   };
 
-  // Sort variants by label (natural sort for sizes)
-  const sortVariants = (variantList: VariantInfo[]) => {
+  // Sort variants naturally
+  const sortVariants = (variantList: any[]) => {
     return [...variantList].sort((a, b) => {
-      const numA = parseInt(a.label.replace(/\D/g, '')) || 0;
-      const numB = parseInt(b.label.replace(/\D/g, '')) || 0;
+      const numA = parseInt(a.label?.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.label?.replace(/\D/g, '')) || 0;
       if (numA !== numB) return numA - numB;
-      return a.label.localeCompare(b.label);
+      return (a.label || '').localeCompare(b.label || '');
     });
+  };
+
+  // Get render config for option type
+  const getRenderConfig = (type: string) => {
+    const lower = type.toLowerCase();
+    return ATTRIBUTE_RENDER_CONFIG[lower] || {
+      icon: Package,
+      renderType: 'chips' as const,
+      categoryHint: 'general',
+    };
   };
 
   // Get display name for option type
@@ -166,24 +235,231 @@ const VariantSelectorB2B = ({
       'talla': 'Talla',
       'material': 'Material',
       'style': 'Estilo',
+      'voltage': 'Voltaje',
+      'wattage': 'Potencia',
+      'capacity': 'Capacidad',
+      'age_group': 'Grupo de Edad',
     };
     return names[type.toLowerCase()] || type.charAt(0).toUpperCase() + type.slice(1);
   };
 
-  // Get icon for option type
-  const getOptionIcon = (type: string) => {
-    const t = type.toLowerCase();
-    if (t === 'color') return <Palette className="w-4 h-4 text-primary" />;
-    if (t === 'size' || t === 'talla') return <Ruler className="w-4 h-4 text-primary" />;
-    return <Package className="w-4 h-4 text-primary" />;
+  // Render color swatches (visual circles/images)
+  const renderColorSwatches = (variants: any[]) => {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {variants.map((variant) => {
+          const isSelected = selectedColorId === variant.id;
+          const outOfStock = variant.stock === 0;
+          const colorHex = variant.color_code;
+          
+          return (
+            <button
+              key={variant.id}
+              onClick={() => !outOfStock && setSelectedColorId(variant.id)}
+              disabled={outOfStock}
+              className={cn(
+                "relative w-10 h-10 rounded-full border-2 transition-all",
+                "flex items-center justify-center overflow-hidden",
+                isSelected 
+                  ? "border-primary ring-2 ring-primary/30" 
+                  : "border-border hover:border-primary/50",
+                outOfStock && "opacity-40 cursor-not-allowed"
+              )}
+              title={variant.label}
+            >
+              {colorHex ? (
+                <div 
+                  className="w-full h-full rounded-full"
+                  style={{ backgroundColor: colorHex }}
+                />
+              ) : variant.image ? (
+                <img 
+                  src={variant.image} 
+                  alt={variant.label}
+                  className="w-full h-full object-cover rounded-full"
+                />
+              ) : (
+                <span className="text-[10px] font-bold">
+                  {variant.label?.charAt(0)?.toUpperCase()}
+                </span>
+              )}
+              {isSelected && (
+                <Check className="absolute w-4 h-4 text-white drop-shadow-md" />
+              )}
+              {outOfStock && (
+                <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                  <span className="text-[8px] font-bold text-destructive">X</span>
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+    );
   };
 
-  if (!variants || variants.length === 0) {
+  // Render technical chips (for electronics: voltage, watts, etc.)
+  const renderTechnicalChips = (variants: any[], type: string) => {
+    const config = getRenderConfig(type);
+    const Icon = config.icon;
+    
+    return (
+      <div className="space-y-2">
+        {sortVariants(variants).map((variant) => {
+          const qty = selections[variant.id] || 0;
+          const price = variant.precio || basePrice;
+          const outOfStock = variant.stock === 0;
+
+          return (
+            <div
+              key={variant.id}
+              className={cn(
+                "flex items-center justify-between gap-2 p-2 rounded-md transition-colors",
+                qty > 0 ? "bg-primary/10 border border-primary/30" : "bg-background border border-border/50",
+                outOfStock && "opacity-50"
+              )}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <Badge variant="outline" className="font-mono text-xs">
+                    <Icon className="w-3 h-3 mr-1" />
+                    {variant.label}
+                  </Badge>
+                  {outOfStock && (
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                      Agotado
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <span className="text-sm font-semibold text-primary">
+                    ${price.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    · {variant.stock} disp.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => updateQuantity(variant.id, -1, variant.stock)}
+                  disabled={qty === 0 || outOfStock}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <div className="w-10 text-center text-sm font-semibold">
+                  {qty}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => updateQuantity(variant.id, 1, variant.stock)}
+                  disabled={outOfStock || qty >= variant.stock}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Render size buttons (compact buttons for sizes)
+  const renderSizeButtons = (variants: any[]) => {
+    return (
+      <div className="space-y-2">
+        {sortVariants(variants).map((variant) => {
+          const qty = selections[variant.id] || 0;
+          const price = variant.precio || basePrice;
+          const outOfStock = variant.stock === 0;
+
+          return (
+            <div
+              key={variant.id}
+              className={cn(
+                "flex items-center justify-between gap-2 p-2 rounded-md transition-colors",
+                qty > 0 ? "bg-primary/10 border border-primary/30" : "bg-background border border-transparent",
+                outOfStock && "opacity-50"
+              )}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-bold text-sm text-foreground min-w-[40px] px-2 py-1 bg-muted rounded">
+                    {variant.label || variant.sku?.split('-').pop() || `#${variants.indexOf(variant) + 1}`}
+                  </span>
+                  {outOfStock && (
+                    <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                      Agotado
+                    </Badge>
+                  )}
+                </div>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <span className="text-sm font-semibold text-primary">
+                    ${price.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-muted-foreground">
+                    · {variant.stock} disp.
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1 flex-shrink-0">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => updateQuantity(variant.id, -1, variant.stock)}
+                  disabled={qty === 0 || outOfStock}
+                >
+                  <Minus className="h-3 w-3" />
+                </Button>
+                <div className="w-10 text-center text-sm font-semibold">
+                  {qty}
+                </div>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => updateQuantity(variant.id, 1, variant.stock)}
+                  disabled={outOfStock || qty >= variant.stock}
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Render variants based on attribute type
+  const renderVariantsByType = (type: string, variants: any[]) => {
+    const config = getRenderConfig(type);
+    
+    switch (config.renderType) {
+      case 'swatches':
+        return renderColorSwatches(variants);
+      case 'chips':
+        return renderTechnicalChips(variants, type);
+      case 'buttons':
+      default:
+        return renderSizeButtons(variants);
+    }
+  };
+
+  if (!effectiveVariants || effectiveVariants.length === 0) {
     // If only color options exist (no size variants)
     if (colorOptions.length > 0) {
       return (
         <div className="space-y-4">
-          {/* Color Options Only */}
           <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
               <Palette className="w-4 h-4 text-primary" />
@@ -192,69 +468,14 @@ const VariantSelectorB2B = ({
                 {colorOptions.length} opciones
               </Badge>
             </h4>
-            
-            <div className="space-y-2">
-              {colorOptions.map((color) => {
-                const qty = selections[color.productId] || 0;
-                const outOfStock = color.stock === 0;
-
-                return (
-                  <div
-                    key={color.productId}
-                    className={cn(
-                      "flex items-center justify-between gap-2 p-2 rounded-md transition-colors",
-                      qty > 0 ? "bg-primary/10 border border-primary/30" : "bg-background border border-transparent",
-                      outOfStock && "opacity-50"
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-sm text-foreground">
-                          {color.label}
-                        </span>
-                        {outOfStock && (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                            Agotado
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-sm font-semibold text-primary">
-                          ${color.price.toFixed(2)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          · {color.stock} disp.
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(color.productId, -1, color.stock)}
-                        disabled={qty === 0 || outOfStock}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <div className="w-10 text-center text-sm font-semibold">
-                        {qty}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(color.productId, 1, color.stock)}
-                        disabled={outOfStock || qty >= color.stock}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {renderColorSwatches(colorOptions.map(c => ({
+              id: c.productId,
+              label: c.label,
+              color_code: c.code,
+              image: c.image,
+              stock: c.stock,
+              precio: c.price,
+            })))}
           </div>
 
           {/* Summary */}
@@ -301,17 +522,33 @@ const VariantSelectorB2B = ({
                   onClick={() => !outOfStock && setSelectedColorId(color.productId)}
                   disabled={outOfStock}
                   className={cn(
-                    "relative px-3 py-2 rounded-md text-sm font-medium transition-all",
-                    "border-2 min-w-[60px]",
+                    "relative w-10 h-10 rounded-full border-2 transition-all",
+                    "flex items-center justify-center overflow-hidden",
                     isSelected 
-                      ? "border-primary bg-primary/10 text-primary" 
-                      : "border-border bg-background hover:border-primary/50",
-                    outOfStock && "opacity-50 cursor-not-allowed line-through"
+                      ? "border-primary ring-2 ring-primary/30" 
+                      : "border-border hover:border-primary/50",
+                    outOfStock && "opacity-40 cursor-not-allowed"
                   )}
+                  title={color.label}
                 >
-                  {color.label}
+                  {color.code ? (
+                    <div 
+                      className="w-full h-full rounded-full"
+                      style={{ backgroundColor: color.code }}
+                    />
+                  ) : color.image ? (
+                    <img 
+                      src={color.image} 
+                      alt={color.label}
+                      className="w-full h-full object-cover rounded-full"
+                    />
+                  ) : (
+                    <span className="text-[10px] font-bold">
+                      {color.label?.charAt(0)?.toUpperCase()}
+                    </span>
+                  )}
                   {isSelected && (
-                    <Check className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-white rounded-full p-0.5" />
+                    <Check className="absolute w-4 h-4 text-white drop-shadow-md" />
                   )}
                 </button>
               );
@@ -320,90 +557,37 @@ const VariantSelectorB2B = ({
           
           {selectedColorId && (
             <div className="mt-2 text-xs text-muted-foreground">
-              {colorOptions.find(c => c.productId === selectedColorId)?.stock || 0} disponibles en este color
+              <span className="font-medium">{colorOptions.find(c => c.productId === selectedColorId)?.label}</span>
+              {' · '}{colorOptions.find(c => c.productId === selectedColorId)?.stock || 0} disponibles
             </div>
           )}
         </div>
       )}
 
-      {/* Other Option Types (Size, Material, etc.) */}
+      {/* Other Option Types (Size, Material, Voltage, etc.) */}
       {optionTypes.map((type) => {
-        const typeVariants = sortVariants(filteredGrouped[type]);
-        if (typeVariants.length === 0) return null;
+        const typeVariants = filteredGrouped[type];
+        if (!typeVariants || typeVariants.length === 0) return null;
+        
+        const config = getRenderConfig(type);
+        const Icon = config.icon;
         
         return (
           <div key={type} className="p-3 bg-muted/30 rounded-lg border border-border/50">
             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              {getOptionIcon(type)}
+              <Icon className="w-4 h-4 text-primary" />
               {getOptionTypeName(type)}
               <Badge variant="secondary" className="text-[10px]">
                 {typeVariants.length} opciones
               </Badge>
+              {config.categoryHint === 'electronics' && (
+                <Badge variant="outline" className="text-[9px] ml-auto">
+                  Técnico
+                </Badge>
+              )}
             </h4>
             
-            <div className="space-y-2">
-              {typeVariants.map((variant) => {
-                const qty = selections[variant.id] || 0;
-                const price = variant.precio || basePrice;
-                const outOfStock = variant.stock === 0;
-
-                return (
-                  <div
-                    key={variant.id}
-                    className={cn(
-                      "flex items-center justify-between gap-2 p-2 rounded-md transition-colors",
-                      qty > 0 ? "bg-primary/10 border border-primary/30" : "bg-background border border-transparent",
-                      outOfStock && "opacity-50"
-                    )}
-                  >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-bold text-sm text-foreground min-w-[40px]">
-                          {variant.label || variant.sku.split('-').pop() || `Opción ${typeVariants.indexOf(variant) + 1}`}
-                        </span>
-                        {outOfStock && (
-                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                            Agotado
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="flex items-center gap-2 mt-0.5">
-                        <span className="text-sm font-semibold text-primary">
-                          ${price.toFixed(2)}
-                        </span>
-                        <span className="text-xs text-muted-foreground">
-                          · {variant.stock} disp.
-                        </span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-1 flex-shrink-0">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(variant.id, -1, variant.stock)}
-                        disabled={qty === 0 || outOfStock}
-                      >
-                        <Minus className="h-3 w-3" />
-                      </Button>
-                      <div className="w-10 text-center text-sm font-semibold">
-                        {qty}
-                      </div>
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => updateQuantity(variant.id, 1, variant.stock)}
-                        disabled={outOfStock || qty >= variant.stock}
-                      >
-                        <Plus className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            {renderVariantsByType(type, typeVariants)}
           </div>
         );
       })}
