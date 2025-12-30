@@ -8,8 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCatalog, Product, ProductFilters } from '@/hooks/useCatalog';
-import { Package, AlertTriangle, TrendingDown, Search, Upload, Plus, Download, Settings, Loader2, Cpu, ExternalLink, DollarSign, Layers, RefreshCw } from 'lucide-react';
-import BulkImportDialog from '@/components/catalog/BulkImportDialog';
+import { Package, AlertTriangle, TrendingDown, Search, Upload, Plus, Download, Settings, Loader2, Cpu, ExternalLink, DollarSign, RefreshCw } from 'lucide-react';
 import SmartBulkImportDialog from '@/components/catalog/SmartBulkImportDialog';
 import ProductFormDialog from '@/components/catalog/ProductFormDialog';
 import ProductEditDialog from '@/components/catalog/ProductEditDialog';
@@ -21,7 +20,6 @@ const AdminCatalogo = () => {
   const { useProducts, useCategories, useSuppliers, useCatalogKPIs } = useCatalog();
   const [filters, setFilters] = useState<ProductFilters>({ stockStatus: 'all' });
   const [searchTerm, setSearchTerm] = useState('');
-  const [bulkImportOpen, setBulkImportOpen] = useState(false);
   const [smartImportOpen, setSmartImportOpen] = useState(false);
   const [newProductOpen, setNewProductOpen] = useState(false);
   const [editProductId, setEditProductId] = useState<string | null>(null);
@@ -94,12 +92,8 @@ const AdminCatalogo = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4">
           <div className="flex flex-wrap gap-2">
             <Button variant="default" onClick={() => setSmartImportOpen(true)}>
-              <Layers className="h-4 w-4 mr-2" />
-              Importación EAV
-            </Button>
-            <Button variant="outline" onClick={() => setBulkImportOpen(true)}>
               <Upload className="h-4 w-4 mr-2" />
-              Carga Simple
+              Importar Productos
             </Button>
             <Button variant="outline" onClick={() => setBulkPriceOpen(true)}>
               <DollarSign className="h-4 w-4 mr-2" />
@@ -324,7 +318,6 @@ const AdminCatalogo = () => {
         </TabsContent>
       </Tabs>
       {/* Dialogs */}
-      <BulkImportDialog open={bulkImportOpen} onOpenChange={setBulkImportOpen} />
       <SmartBulkImportDialog open={smartImportOpen} onOpenChange={setSmartImportOpen} />
       <ProductFormDialog open={newProductOpen} onOpenChange={setNewProductOpen} />
       <BulkPriceUpdateDialog open={bulkPriceOpen} onOpenChange={setBulkPriceOpen} />
