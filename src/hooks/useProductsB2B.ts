@@ -69,6 +69,7 @@ interface ProductVariantInfo {
   label: string;
   precio: number;
   stock: number;
+  option_type: string; // 'color', 'size', etc.
 }
 
 interface GroupedProduct {
@@ -79,6 +80,7 @@ interface GroupedProduct {
   totalStock: number;
   minPrice: number;
   maxPrice: number;
+  productIds: string[]; // All product IDs in this group
 }
 
 /**
@@ -98,25 +100,27 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
   
   const groupedProducts: GroupedProduct[] = [];
   
-  skuGroups.forEach((variants, baseSku) => {
+  skuGroups.forEach((products, baseSku) => {
     // Sort by price to get the lowest as representative
-    variants.sort((a, b) => (a.precio_mayorista || 0) - (b.precio_mayorista || 0));
+    products.sort((a, b) => (a.precio_mayorista || 0) - (b.precio_mayorista || 0));
     
-    const representative = { ...variants[0] };
+    const representative = { ...products[0] };
     const baseName = cleanProductName(representative.nombre || '');
+    const productIds = products.map(p => p.id);
     
-    // Create variant info array
-    const variantInfos: ProductVariantInfo[] = variants.map(v => ({
-      id: v.id,
-      sku: v.sku_interno,
-      label: extractVariantLabel(v.sku_interno || '', v.nombre || ''),
-      precio: v.precio_mayorista || 0,
-      stock: v.stock_fisico || 0,
+    // Create variant info array - include product variants from DB if available
+    const variantInfos: ProductVariantInfo[] = products.map(p => ({
+      id: p.id,
+      sku: p.sku_interno,
+      label: extractVariantLabel(p.sku_interno || '', p.nombre || ''),
+      precio: p.precio_mayorista || 0,
+      stock: p.stock_fisico || 0,
+      option_type: 'color', // Products grouped by SKU represent different colors
     }));
     
     // Calculate aggregates
-    const totalStock = variants.reduce((sum, v) => sum + (v.stock_fisico || 0), 0);
-    const prices = variants.map(v => v.precio_mayorista || 0).filter(p => p > 0);
+    const totalStock = products.reduce((sum, v) => sum + (v.stock_fisico || 0), 0);
+    const prices = products.map(v => v.precio_mayorista || 0).filter(p => p > 0);
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
     
@@ -128,6 +132,7 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
       totalStock,
       minPrice,
       maxPrice,
+      productIds,
     });
   });
   
@@ -180,19 +185,56 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
         throw new Error(error.message);
       }
 
+      // Fetch all product variants to get option_type info
+      const productIds = (data || []).map(p => p.id);
+      const { data: variantsData } = await supabase
+        .from("product_variants")
+        .select("id, product_id, sku, option_type, option_value, price, stock")
+        .in("product_id", productIds)
+        .eq("is_active", true);
+
+      // Create a map of product variants by product_id
+      const variantsByProduct = new Map<string, typeof variantsData>();
+      (variantsData || []).forEach(v => {
+        if (!variantsByProduct.has(v.product_id)) {
+          variantsByProduct.set(v.product_id, []);
+        }
+        variantsByProduct.get(v.product_id)!.push(v);
+      });
+
       // Group products by SKU (combine variants)
       const groupedData = groupProductsBySku(data || []);
       
       // Apply pagination AFTER grouping
       const paginatedData = groupedData.slice(page * limit, (page + 1) * limit);
 
-      // Map to B2B card format
+      // Map to B2B card format with proper variants from product_variants table
       const products: ProductB2BCard[] = paginatedData.map((group) => {
         const p = group.representative;
         const precioMayorista = group.minPrice || p.precio_mayorista || 0;
         const precioSugerido = p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
         const moq = p.moq || 1;
         const imagen = p.imagen_principal || "/placeholder.svg";
+        
+        // Collect ALL variants from ALL products in this group
+        const allVariants: ProductVariantInfo[] = [];
+        
+        group.productIds.forEach(productId => {
+          const productVariants = variantsByProduct.get(productId) || [];
+          productVariants.forEach(pv => {
+            allVariants.push({
+              id: pv.id,
+              sku: pv.sku,
+              label: pv.option_value,
+              precio: pv.price || precioMayorista,
+              stock: pv.stock || 0,
+              option_type: pv.option_type || 'size',
+            });
+          });
+        });
+        
+        // If no variants from product_variants table, use the grouped product variants (as colors)
+        const finalVariants = allVariants.length > 0 ? allVariants : group.variants;
         
         return {
           id: p.id,
@@ -205,9 +247,10 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           stock_fisico: group.totalStock,
           imagen_principal: imagen,
           categoria_id: p.categoria_id || "",
-          variant_count: group.variants.length,
-          variant_ids: group.variants.map(v => v.id),
-          variants: group.variants,
+          variant_count: finalVariants.length,
+          variant_ids: finalVariants.map(v => v.id),
+          variants: finalVariants,
+          source_product_id: p.id, // For VariantSelector queries
         };
       });
 

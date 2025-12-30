@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Package } from "lucide-react";
+import { Minus, Plus, Package, Palette } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VariantInfo {
@@ -10,6 +10,7 @@ interface VariantInfo {
   label: string;
   precio: number;
   stock: number;
+  option_type?: string; // 'color', 'size', etc.
 }
 
 interface VariantSelection {
@@ -27,8 +28,8 @@ interface VariantSelectorB2BProps {
 }
 
 /**
- * Variant Selector for B2B products grouped by SKU
- * Shows all size/variant options with quantity controls for each
+ * Variant Selector for B2B products grouped by option_type (color, size, etc.)
+ * Shows all variant options with quantity controls for each
  * Style inspired by AliExpress/Shein wholesale interface
  */
 const VariantSelectorB2B = ({
@@ -43,6 +44,18 @@ const VariantSelectorB2B = ({
   useEffect(() => {
     onSelectionChangeRef.current = onSelectionChange;
   }, [onSelectionChange]);
+
+  // Group variants by option_type
+  const grouped = variants.reduce((acc, variant) => {
+    const type = variant.option_type || 'size';
+    if (!acc[type]) {
+      acc[type] = [];
+    }
+    acc[type].push(variant);
+    return acc;
+  }, {} as Record<string, VariantInfo[]>);
+
+  const optionTypes = Object.keys(grouped);
 
   // Calculate totals
   const totalQty = Object.values(selections).reduce((sum, qty) => sum + qty, 0);
@@ -83,96 +96,124 @@ const VariantSelectorB2B = ({
     });
   };
 
+  // Sort variants by label (natural sort for sizes)
+  const sortVariants = (variantList: VariantInfo[]) => {
+    return [...variantList].sort((a, b) => {
+      // Try to extract numeric part for natural sorting
+      const numA = parseInt(a.label.replace(/\D/g, '')) || 0;
+      const numB = parseInt(b.label.replace(/\D/g, '')) || 0;
+      if (numA !== numB) return numA - numB;
+      return a.label.localeCompare(b.label);
+    });
+  };
+
+  // Get display name for option type
+  const getOptionTypeName = (type: string): string => {
+    const names: Record<string, string> = {
+      'color': 'Color',
+      'size': 'Talla',
+      'talla': 'Talla',
+      'material': 'Material',
+      'style': 'Estilo',
+    };
+    return names[type.toLowerCase()] || type.charAt(0).toUpperCase() + type.slice(1);
+  };
+
+  // Get icon for option type
+  const getOptionIcon = (type: string) => {
+    if (type.toLowerCase() === 'color') {
+      return <Palette className="w-4 h-4 text-primary" />;
+    }
+    return <Package className="w-4 h-4 text-primary" />;
+  };
+
   if (!variants || variants.length === 0) {
     return null;
   }
 
-  // Sort variants by label (natural sort for sizes)
-  const sortedVariants = [...variants].sort((a, b) => {
-    // Try to extract numeric part for natural sorting
-    const numA = parseInt(a.label.replace(/\D/g, '')) || 0;
-    const numB = parseInt(b.label.replace(/\D/g, '')) || 0;
-    if (numA !== numB) return numA - numB;
-    return a.label.localeCompare(b.label);
-  });
-
   return (
-    <div className="space-y-3">
-      <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-        <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-          <Package className="w-4 h-4 text-primary" />
-          Seleccionar Tallas
-          <Badge variant="secondary" className="text-[10px]">
-            {variants.length} opciones
-          </Badge>
-        </h4>
+    <div className="space-y-4">
+      {optionTypes.map((type) => {
+        const typeVariants = sortVariants(grouped[type]);
         
-        <div className="space-y-2">
-          {sortedVariants.map((variant) => {
-            const qty = selections[variant.id] || 0;
-            const price = variant.precio || basePrice;
-            const outOfStock = variant.stock === 0;
+        return (
+          <div key={type} className="p-3 bg-muted/30 rounded-lg border border-border/50">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              {getOptionIcon(type)}
+              {getOptionTypeName(type)}
+              <Badge variant="secondary" className="text-[10px]">
+                {typeVariants.length} opciones
+              </Badge>
+            </h4>
+            
+            <div className="space-y-2">
+              {typeVariants.map((variant) => {
+                const qty = selections[variant.id] || 0;
+                const price = variant.precio || basePrice;
+                const outOfStock = variant.stock === 0;
 
-            return (
-              <div
-                key={variant.id}
-                className={cn(
-                  "flex items-center justify-between gap-2 p-2 rounded-md transition-colors",
-                  qty > 0 ? "bg-primary/10 border border-primary/30" : "bg-background border border-transparent",
-                  outOfStock && "opacity-50"
-                )}
-              >
-                {/* Left: Variant info */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-bold text-sm text-foreground min-w-[40px]">
-                      {variant.label || variant.sku.split('-').pop() || `Opción ${sortedVariants.indexOf(variant) + 1}`}
-                    </span>
-                    {outOfStock && (
-                      <Badge variant="secondary" className="text-[10px] px-1 py-0">
-                        Agotado
-                      </Badge>
+                return (
+                  <div
+                    key={variant.id}
+                    className={cn(
+                      "flex items-center justify-between gap-2 p-2 rounded-md transition-colors",
+                      qty > 0 ? "bg-primary/10 border border-primary/30" : "bg-background border border-transparent",
+                      outOfStock && "opacity-50"
                     )}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <span className="text-sm font-semibold text-primary">
-                      ${price.toFixed(2)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      · {variant.stock} disp.
-                    </span>
-                  </div>
-                </div>
+                  >
+                    {/* Left: Variant info */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-bold text-sm text-foreground min-w-[40px]">
+                          {variant.label || variant.sku.split('-').pop() || `Opción ${typeVariants.indexOf(variant) + 1}`}
+                        </span>
+                        {outOfStock && (
+                          <Badge variant="secondary" className="text-[10px] px-1 py-0">
+                            Agotado
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-sm font-semibold text-primary">
+                          ${price.toFixed(2)}
+                        </span>
+                        <span className="text-xs text-muted-foreground">
+                          · {variant.stock} disp.
+                        </span>
+                      </div>
+                    </div>
 
-                {/* Right: Quantity controls */}
-                <div className="flex items-center gap-1 flex-shrink-0">
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => updateQuantity(variant.id, -1, variant)}
-                    disabled={qty === 0 || outOfStock}
-                  >
-                    <Minus className="h-3 w-3" />
-                  </Button>
-                  <div className="w-10 text-center text-sm font-semibold">
-                    {qty}
+                    {/* Right: Quantity controls */}
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(variant.id, -1, variant)}
+                        disabled={qty === 0 || outOfStock}
+                      >
+                        <Minus className="h-3 w-3" />
+                      </Button>
+                      <div className="w-10 text-center text-sm font-semibold">
+                        {qty}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => updateQuantity(variant.id, 1, variant)}
+                        disabled={outOfStock || qty >= variant.stock}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    className="h-8 w-8"
-                    onClick={() => updateQuantity(variant.id, 1, variant)}
-                    disabled={outOfStock || qty >= variant.stock}
-                  >
-                    <Plus className="h-3 w-3" />
-                  </Button>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+                );
+              })}
+            </div>
+          </div>
+        );
+      })}
 
       {/* Summary */}
       {totalQty > 0 && (
@@ -182,7 +223,7 @@ const VariantSelectorB2B = ({
               <Package className="h-4 w-4 text-primary" />
               <span className="font-medium">{totalQty} unidades</span>
               <span className="text-muted-foreground">
-                ({Object.values(selections).filter(q => q > 0).length} tallas)
+                ({Object.values(selections).filter(q => q > 0).length} variantes)
               </span>
             </div>
             <div className="text-lg font-bold text-primary">
