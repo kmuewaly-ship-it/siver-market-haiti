@@ -44,7 +44,7 @@ const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user, role, isLoading: authLoading } = useAuth();
   const { items, totalPrice, clearCart } = useCart();
-  const { completeCart, cart: b2cCart } = useB2CCartSupabase();
+  const { clearCart: completeCart, cart: b2cCart } = useB2CCartSupabase();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { pickupPoints, isLoading: pickupPointsLoading } = usePickupPoints();
   const isMobile = useIsMobile();

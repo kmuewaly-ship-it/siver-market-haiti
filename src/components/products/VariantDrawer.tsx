@@ -86,7 +86,6 @@ const VariantDrawer: React.FC = () => {
         } else if (user && user.id) {
           // Authenticated client -> B2C supabase
           await b2cCart.addItem({
-            sellerCatalogId: undefined,
             sku: product.sku || product.id,
             name: product.nombre,
             price: product.price || 0,
