@@ -86,8 +86,14 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
   // Reset quantity when product changes or opens
   useEffect(() => {
     if (product) {
-      setQuantity(1);
+      setQuantity(product?.variants && product.variants.length > 0 ? 0 : 1);
       setSelections([]);
+      console.log('[ProductBottomSheet] Product opened:', {
+        name: product.name,
+        hasVariants: !!product.variants,
+        variantCount: product.variants?.length || 0,
+        variants: product.variants
+      });
     }
   }, [product, isSeller, isOpen]);
 
