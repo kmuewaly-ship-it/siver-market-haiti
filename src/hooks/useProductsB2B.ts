@@ -1,90 +1,92 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ProductB2BCard, B2BFilters } from "@/types/b2b";
+import { ProductB2BCard, B2BFilters, ProductVariantInfo } from "@/types/b2b";
 
 /**
  * Extract base SKU from a SKU with variant suffix
  * Examples:
- * - "1005006634174277-4-5y" -> "1005006634174277"
- * - "3256807834694104-s224061210-5y" -> "3256807834694104-s224061210"
- * - "TEST-B2B-B2C-001-S" -> "TEST-B2B-B2C-001"
+ * - "1005006634174277-kj1c4420a-4y" -> "1005006634174277"
+ * - "3256807834694104-s224061210-5y" -> "3256807834694104"
  */
 const extractBaseSku = (sku: string): string => {
   if (!sku) return sku;
-  
-  // Common variant patterns at the end of SKU
-  // Matches: -4y, -5y, -6y, -S, -M, -L, -XL, -18-24m, -ten-years, etc.
-  const variantPatterns = [
-    /-\d+-\d+[mMyY]$/i,      // -18-24m, -4-5y
-    /-\d+[mMyY]$/i,          // -4y, -5m
-    /-[SMLX]{1,3}$/i,        // -S, -M, -L, -XL, -XXL
-    /-[a-z]+-years$/i,       // -ten-years, -eleven-years
-    /-[a-z]+$/i,             // generic suffix like -blue, -red (only if short)
-  ];
-  
-  for (const pattern of variantPatterns) {
-    if (pattern.test(sku)) {
-      return sku.replace(pattern, '');
-    }
-  }
-  
-  return sku;
+  const parts = sku.split('-');
+  return parts[0] || sku;
 };
 
 /**
- * Extract variant label from SKU or name
+ * Extract color code from SKU (middle part)
+ * "1005006634174277-kj1c4420a-4y" -> "kj1c4420a"
  */
-const extractVariantLabel = (sku: string, nombre: string): string => {
-  // Try to get variant from the end of SKU
-  const matches = sku.match(/[-_]([SMLX]{1,3}|[\d]+-[\d]+[mMyY]|[\d]+[mMyY]|[\w-]+years?)$/i);
-  if (matches) {
-    return matches[1].toUpperCase();
+const extractColorCode = (sku: string): string => {
+  if (!sku) return '';
+  const parts = sku.split('-');
+  if (parts.length >= 2) {
+    return parts[1] || '';
   }
-  
-  // Try to get from name suffix (after last " - ")
+  return '';
+};
+
+/**
+ * Extract color label from product name or SKU
+ */
+const extractColorLabel = (nombre: string, sku: string): string => {
+  // Try to extract color from name (after last " - ")
   const nameParts = nombre.split(' - ');
   if (nameParts.length > 1) {
-    return nameParts[nameParts.length - 1].trim();
+    const lastPart = nameParts[nameParts.length - 1].trim();
+    // Check if it looks like a color (not a size)
+    if (!/^\d/.test(lastPart) && !/^[SMLX]{1,3}$/i.test(lastPart)) {
+      return lastPart;
+    }
+  }
+  
+  // Use color code from SKU as fallback
+  const colorCode = extractColorCode(sku);
+  if (colorCode) {
+    return colorCode.toUpperCase();
   }
   
   return '';
 };
 
 /**
- * Clean product name by removing variant suffix
+ * Clean product name by removing variant suffixes
  */
 const cleanProductName = (nombre: string): string => {
-  // Remove common variant suffixes from name
   return nombre
-    .replace(/\s*[-–]\s*\d+-\d+[mMyY]\s*$/i, '')  // " - 4-5Y"
-    .replace(/\s*[-–]\s*\d+[mMyY]\s*$/i, '')       // " - 5Y"
-    .replace(/\s*[-–]\s*[SMLX]{1,3}\s*$/i, '')     // " - S", " - XL"
-    .replace(/\s*[-–]\s*[\w-]+years?\s*$/i, '')    // " - ten-years"
+    .replace(/\s*[-–]\s*\d+-\d+[mMyY]\s*$/i, '')
+    .replace(/\s*[-–]\s*\d+[mMyY]\s*$/i, '')
+    .replace(/\s*[-–]\s*[SMLX]{1,3}\s*$/i, '')
+    .replace(/\s*[-–]\s*[\w-]+years?\s*$/i, '')
+    // Remove color suffixes (common colors in Spanish/English)
+    .replace(/\s*[-–]\s*(blanco|negro|rojo|azul|verde|amarillo|rosa|morado|naranja|gris|white|black|red|blue|green|yellow|pink|purple|orange|gray|grey)\s*$/i, '')
     .trim();
 };
 
-interface ProductVariantInfo {
-  id: string;
-  sku: string;
+interface ColorOption {
+  productId: string;
   label: string;
-  precio: number;
+  code: string;
+  image: string;
+  price: number;
   stock: number;
-  option_type: string; // 'color', 'size', etc.
 }
 
 interface GroupedProduct {
   representative: any;
-  variants: ProductVariantInfo[];
+  products: any[]; // All products in this group (different colors)
+  colorOptions: ColorOption[];
   baseSku: string;
   baseName: string;
   totalStock: number;
   minPrice: number;
   maxPrice: number;
-  productIds: string[]; // All product IDs in this group
+  productIds: string[];
 }
 
 /**
- * Group products by base SKU to combine variants (AliExpress/Shein style)
+ * Group products by base SKU to combine color variants
  */
 const groupProductsBySku = (products: any[]): GroupedProduct[] => {
   const skuGroups = new Map<string, any[]>();
@@ -100,33 +102,34 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
   
   const groupedProducts: GroupedProduct[] = [];
   
-  skuGroups.forEach((products, baseSku) => {
+  skuGroups.forEach((groupProducts, baseSku) => {
     // Sort by price to get the lowest as representative
-    products.sort((a, b) => (a.precio_mayorista || 0) - (b.precio_mayorista || 0));
+    groupProducts.sort((a, b) => (a.precio_mayorista || 0) - (b.precio_mayorista || 0));
     
-    const representative = { ...products[0] };
+    const representative = { ...groupProducts[0] };
     const baseName = cleanProductName(representative.nombre || '');
-    const productIds = products.map(p => p.id);
+    const productIds = groupProducts.map(p => p.id);
     
-    // Create variant info array - include product variants from DB if available
-    const variantInfos: ProductVariantInfo[] = products.map(p => ({
-      id: p.id,
-      sku: p.sku_interno,
-      label: extractVariantLabel(p.sku_interno || '', p.nombre || ''),
-      precio: p.precio_mayorista || 0,
+    // Create color options from each product in the group
+    const colorOptions: ColorOption[] = groupProducts.map(p => ({
+      productId: p.id,
+      label: extractColorLabel(p.nombre || '', p.sku_interno || ''),
+      code: extractColorCode(p.sku_interno || ''),
+      image: p.imagen_principal || '/placeholder.svg',
+      price: p.precio_mayorista || 0,
       stock: p.stock_fisico || 0,
-      option_type: 'color', // Products grouped by SKU represent different colors
     }));
     
     // Calculate aggregates
-    const totalStock = products.reduce((sum, v) => sum + (v.stock_fisico || 0), 0);
-    const prices = products.map(v => v.precio_mayorista || 0).filter(p => p > 0);
+    const totalStock = groupProducts.reduce((sum, v) => sum + (v.stock_fisico || 0), 0);
+    const prices = groupProducts.map(v => v.precio_mayorista || 0).filter(p => p > 0);
     const minPrice = prices.length > 0 ? Math.min(...prices) : 0;
     const maxPrice = prices.length > 0 ? Math.max(...prices) : 0;
     
     groupedProducts.push({
       representative,
-      variants: variantInfos,
+      products: groupProducts,
+      colorOptions,
       baseSku,
       baseName,
       totalStock,
@@ -185,15 +188,18 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
         throw new Error(error.message);
       }
 
-      // Fetch all product variants to get option_type info
-      const productIds = (data || []).map(p => p.id);
+      // Group products by base SKU (combine color variants)
+      const groupedData = groupProductsBySku(data || []);
+      
+      // Fetch all product variants for ALL products
+      const allProductIds = (data || []).map(p => p.id);
       const { data: variantsData } = await supabase
         .from("product_variants")
         .select("id, product_id, sku, option_type, option_value, price, stock")
-        .in("product_id", productIds)
+        .in("product_id", allProductIds)
         .eq("is_active", true);
 
-      // Create a map of product variants by product_id
+      // Create a map of variants by product_id
       const variantsByProduct = new Map<string, typeof variantsData>();
       (variantsData || []).forEach(v => {
         if (!variantsByProduct.has(v.product_id)) {
@@ -202,13 +208,10 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
         variantsByProduct.get(v.product_id)!.push(v);
       });
 
-      // Group products by SKU (combine variants)
-      const groupedData = groupProductsBySku(data || []);
-      
       // Apply pagination AFTER grouping
       const paginatedData = groupedData.slice(page * limit, (page + 1) * limit);
 
-      // Map to B2B card format with proper variants from product_variants table
+      // Map to B2B card format with proper variants
       const products: ProductB2BCard[] = paginatedData.map((group) => {
         const p = group.representative;
         const precioMayorista = group.minPrice || p.precio_mayorista || 0;
@@ -229,12 +232,17 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
               precio: pv.price || precioMayorista,
               stock: pv.stock || 0,
               option_type: pv.option_type || 'size',
+              parent_product_id: productId,
             });
           });
         });
         
-        // If no variants from product_variants table, use the grouped product variants (as colors)
-        const finalVariants = allVariants.length > 0 ? allVariants : group.variants;
+        // Determine variant count for display
+        const hasMultipleColors = group.colorOptions.length > 1;
+        const hasVariants = allVariants.length > 0;
+        const totalVariantCount = hasMultipleColors 
+          ? group.colorOptions.length + allVariants.length 
+          : allVariants.length || group.colorOptions.length;
         
         return {
           id: p.id,
@@ -247,10 +255,13 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           stock_fisico: group.totalStock,
           imagen_principal: imagen,
           categoria_id: p.categoria_id || "",
-          variant_count: finalVariants.length,
-          variant_ids: finalVariants.map(v => v.id),
-          variants: finalVariants,
-          source_product_id: p.id, // For VariantSelector queries
+          variant_count: totalVariantCount,
+          variant_ids: [...group.productIds, ...allVariants.map(v => v.id)],
+          variants: allVariants,
+          source_product_id: p.id,
+          // New fields for color handling
+          color_options: group.colorOptions,
+          has_color_variants: hasMultipleColors,
         };
       });
 
@@ -271,8 +282,24 @@ export const useFeaturedProductsB2B = (limit = 6) => {
 
       if (error) throw new Error(error.message);
 
-      // Group products by SKU
+      // Group products by base SKU
       const groupedData = groupProductsBySku(data || []);
+      
+      // Fetch variants for all products
+      const allProductIds = (data || []).map(p => p.id);
+      const { data: variantsData } = await supabase
+        .from("product_variants")
+        .select("id, product_id, sku, option_type, option_value, price, stock")
+        .in("product_id", allProductIds)
+        .eq("is_active", true);
+
+      const variantsByProduct = new Map<string, typeof variantsData>();
+      (variantsData || []).forEach(v => {
+        if (!variantsByProduct.has(v.product_id)) {
+          variantsByProduct.set(v.product_id, []);
+        }
+        variantsByProduct.get(v.product_id)!.push(v);
+      });
       
       // Take only the requested limit
       const limitedData = groupedData.slice(0, limit);
@@ -282,6 +309,27 @@ export const useFeaturedProductsB2B = (limit = 6) => {
         const precioMayorista = group.minPrice || p.precio_mayorista || 0;
         const precioSugerido = p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
         const imagen = p.imagen_principal || "/placeholder.svg";
+        
+        const allVariants: ProductVariantInfo[] = [];
+        group.productIds.forEach(productId => {
+          const productVariants = variantsByProduct.get(productId) || [];
+          productVariants.forEach(pv => {
+            allVariants.push({
+              id: pv.id,
+              sku: pv.sku,
+              label: pv.option_value,
+              precio: pv.price || precioMayorista,
+              stock: pv.stock || 0,
+              option_type: pv.option_type || 'size',
+              parent_product_id: productId,
+            });
+          });
+        });
+
+        const hasMultipleColors = group.colorOptions.length > 1;
+        const totalVariantCount = hasMultipleColors 
+          ? group.colorOptions.length + allVariants.length 
+          : allVariants.length || group.colorOptions.length;
         
         return {
           id: p.id,
@@ -294,9 +342,12 @@ export const useFeaturedProductsB2B = (limit = 6) => {
           stock_fisico: group.totalStock,
           imagen_principal: imagen,
           categoria_id: p.categoria_id || "",
-          variant_count: group.variants.length,
-          variant_ids: group.variants.map(v => v.id),
-          variants: group.variants,
+          variant_count: totalVariantCount,
+          variant_ids: [...group.productIds, ...allVariants.map(v => v.id)],
+          variants: allVariants,
+          source_product_id: p.id,
+          color_options: group.colorOptions,
+          has_color_variants: hasMultipleColors,
         };
       });
 

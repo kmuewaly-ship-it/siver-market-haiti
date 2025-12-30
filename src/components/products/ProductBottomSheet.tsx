@@ -35,6 +35,17 @@ interface ProductVariantInfo {
   label: string;
   precio: number;
   stock: number;
+  option_type?: string;
+  parent_product_id?: string;
+}
+
+interface ColorOption {
+  productId: string;
+  label: string;
+  code?: string;
+  image?: string;
+  price: number;
+  stock: number;
 }
 
 interface Product {
@@ -57,6 +68,9 @@ interface Product {
   // Variant support for B2B grouped products
   variants?: ProductVariantInfo[];
   variantIds?: string[];
+  // Color options support
+  colorOptions?: ColorOption[];
+  hasColorVariants?: boolean;
 }
 
 interface SelectedVariation {
@@ -183,11 +197,15 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       <div className={isMobile ? "px-4 pb-24 overflow-y-auto flex-1" : "px-6 pb-24 overflow-y-auto flex-1"}>
         {/* Variant Selector - use B2B grouped variants if we have multiple */}
         <div className="mb-4 sm:mb-6">
-          {product?.variants && product.variants.length > 1 ? (
+          {(product?.variants && product.variants.length > 0) || (product?.colorOptions && product.colorOptions.length > 1) ? (
             <VariantSelectorB2B 
-              variants={product.variants}
+              variants={product?.variants || []}
+              colorOptions={product?.colorOptions}
               basePrice={product?.priceB2B || product?.price || 0}
-              onSelectionChange={(list) => setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity })))}
+              onSelectionChange={(list, totalQty) => {
+                setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity })));
+                setQuantity(totalQty);
+              }}
             />
           ) : (
             <VariantSelector 
@@ -416,10 +434,11 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 {/* Content */}
                 <div className="px-4 pb-24 overflow-y-auto flex-1">
                   <div className="mb-4">
-                    {/* Use B2B variant selector if we have multiple grouped variants with meaningful labels */}
-                    {product?.variants && product.variants.length > 1 ? (
+                    {/* Use B2B variant selector if we have variants or color options */}
+                    {(product?.variants && product.variants.length > 0) || (product?.colorOptions && product.colorOptions.length > 1) ? (
                       <VariantSelectorB2B 
-                        variants={product.variants}
+                        variants={product?.variants || []}
+                        colorOptions={product?.colorOptions}
                         basePrice={product?.priceB2B || product?.price || 0}
                         onSelectionChange={(list, totalQty, totalPrice) => {
                           setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: s.label })));
@@ -610,10 +629,11 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 {/* Content */}
               <div className="px-6 pb-24 overflow-y-auto flex-1">
                 <div className="mb-6">
-                  {/* Use B2B variant selector if we have multiple grouped variants */}
-                  {product?.variants && product.variants.length > 1 ? (
+                  {/* Use B2B variant selector if we have variants or color options */}
+                  {(product?.variants && product.variants.length > 0) || (product?.colorOptions && product.colorOptions.length > 1) ? (
                     <VariantSelectorB2B 
-                      variants={product.variants}
+                      variants={product?.variants || []}
+                      colorOptions={product?.colorOptions}
                       basePrice={product?.priceB2B || product?.price || 0}
                       onSelectionChange={(list, totalQty, totalPrice) => {
                         setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: s.label })));
