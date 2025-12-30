@@ -25,6 +25,10 @@ export interface VariantOption {
 // Backwards compatibility alias
 export type ColorOption = VariantOption;
 
+export interface VariantsByType {
+  [type: string]: VariantOption[];
+}
+
 export interface ProductB2BCard {
   id: string;
   sku: string;
@@ -40,8 +44,10 @@ export interface ProductB2BCard {
   variant_count?: number; // Number of variants
   variant_ids?: string[]; // IDs of all variants
   variants?: ProductVariantInfo[]; // Size/other variants from product_variants table
-  variant_options?: VariantOption[]; // Variants derived from grouped products (color, age, size, etc.)
+  variant_options?: VariantOption[]; // All variants derived from grouped products
   variant_type?: string; // Primary type: 'color' | 'size' | 'age' | 'combo'
+  variant_types?: string[]; // All detected types
+  variants_by_type?: VariantsByType; // Variants grouped by type
   has_grouped_variants?: boolean; // Whether this product has multiple grouped variants
   // Backwards compatibility
   color_options?: VariantOption[];

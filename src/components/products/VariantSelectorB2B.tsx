@@ -36,11 +36,17 @@ interface VariantSelection {
   colorLabel?: string;
 }
 
+interface VariantsByType {
+  [type: string]: VariantOption[];
+}
+
 interface VariantSelectorB2BProps {
   productId?: string; // For EAV-based loading
   variants: VariantInfo[];
   variantOptions?: VariantOption[]; // Unified variant options (age, color, size from grouped products)
-  variantType?: string; // Primary type: 'color' | 'size' | 'age'
+  variantsByType?: VariantsByType; // Variants grouped by type
+  variantTypes?: string[]; // All detected types
+  variantType?: string; // Primary type (backwards compat)
   colorOptions?: VariantOption[]; // Backwards compatibility
   basePrice: number;
   onSelectionChange?: (selections: VariantSelection[], totalQty: number, totalPrice: number) => void;
@@ -77,6 +83,8 @@ const VariantSelectorB2B = ({
   productId,
   variants,
   variantOptions = [],
+  variantsByType: propVariantsByType,
+  variantTypes: propVariantTypes,
   variantType = 'unknown',
   colorOptions = [], // Backwards compatibility
   basePrice,
@@ -84,9 +92,44 @@ const VariantSelectorB2B = ({
 }: VariantSelectorB2BProps) => {
   // Merge variantOptions and colorOptions (prioritize variantOptions)
   const effectiveGroupedOptions = variantOptions.length > 0 ? variantOptions : colorOptions;
+  
+  // Build variantsByType from options if not provided
+  const groupedByType = useMemo(() => {
+    if (propVariantsByType && Object.keys(propVariantsByType).length > 0) {
+      return propVariantsByType;
+    }
+    // Group effectiveGroupedOptions by type
+    const grouped: VariantsByType = {};
+    effectiveGroupedOptions.forEach(opt => {
+      const type = opt.type || 'unknown';
+      if (!grouped[type]) {
+        grouped[type] = [];
+      }
+      grouped[type].push(opt);
+    });
+    return grouped;
+  }, [propVariantsByType, effectiveGroupedOptions]);
+
+  // Get all variant types
+  const allVariantTypes = useMemo(() => {
+    if (propVariantTypes && propVariantTypes.length > 0) {
+      return propVariantTypes;
+    }
+    return Object.keys(groupedByType);
+  }, [propVariantTypes, groupedByType]);
+  
   const [selections, setSelections] = useState<Record<string, number>>({});
-  const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
+  const [selectedByType, setSelectedByType] = useState<Record<string, string>>({});
   const onSelectionChangeRef = useRef(onSelectionChange);
+  
+  // For backwards compatibility - first type selection acts as "selectedColorId"
+  const primaryType = allVariantTypes[0] || variantType;
+  const selectedColorId = selectedByType[primaryType] || null;
+  const setSelectedColorId = (id: string | null) => {
+    if (id) {
+      setSelectedByType(prev => ({ ...prev, [primaryType]: id }));
+    }
+  };
   
   // Load EAV attributes if productId is provided
   const { data: eavVariants } = useProductVariantsWithAttributes(productId);
@@ -112,12 +155,15 @@ const VariantSelectorB2B = ({
     return variants;
   }, [eavVariants, variants, basePrice]);
 
-  // Auto-select first option if options exist
+  // Auto-select first option for each type if options exist
   useEffect(() => {
-    if (effectiveGroupedOptions.length > 0 && !selectedColorId) {
-      setSelectedColorId(effectiveGroupedOptions[0].productId);
-    }
-  }, [effectiveGroupedOptions, selectedColorId]);
+    allVariantTypes.forEach(type => {
+      const typeOptions = groupedByType[type] || [];
+      if (typeOptions.length > 0 && !selectedByType[type]) {
+        setSelectedByType(prev => ({ ...prev, [type]: typeOptions[0].productId }));
+      }
+    });
+  }, [allVariantTypes, groupedByType, selectedByType]);
 
   // Group variants by option_type
   const grouped = useMemo(() => {
@@ -450,35 +496,55 @@ const VariantSelectorB2B = ({
   if (!effectiveVariants || effectiveVariants.length === 0) {
     // If only grouped options exist (no product_variants)
     if (effectiveGroupedOptions.length > 0) {
-      const GroupedIcon = groupedConfig.icon;
       return (
         <div className="space-y-4">
-          <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <GroupedIcon className="w-4 h-4 text-primary" />
-              {groupedConfig.displayName}
-              <Badge variant="secondary" className="text-[10px]">
-                {effectiveGroupedOptions.length} opciones
-              </Badge>
-            </h4>
-            {variantType === 'color' 
-              ? renderColorSwatches(effectiveGroupedOptions.map(c => ({
-                  id: c.productId,
-                  label: c.label,
-                  color_code: c.code,
-                  image: c.image,
-                  stock: c.stock,
-                  precio: c.price,
-                })))
-              : renderSizeButtons(effectiveGroupedOptions.map(c => ({
-                  id: c.productId,
-                  label: c.label,
-                  stock: c.stock,
-                  precio: c.price,
-                  sku: c.productId,
-                })))
-            }
-          </div>
+          {/* Render each type of variant */}
+          {allVariantTypes.map((type) => {
+            const typeOptions = groupedByType[type] || [];
+            if (typeOptions.length === 0) return null;
+            
+            const config = getRenderConfig(type);
+            const Icon = config.icon;
+            const selectedId = selectedByType[type];
+            
+            return (
+              <div key={type} className="p-3 bg-muted/30 rounded-lg border border-border/50">
+                <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <Icon className="w-4 h-4 text-primary" />
+                  {config.displayName}
+                  <Badge variant="secondary" className="text-[10px]">
+                    {typeOptions.length} opciones
+                  </Badge>
+                </h4>
+                
+                {type === 'color' ? (
+                  renderColorSwatches(typeOptions.map(c => ({
+                    id: c.productId,
+                    label: c.label,
+                    color_code: c.code,
+                    image: c.image,
+                    stock: c.stock,
+                    precio: c.price,
+                  })))
+                ) : (
+                  renderSizeButtons(typeOptions.map(c => ({
+                    id: c.productId,
+                    label: c.label,
+                    stock: c.stock,
+                    precio: c.price,
+                    sku: c.productId,
+                  })))
+                )}
+                
+                {selectedId && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    <span className="font-medium">{typeOptions.find(c => c.productId === selectedId)?.label}</span>
+                    {' · '}{typeOptions.find(c => c.productId === selectedId)?.stock || 0} disponibles
+                  </div>
+                )}
+              </div>
+            );
+          })}
 
           {/* Summary */}
           {totalQty > 0 && (
@@ -502,98 +568,111 @@ const VariantSelectorB2B = ({
 
   return (
     <div className="space-y-4">
-      {/* Primary Grouped Options Selector (Age, Color, Size from grouped products) */}
-      {hasGroupedOptions && (
-        <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-          <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <groupedConfig.icon className="w-4 h-4 text-primary" />
-            {groupedConfig.displayName}
-            <Badge variant="secondary" className="text-[10px]">
-              {effectiveGroupedOptions.length} opciones
-            </Badge>
-          </h4>
-          
-          {variantType === 'color' ? (
-            <div className="flex flex-wrap gap-2">
-              {effectiveGroupedOptions.map((option) => {
-                const isSelected = selectedColorId === option.productId;
-                const outOfStock = option.stock === 0;
-                
-                return (
-                  <button
-                    key={option.productId}
-                    onClick={() => !outOfStock && setSelectedColorId(option.productId)}
-                    disabled={outOfStock}
-                    className={cn(
-                      "relative w-10 h-10 rounded-full border-2 transition-all",
-                      "flex items-center justify-center overflow-hidden",
-                      isSelected 
-                        ? "border-primary ring-2 ring-primary/30" 
-                        : "border-border hover:border-primary/50",
-                      outOfStock && "opacity-40 cursor-not-allowed"
-                    )}
-                    title={option.label}
-                  >
-                    {option.code ? (
-                      <div 
-                        className="w-full h-full rounded-full"
-                        style={{ backgroundColor: option.code }}
-                      />
-                    ) : option.image ? (
-                      <img 
-                        src={option.image} 
-                        alt={option.label}
-                        className="w-full h-full object-cover rounded-full"
-                      />
-                    ) : (
-                      <span className="text-[10px] font-bold">
-                        {option.label?.charAt(0)?.toUpperCase()}
-                      </span>
-                    )}
-                    {isSelected && (
-                      <Check className="absolute w-4 h-4 text-white drop-shadow-md" />
-                    )}
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            /* Age, Size, or other grouped options - render as buttons with quantity */
-            <div className="flex flex-wrap gap-2">
-              {effectiveGroupedOptions.map((option) => {
-                const isSelected = selectedColorId === option.productId;
-                const outOfStock = option.stock === 0;
-                
-                return (
-                  <button
-                    key={option.productId}
-                    onClick={() => !outOfStock && setSelectedColorId(option.productId)}
-                    disabled={outOfStock}
-                    className={cn(
-                      "px-3 py-2 rounded-md border-2 transition-all text-sm font-medium",
-                      isSelected 
-                        ? "border-primary bg-primary/10 text-primary" 
-                        : "border-border bg-background hover:border-primary/50",
-                      outOfStock && "opacity-40 cursor-not-allowed line-through"
-                    )}
-                    title={`${option.label} - ${option.stock} disponibles`}
-                  >
-                    {option.label}
-                  </button>
-                );
-              })}
-            </div>
-          )}
-          
-          {selectedColorId && (
-            <div className="mt-2 text-xs text-muted-foreground">
-              <span className="font-medium">{effectiveGroupedOptions.find(c => c.productId === selectedColorId)?.label}</span>
-              {' · '}{effectiveGroupedOptions.find(c => c.productId === selectedColorId)?.stock || 0} disponibles
-              {' · '}${(effectiveGroupedOptions.find(c => c.productId === selectedColorId)?.price || basePrice).toFixed(2)}
-            </div>
-          )}
-        </div>
-      )}
+      {/* All Grouped Options by Type */}
+      {allVariantTypes.map((type) => {
+        const typeOptions = groupedByType[type] || [];
+        if (typeOptions.length === 0) return null;
+        
+        const config = getRenderConfig(type);
+        const Icon = config.icon;
+        const selectedId = selectedByType[type];
+        
+        const handleSelect = (id: string) => {
+          setSelectedByType(prev => ({ ...prev, [type]: id }));
+        };
+        
+        return (
+          <div key={type} className="p-3 bg-muted/30 rounded-lg border border-border/50">
+            <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+              <Icon className="w-4 h-4 text-primary" />
+              {config.displayName}
+              <Badge variant="secondary" className="text-[10px]">
+                {typeOptions.length} opciones
+              </Badge>
+            </h4>
+            
+            {type === 'color' ? (
+              <div className="flex flex-wrap gap-2">
+                {typeOptions.map((option) => {
+                  const isSelected = selectedId === option.productId;
+                  const outOfStock = option.stock === 0;
+                  
+                  return (
+                    <button
+                      key={option.productId}
+                      onClick={() => !outOfStock && handleSelect(option.productId)}
+                      disabled={outOfStock}
+                      className={cn(
+                        "relative w-10 h-10 rounded-full border-2 transition-all",
+                        "flex items-center justify-center overflow-hidden",
+                        isSelected 
+                          ? "border-primary ring-2 ring-primary/30" 
+                          : "border-border hover:border-primary/50",
+                        outOfStock && "opacity-40 cursor-not-allowed"
+                      )}
+                      title={option.label}
+                    >
+                      {option.code ? (
+                        <div 
+                          className="w-full h-full rounded-full"
+                          style={{ backgroundColor: option.code }}
+                        />
+                      ) : option.image ? (
+                        <img 
+                          src={option.image} 
+                          alt={option.label}
+                          className="w-full h-full object-cover rounded-full"
+                        />
+                      ) : (
+                        <span className="text-[10px] font-bold">
+                          {option.label?.charAt(0)?.toUpperCase()}
+                        </span>
+                      )}
+                      {isSelected && (
+                        <Check className="absolute w-4 h-4 text-white drop-shadow-md" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              /* Age, Size, or other grouped options - render as buttons */
+              <div className="flex flex-wrap gap-2">
+                {typeOptions.map((option) => {
+                  const isSelected = selectedId === option.productId;
+                  const outOfStock = option.stock === 0;
+                  
+                  return (
+                    <button
+                      key={option.productId}
+                      onClick={() => !outOfStock && handleSelect(option.productId)}
+                      disabled={outOfStock}
+                      className={cn(
+                        "px-3 py-2 rounded-md border-2 transition-all text-sm font-medium",
+                        isSelected 
+                          ? "border-primary bg-primary/10 text-primary" 
+                          : "border-border bg-background hover:border-primary/50",
+                        outOfStock && "opacity-40 cursor-not-allowed line-through"
+                      )}
+                      title={`${option.label} - ${option.stock} disponibles`}
+                    >
+                      {option.label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+            
+            {selectedId && (
+              <div className="mt-2 text-xs text-muted-foreground">
+                <span className="font-medium">{typeOptions.find(c => c.productId === selectedId)?.label}</span>
+                {' · '}{typeOptions.find(c => c.productId === selectedId)?.stock || 0} disponibles
+                {' · '}${(typeOptions.find(c => c.productId === selectedId)?.price || basePrice).toFixed(2)}
+              </div>
+            )}
+          </div>
+        );
+      })}
 
       {/* Other Option Types from product_variants (Size, Material, Voltage, etc.) */}
       {optionTypes.map((type) => {

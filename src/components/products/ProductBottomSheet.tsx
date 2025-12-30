@@ -48,6 +48,16 @@ interface ColorOption {
   stock: number;
 }
 
+interface VariantOption {
+  productId: string;
+  label: string;
+  code?: string;
+  image?: string;
+  price: number;
+  stock: number;
+  type?: string;
+}
+
 interface Product {
   id: string;
   name: string;
@@ -68,7 +78,10 @@ interface Product {
   // Variant support for B2B grouped products
   variants?: ProductVariantInfo[];
   variantIds?: string[];
-  // Color options support
+  // Unified variant options (all types: color, size, age, etc.)
+  variantOptions?: VariantOption[];
+  variantType?: string;
+  // Color options support (backwards compatibility)
   colorOptions?: ColorOption[];
   hasColorVariants?: boolean;
 }
@@ -197,9 +210,11 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       <div className={isMobile ? "px-4 pb-24 overflow-y-auto flex-1" : "px-6 pb-24 overflow-y-auto flex-1"}>
         {/* Variant Selector - use B2B grouped variants if we have multiple */}
         <div className="mb-4 sm:mb-6">
-          {(product?.variants && product.variants.length > 0) || (product?.colorOptions && product.colorOptions.length > 1) ? (
+          {(product?.variants && product.variants.length > 0) || (product?.variantOptions && product.variantOptions.length > 1) || (product?.colorOptions && product.colorOptions.length > 1) ? (
             <VariantSelectorB2B 
               variants={product?.variants || []}
+              variantOptions={product?.variantOptions || []}
+              variantType={product?.variantType || 'unknown'}
               colorOptions={product?.colorOptions}
               basePrice={product?.priceB2B || product?.price || 0}
               onSelectionChange={(list, totalQty) => {
@@ -435,9 +450,11 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 <div className="px-4 pb-24 overflow-y-auto flex-1">
                   <div className="mb-4">
                     {/* Use B2B variant selector if we have variants or color options */}
-                    {(product?.variants && product.variants.length > 0) || (product?.colorOptions && product.colorOptions.length > 1) ? (
+                    {(product?.variants && product.variants.length > 0) || (product?.variantOptions && product.variantOptions.length > 1) || (product?.colorOptions && product.colorOptions.length > 1) ? (
                       <VariantSelectorB2B 
                         variants={product?.variants || []}
+                        variantOptions={product?.variantOptions || []}
+                        variantType={product?.variantType || 'unknown'}
                         colorOptions={product?.colorOptions}
                         basePrice={product?.priceB2B || product?.price || 0}
                         onSelectionChange={(list, totalQty, totalPrice) => {
