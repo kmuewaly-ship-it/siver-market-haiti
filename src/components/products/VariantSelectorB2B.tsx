@@ -17,13 +17,14 @@ interface VariantInfo {
   image?: string;
 }
 
-interface ColorOption {
+interface VariantOption {
   productId: string;
   label: string;
   code?: string;
   image?: string;
   price: number;
   stock: number;
+  type?: string;
 }
 
 interface VariantSelection {
@@ -38,7 +39,9 @@ interface VariantSelection {
 interface VariantSelectorB2BProps {
   productId?: string; // For EAV-based loading
   variants: VariantInfo[];
-  colorOptions?: ColorOption[];
+  variantOptions?: VariantOption[]; // Unified variant options (age, color, size from grouped products)
+  variantType?: string; // Primary type: 'color' | 'size' | 'age'
+  colorOptions?: VariantOption[]; // Backwards compatibility
   basePrice: number;
   onSelectionChange?: (selections: VariantSelection[], totalQty: number, totalPrice: number) => void;
 }
@@ -46,18 +49,21 @@ interface VariantSelectorB2BProps {
 // Attribute type to render configuration
 const ATTRIBUTE_RENDER_CONFIG: Record<string, {
   icon: typeof Palette;
-  renderType: 'swatches' | 'chips' | 'buttons' | 'dropdown';
+  renderType: 'swatches' | 'chips' | 'buttons' | 'dropdown' | 'age';
   categoryHint: string;
+  displayName: string;
 }> = {
-  color: { icon: Palette, renderType: 'swatches', categoryHint: 'fashion' },
-  size: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion' },
-  talla: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion' },
-  voltage: { icon: Zap, renderType: 'chips', categoryHint: 'electronics' },
-  wattage: { icon: Zap, renderType: 'chips', categoryHint: 'electronics' },
-  capacity: { icon: Zap, renderType: 'chips', categoryHint: 'electronics' },
-  material: { icon: Box, renderType: 'dropdown', categoryHint: 'general' },
-  style: { icon: Layers, renderType: 'chips', categoryHint: 'fashion' },
-  age_group: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion' },
+  color: { icon: Palette, renderType: 'swatches', categoryHint: 'fashion', displayName: 'Color' },
+  size: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion', displayName: 'Talla' },
+  talla: { icon: Ruler, renderType: 'buttons', categoryHint: 'fashion', displayName: 'Talla' },
+  age: { icon: Ruler, renderType: 'age', categoryHint: 'kids', displayName: 'Edad' },
+  age_group: { icon: Ruler, renderType: 'age', categoryHint: 'kids', displayName: 'Edad' },
+  voltage: { icon: Zap, renderType: 'chips', categoryHint: 'electronics', displayName: 'Voltaje' },
+  wattage: { icon: Zap, renderType: 'chips', categoryHint: 'electronics', displayName: 'Potencia' },
+  capacity: { icon: Zap, renderType: 'chips', categoryHint: 'electronics', displayName: 'Capacidad' },
+  material: { icon: Box, renderType: 'dropdown', categoryHint: 'general', displayName: 'Material' },
+  style: { icon: Layers, renderType: 'chips', categoryHint: 'fashion', displayName: 'Estilo' },
+  unknown: { icon: Package, renderType: 'buttons', categoryHint: 'general', displayName: 'Variante' },
 };
 
 /**
@@ -70,10 +76,14 @@ const ATTRIBUTE_RENDER_CONFIG: Record<string, {
 const VariantSelectorB2B = ({
   productId,
   variants,
-  colorOptions = [],
+  variantOptions = [],
+  variantType = 'unknown',
+  colorOptions = [], // Backwards compatibility
   basePrice,
   onSelectionChange,
 }: VariantSelectorB2BProps) => {
+  // Merge variantOptions and colorOptions (prioritize variantOptions)
+  const effectiveGroupedOptions = variantOptions.length > 0 ? variantOptions : colorOptions;
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [selectedColorId, setSelectedColorId] = useState<string | null>(null);
   const onSelectionChangeRef = useRef(onSelectionChange);
@@ -102,12 +112,12 @@ const VariantSelectorB2B = ({
     return variants;
   }, [eavVariants, variants, basePrice]);
 
-  // Auto-select first color if colors exist
+  // Auto-select first option if options exist
   useEffect(() => {
-    if (colorOptions.length > 0 && !selectedColorId) {
-      setSelectedColorId(colorOptions[0].productId);
+    if (effectiveGroupedOptions.length > 0 && !selectedColorId) {
+      setSelectedColorId(effectiveGroupedOptions[0].productId);
     }
-  }, [colorOptions, selectedColorId]);
+  }, [effectiveGroupedOptions, selectedColorId]);
 
   // Group variants by option_type
   const grouped = useMemo(() => {
@@ -140,29 +150,31 @@ const VariantSelectorB2B = ({
     }, {} as Record<string, any[]>);
   }, [effectiveVariants]);
 
-  // Filter variants by selected color
+  // Filter variants by selected grouped option
   const filteredVariants = useMemo(() => {
-    if (colorOptions.length === 0 || !selectedColorId) {
+    if (effectiveGroupedOptions.length === 0 || !selectedColorId) {
       return effectiveVariants;
     }
     return effectiveVariants.filter((v: any) => v.parent_product_id === selectedColorId);
-  }, [effectiveVariants, colorOptions, selectedColorId]);
+  }, [effectiveVariants, effectiveGroupedOptions, selectedColorId]);
 
   // Group filtered variants
   const filteredGrouped = useMemo(() => {
     return filteredVariants.reduce((acc, variant: any) => {
       const type = variant.option_type || 'size';
-      if (type === 'color' && colorOptions.length > 0) return acc;
+      // Skip if we already show this type in grouped options
+      if (variantType === type && effectiveGroupedOptions.length > 0) return acc;
       if (!acc[type]) {
         acc[type] = [];
       }
       acc[type].push(variant);
       return acc;
     }, {} as Record<string, any[]>);
-  }, [filteredVariants, colorOptions]);
+  }, [filteredVariants, effectiveGroupedOptions, variantType]);
 
   const optionTypes = Object.keys(filteredGrouped);
-  const hasColorOptions = colorOptions.length > 1;
+  const hasGroupedOptions = effectiveGroupedOptions.length > 1;
+  const groupedConfig = ATTRIBUTE_RENDER_CONFIG[variantType] || ATTRIBUTE_RENDER_CONFIG.unknown;
   const hasOtherOptions = optionTypes.length > 0;
 
   // Calculate totals
@@ -220,27 +232,7 @@ const VariantSelectorB2B = ({
   // Get render config for option type
   const getRenderConfig = (type: string) => {
     const lower = type.toLowerCase();
-    return ATTRIBUTE_RENDER_CONFIG[lower] || {
-      icon: Package,
-      renderType: 'chips' as const,
-      categoryHint: 'general',
-    };
-  };
-
-  // Get display name for option type
-  const getOptionTypeName = (type: string): string => {
-    const names: Record<string, string> = {
-      'color': 'Color',
-      'size': 'Talla',
-      'talla': 'Talla',
-      'material': 'Material',
-      'style': 'Estilo',
-      'voltage': 'Voltaje',
-      'wattage': 'Potencia',
-      'capacity': 'Capacidad',
-      'age_group': 'Grupo de Edad',
-    };
-    return names[type.toLowerCase()] || type.charAt(0).toUpperCase() + type.slice(1);
+    return ATTRIBUTE_RENDER_CONFIG[lower] || ATTRIBUTE_RENDER_CONFIG.unknown;
   };
 
   // Render color swatches (visual circles/images)
@@ -456,26 +448,36 @@ const VariantSelectorB2B = ({
   };
 
   if (!effectiveVariants || effectiveVariants.length === 0) {
-    // If only color options exist (no size variants)
-    if (colorOptions.length > 0) {
+    // If only grouped options exist (no product_variants)
+    if (effectiveGroupedOptions.length > 0) {
+      const GroupedIcon = groupedConfig.icon;
       return (
         <div className="space-y-4">
           <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-              <Palette className="w-4 h-4 text-primary" />
-              Color
+              <GroupedIcon className="w-4 h-4 text-primary" />
+              {groupedConfig.displayName}
               <Badge variant="secondary" className="text-[10px]">
-                {colorOptions.length} opciones
+                {effectiveGroupedOptions.length} opciones
               </Badge>
             </h4>
-            {renderColorSwatches(colorOptions.map(c => ({
-              id: c.productId,
-              label: c.label,
-              color_code: c.code,
-              image: c.image,
-              stock: c.stock,
-              precio: c.price,
-            })))}
+            {variantType === 'color' 
+              ? renderColorSwatches(effectiveGroupedOptions.map(c => ({
+                  id: c.productId,
+                  label: c.label,
+                  color_code: c.code,
+                  image: c.image,
+                  stock: c.stock,
+                  precio: c.price,
+                })))
+              : renderSizeButtons(effectiveGroupedOptions.map(c => ({
+                  id: c.productId,
+                  label: c.label,
+                  stock: c.stock,
+                  precio: c.price,
+                  sku: c.productId,
+                })))
+            }
           </div>
 
           {/* Summary */}
@@ -500,71 +502,100 @@ const VariantSelectorB2B = ({
 
   return (
     <div className="space-y-4">
-      {/* Color Selector (if multiple colors) */}
-      {hasColorOptions && (
+      {/* Primary Grouped Options Selector (Age, Color, Size from grouped products) */}
+      {hasGroupedOptions && (
         <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
           <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-            <Palette className="w-4 h-4 text-primary" />
-            Color
+            <groupedConfig.icon className="w-4 h-4 text-primary" />
+            {groupedConfig.displayName}
             <Badge variant="secondary" className="text-[10px]">
-              {colorOptions.length} colores
+              {effectiveGroupedOptions.length} opciones
             </Badge>
           </h4>
           
-          <div className="flex flex-wrap gap-2">
-            {colorOptions.map((color) => {
-              const isSelected = selectedColorId === color.productId;
-              const outOfStock = color.stock === 0;
-              
-              return (
-                <button
-                  key={color.productId}
-                  onClick={() => !outOfStock && setSelectedColorId(color.productId)}
-                  disabled={outOfStock}
-                  className={cn(
-                    "relative w-10 h-10 rounded-full border-2 transition-all",
-                    "flex items-center justify-center overflow-hidden",
-                    isSelected 
-                      ? "border-primary ring-2 ring-primary/30" 
-                      : "border-border hover:border-primary/50",
-                    outOfStock && "opacity-40 cursor-not-allowed"
-                  )}
-                  title={color.label}
-                >
-                  {color.code ? (
-                    <div 
-                      className="w-full h-full rounded-full"
-                      style={{ backgroundColor: color.code }}
-                    />
-                  ) : color.image ? (
-                    <img 
-                      src={color.image} 
-                      alt={color.label}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                  ) : (
-                    <span className="text-[10px] font-bold">
-                      {color.label?.charAt(0)?.toUpperCase()}
-                    </span>
-                  )}
-                  {isSelected && (
-                    <Check className="absolute w-4 h-4 text-white drop-shadow-md" />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+          {variantType === 'color' ? (
+            <div className="flex flex-wrap gap-2">
+              {effectiveGroupedOptions.map((option) => {
+                const isSelected = selectedColorId === option.productId;
+                const outOfStock = option.stock === 0;
+                
+                return (
+                  <button
+                    key={option.productId}
+                    onClick={() => !outOfStock && setSelectedColorId(option.productId)}
+                    disabled={outOfStock}
+                    className={cn(
+                      "relative w-10 h-10 rounded-full border-2 transition-all",
+                      "flex items-center justify-center overflow-hidden",
+                      isSelected 
+                        ? "border-primary ring-2 ring-primary/30" 
+                        : "border-border hover:border-primary/50",
+                      outOfStock && "opacity-40 cursor-not-allowed"
+                    )}
+                    title={option.label}
+                  >
+                    {option.code ? (
+                      <div 
+                        className="w-full h-full rounded-full"
+                        style={{ backgroundColor: option.code }}
+                      />
+                    ) : option.image ? (
+                      <img 
+                        src={option.image} 
+                        alt={option.label}
+                        className="w-full h-full object-cover rounded-full"
+                      />
+                    ) : (
+                      <span className="text-[10px] font-bold">
+                        {option.label?.charAt(0)?.toUpperCase()}
+                      </span>
+                    )}
+                    {isSelected && (
+                      <Check className="absolute w-4 h-4 text-white drop-shadow-md" />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          ) : (
+            /* Age, Size, or other grouped options - render as buttons with quantity */
+            <div className="flex flex-wrap gap-2">
+              {effectiveGroupedOptions.map((option) => {
+                const isSelected = selectedColorId === option.productId;
+                const outOfStock = option.stock === 0;
+                
+                return (
+                  <button
+                    key={option.productId}
+                    onClick={() => !outOfStock && setSelectedColorId(option.productId)}
+                    disabled={outOfStock}
+                    className={cn(
+                      "px-3 py-2 rounded-md border-2 transition-all text-sm font-medium",
+                      isSelected 
+                        ? "border-primary bg-primary/10 text-primary" 
+                        : "border-border bg-background hover:border-primary/50",
+                      outOfStock && "opacity-40 cursor-not-allowed line-through"
+                    )}
+                    title={`${option.label} - ${option.stock} disponibles`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
           
           {selectedColorId && (
             <div className="mt-2 text-xs text-muted-foreground">
-              <span className="font-medium">{colorOptions.find(c => c.productId === selectedColorId)?.label}</span>
-              {' · '}{colorOptions.find(c => c.productId === selectedColorId)?.stock || 0} disponibles
+              <span className="font-medium">{effectiveGroupedOptions.find(c => c.productId === selectedColorId)?.label}</span>
+              {' · '}{effectiveGroupedOptions.find(c => c.productId === selectedColorId)?.stock || 0} disponibles
+              {' · '}${(effectiveGroupedOptions.find(c => c.productId === selectedColorId)?.price || basePrice).toFixed(2)}
             </div>
           )}
         </div>
       )}
 
-      {/* Other Option Types (Size, Material, Voltage, etc.) */}
+      {/* Other Option Types from product_variants (Size, Material, Voltage, etc.) */}
       {optionTypes.map((type) => {
         const typeVariants = filteredGrouped[type];
         if (!typeVariants || typeVariants.length === 0) return null;
@@ -576,7 +607,7 @@ const VariantSelectorB2B = ({
           <div key={type} className="p-3 bg-muted/30 rounded-lg border border-border/50">
             <h4 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
               <Icon className="w-4 h-4 text-primary" />
-              {getOptionTypeName(type)}
+              {config.displayName}
               <Badge variant="secondary" className="text-[10px]">
                 {typeVariants.length} opciones
               </Badge>
