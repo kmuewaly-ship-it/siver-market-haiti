@@ -126,7 +126,7 @@ const VariantSelectorB2B = ({
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="font-bold text-sm text-foreground min-w-[40px]">
-                      {variant.label}
+                      {variant.label || variant.sku.split('-').pop() || `Opción ${sortedVariants.indexOf(variant) + 1}`}
                     </span>
                     {outOfStock && (
                       <Badge variant="secondary" className="text-[10px] px-1 py-0">

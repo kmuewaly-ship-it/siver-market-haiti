@@ -181,9 +181,9 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       )}
 
       <div className={isMobile ? "px-4 pb-24 overflow-y-auto flex-1" : "px-6 pb-24 overflow-y-auto flex-1"}>
-        {/* Variant Selector - use B2B grouped variants if available */}
+        {/* Variant Selector - use B2B grouped variants if we have multiple */}
         <div className="mb-4 sm:mb-6">
-          {product?.variants && product.variants.length > 0 ? (
+          {product?.variants && product.variants.length > 1 ? (
             <VariantSelectorB2B 
               variants={product.variants}
               basePrice={product?.priceB2B || product?.price || 0}
@@ -416,8 +416,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 {/* Content */}
                 <div className="px-4 pb-24 overflow-y-auto flex-1">
                   <div className="mb-4">
-                    {/* Use B2B variant selector if grouped variants exist */}
-                    {product?.variants && product.variants.length > 0 ? (
+                    {/* Use B2B variant selector if we have multiple grouped variants with meaningful labels */}
+                    {product?.variants && product.variants.length > 1 ? (
                       <VariantSelectorB2B 
                         variants={product.variants}
                         basePrice={product?.priceB2B || product?.price || 0}
@@ -480,8 +480,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
 
                 {/* Footer - Fixed Position */}
                 <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-4 border-t bg-white max-w-sm mx-auto">
-                  {/* Show simplified footer when using B2B variant selector */}
-                  {product?.variants && product.variants.length > 0 ? (
+                  {/* Show simplified footer when using B2B variant selector with multiple variants */}
+                  {product?.variants && product.variants.length > 1 ? (
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex flex-col">
                         <span className="text-xs text-muted-foreground">
@@ -607,15 +607,27 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 </SheetClose>
               </SheetHeader>
 
-              {/* Content */}
+                {/* Content */}
               <div className="px-6 pb-24 overflow-y-auto flex-1">
                 <div className="mb-6">
-                  <VariantSelector 
-                    productId={product?.source_product_id || product?.id || ''}
-                    basePrice={product?.price || 0}
-                    isB2B={isSeller}
-                    onSelectionChange={(list) => setSelections(list)}
-                  />
+                  {/* Use B2B variant selector if we have multiple grouped variants */}
+                  {product?.variants && product.variants.length > 1 ? (
+                    <VariantSelectorB2B 
+                      variants={product.variants}
+                      basePrice={product?.priceB2B || product?.price || 0}
+                      onSelectionChange={(list, totalQty, totalPrice) => {
+                        setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: s.label })));
+                        setQuantity(totalQty);
+                      }}
+                    />
+                  ) : (
+                    <VariantSelector 
+                      productId={product?.source_product_id || product?.id || ''}
+                      basePrice={product?.price || 0}
+                      isB2B={isSeller}
+                      onSelectionChange={(list) => setSelections(list)}
+                    />
+                  )}
                 </div>
 
                 {isSeller && (
