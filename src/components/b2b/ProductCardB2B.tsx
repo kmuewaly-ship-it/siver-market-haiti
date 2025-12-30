@@ -192,7 +192,7 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
           id: product.id,
           name: product.nombre,
           price: product.precio_b2b,
-          image: product.imagen_principal,
+          image: product.imagen_principal || '/placeholder.svg',
           sku: product.sku,
           priceB2B: product.precio_b2b,
           pvp: product.precio_sugerido,
