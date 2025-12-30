@@ -1,6 +1,18 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 
+// EAV Attribute Combination type
+export interface AttributeCombination {
+  color?: string;
+  size?: string;
+  age?: string;
+  model?: string;
+  voltage?: string;
+  watts?: string;
+  material?: string;
+  [key: string]: string | undefined;
+}
+
 export interface ProductVariant {
   id: string;
   product_id: string;
@@ -10,11 +22,13 @@ export interface ProductVariant {
   option_value: string;
   price: number | null;
   precio_promocional: number | null;
+  cost_price?: number | null;
   stock: number;
   moq: number;
   images: string[];
   is_active: boolean;
   sort_order: number;
+  attribute_combination?: AttributeCombination | null;
   metadata?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
@@ -42,6 +56,7 @@ export const useProductVariants = (productId: string | undefined) => {
       return (data || []).map((v) => ({
         ...v,
         images: Array.isArray(v.images) ? (v.images as string[]) : [],
+        attribute_combination: v.attribute_combination as AttributeCombination | null,
         metadata: v.metadata as Record<string, any> || {},
       })) as ProductVariant[];
     },
@@ -72,6 +87,7 @@ export const useAllProductVariants = (productId: string | undefined) => {
       return (data || []).map((v) => ({
         ...v,
         images: Array.isArray(v.images) ? (v.images as string[]) : [],
+        attribute_combination: v.attribute_combination as AttributeCombination | null,
         metadata: v.metadata as Record<string, any> || {},
       })) as ProductVariant[];
     },
