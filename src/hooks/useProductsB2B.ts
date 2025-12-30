@@ -90,11 +90,16 @@ interface VariantOption {
   type: string; // 'color' | 'size' | 'age' | 'combo'
 }
 
+interface VariantsByType {
+  [type: string]: VariantOption[];
+}
+
 interface GroupedProduct {
   representative: any;
   products: any[];
-  variantOptions: VariantOption[];
-  variantType: string; // Primary variant type detected
+  variantOptions: VariantOption[]; // All variants
+  variantsByType: VariantsByType; // Variants grouped by type
+  variantTypes: string[]; // All detected types
   baseSku: string;
   baseName: string;
   totalStock: number;
@@ -142,12 +147,23 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
       };
     });
     
-    // Detect primary variant type (most common)
-    const typeCounts: Record<string, number> = {};
+    // Group variants by type
+    const variantsByType: VariantsByType = {};
     variantOptions.forEach(v => {
-      typeCounts[v.type] = (typeCounts[v.type] || 0) + 1;
+      if (!variantsByType[v.type]) {
+        variantsByType[v.type] = [];
+      }
+      // Avoid duplicates by label
+      if (!variantsByType[v.type].find(existing => existing.label === v.label)) {
+        variantsByType[v.type].push(v);
+      }
     });
-    const variantType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown';
+    
+    // Get all detected types (sorted by priority: color, size, age, unknown)
+    const typePriority = ['color', 'size', 'age', 'unknown'];
+    const variantTypes = Object.keys(variantsByType).sort((a, b) => {
+      return typePriority.indexOf(a) - typePriority.indexOf(b);
+    });
     
     // Calculate aggregates
     const totalStock = groupProducts.reduce((sum, v) => sum + (v.stock_fisico || 0), 0);
@@ -159,7 +175,8 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
       representative,
       products: groupProducts,
       variantOptions,
-      variantType,
+      variantsByType,
+      variantTypes,
       baseSku,
       baseName,
       totalStock,
@@ -291,10 +308,12 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           source_product_id: p.id,
           // New unified variant fields
           variant_options: group.variantOptions,
-          variant_type: group.variantType,
+          variant_type: group.variantTypes[0] || 'unknown', // Primary type
+          variant_types: group.variantTypes, // All types
+          variants_by_type: group.variantsByType, // Grouped by type
           has_grouped_variants: hasGroupedVariants,
           // Backwards compatibility
-          color_options: group.variantOptions,
+          color_options: group.variantsByType['color'] || group.variantOptions,
           has_color_variants: hasGroupedVariants,
         };
       });
@@ -381,9 +400,11 @@ export const useFeaturedProductsB2B = (limit = 6) => {
           variants: allVariants,
           source_product_id: p.id,
           variant_options: group.variantOptions,
-          variant_type: group.variantType,
+          variant_type: group.variantTypes[0] || 'unknown',
+          variant_types: group.variantTypes,
+          variants_by_type: group.variantsByType,
           has_grouped_variants: hasGroupedVariants,
-          color_options: group.variantOptions,
+          color_options: group.variantsByType['color'] || group.variantOptions,
           has_color_variants: hasGroupedVariants,
         };
       });
