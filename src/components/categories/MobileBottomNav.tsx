@@ -25,7 +25,7 @@ const MobileBottomNav = () => {
   
   // Get cart count based on user type
   const cartItems = isB2B ? b2bItems : b2cItems;
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + ('quantity' in item ? item.quantity : item.cantidad), 0);
   const cartBadge = cartCount > 0 ? (cartCount > 99 ? "99+" : cartCount.toString()) : undefined;
   
   const categoriesLink = "/categorias";

@@ -89,7 +89,7 @@ const SellerMobileHeader = ({
   
   const { data: categories = [] } = useCategories();
   const { items: cartItems } = useB2BCartItems();
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.cantidad, 0);
 
   // Bounce animation when cart count increases
   useEffect(() => {

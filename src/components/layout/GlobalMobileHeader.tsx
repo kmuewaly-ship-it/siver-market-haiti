@@ -102,7 +102,7 @@ const GlobalMobileHeader = ({
   // Determine which cart to use
   const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
   const cartItems = isB2B && !isClientPreview ? b2bItems : b2cItems;
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + ('quantity' in item ? item.quantity : item.cantidad), 0);
 
   // Determinar si es seller/admin para mostrar header B2B
   const isSellerOrAdmin = role === UserRole.SELLER || role === UserRole.ADMIN;
