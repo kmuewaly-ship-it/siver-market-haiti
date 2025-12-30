@@ -5,7 +5,7 @@ import { ProductB2BCard, CartItemB2B } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
-import useVariantDrawerStore from '@/stores/useVariantDrawerStore';
+import { useCartB2B } from "@/hooks/useCartB2B";
 
 interface ProductCardB2BProps {
   product: ProductB2BCard;
@@ -18,6 +18,7 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
   const [cantidad, setCantidad] = useState(product.moq);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const isMobile = useIsMobile();
+  const b2bCart = useCartB2B();
 
   const subtotal = cantidad * product.precio_b2b;
   const isOutOfStock = product.stock_fisico === 0;
@@ -39,21 +40,8 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
 
   const handleAddToCart = (e: MouseEvent) => {
     e.stopPropagation();
-    if (isMobile) {
-      setIsSheetOpen(true);
-    } else {
-      useVariantDrawerStore.getState().open({
-        id: product.id,
-        sku: product.sku,
-        nombre: product.nombre,
-        images: [product.imagen_principal],
-        price: discountedPrice,
-        costB2B: discountedPrice,
-        moq: product.moq,
-        stock: product.stock_fisico,
-        source_product_id: product.source_product_id,
-      });
-    }
+    // Use ProductBottomSheet for both mobile and desktop
+    setIsSheetOpen(true);
   };
 
   const handleWhatsApp = (e: MouseEvent) => {

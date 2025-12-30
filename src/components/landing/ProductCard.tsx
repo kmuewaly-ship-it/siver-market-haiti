@@ -6,7 +6,6 @@ import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
-import useVariantDrawerStore from "@/stores/useVariantDrawerStore";
 import { useIsMobile } from "@/hooks/use-mobile";
 
 interface Product {
@@ -106,21 +105,8 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (isMobile) {
-      setIsSheetOpen(true);
-    } else {
-      useVariantDrawerStore.getState().open({
-        id: product.id,
-        sku: product.sku,
-        nombre: product.name,
-        images: [product.image],
-        price: displayPrice,
-        costB2B: costB2B,
-        moq: moq,
-        stock: product.stock || 100,
-        source_product_id: product.source_product_id,
-      });
-    }
+    // Use ProductBottomSheet for both mobile and desktop
+    setIsSheetOpen(true);
   };
 
   return (
@@ -274,7 +260,7 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
         source_product_id: product.source_product_id,
       }} 
       isOpen={isSheetOpen} 
-      onClose={() => setIsSheetOpen(false)} 
+      onClose={() => setIsSheetOpen(false)}
     />
     </>
   );

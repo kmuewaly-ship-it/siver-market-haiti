@@ -13,7 +13,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Store, Search, Package, Grid3X3, X } from "lucide-react";
 import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
-import useVariantDrawerStore from "@/stores/useVariantDrawerStore";
 
 const MarketplacePage = () => {
   const isMobile = useIsMobile();
@@ -73,25 +72,9 @@ const MarketplacePage = () => {
     });
   }, [products, searchQuery, selectedStore, selectedCategory, sortBy, categories]);
   const handleAddToCart = (product: typeof products[0]) => {
-    const images = product.images as any;
-    const mainImage = Array.isArray(images) && images.length > 0 ? images[0] : typeof images === 'string' ? images : '';
-    
-    if (isMobile) {
-      setSelectedProduct(product);
-      setIsSheetOpen(true);
-    } else {
-      useVariantDrawerStore.getState().open({
-        id: product.id,
-        sku: product.sku,
-        nombre: product.nombre,
-        images: mainImage ? [mainImage] : [],
-        price: product.precio_venta,
-        costB2B: product.precio_costo,
-        moq: 1,
-        stock: product.stock,
-        source_product_id: product.source_product?.id,
-      });
-    }
+    // Use ProductBottomSheet for both mobile and desktop
+    setSelectedProduct(product);
+    setIsSheetOpen(true);
   };
   const clearFilters = () => {
     setSearchQuery("");

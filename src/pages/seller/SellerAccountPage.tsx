@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { useStoreByOwner } from "@/hooks/useStore";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import {
-  User, Store, Mail, Calendar, Shield, LogOut, Settings, Bell, Edit, Phone, MessageCircle, Eye, EyeOff, CheckCircle, CreditCard, Package, Clock, Truck, XCircle, DollarSign, ShoppingCart, AlertCircle, ExternalLink, MapPin, RefreshCw, AlertTriangle, Ban, ChevronRight, Loader2, Save, Star, Users, BarChart3, Smartphone
+  User, Store, Mail, Calendar, Shield, LogOut, Settings, Bell, Edit, Phone, MessageCircle, Eye, EyeOff, CheckCircle, CreditCard, Package, Clock, Truck, XCircle, DollarSign, ShoppingCart, AlertCircle, ExternalLink, MapPin, RefreshCw, AlertTriangle, Ban, ChevronRight, Loader2, Save, Star, Users, BarChart3, Smartphone, Camera, TrendingUp, Activity
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -32,16 +33,24 @@ import { Link } from "react-router-dom";
 
 const SellerAccountPage = () => {
   const { user, signOut } = useAuth();
+  const isMobile = useIsMobile();
   const { data: store, isLoading } = useStoreByOwner(user?.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // States for dialogs
   const [activeTab, setActiveTab] = useState("informacion");
+  const [statsTimeFilter, setStatsTimeFilter] = useState<'semana' | 'mes' | 'trimestre' | 'año'>('semana');
+  const [showStatsFilter, setShowStatsFilter] = useState(false);
+  const [activeStatTab, setActiveStatTab] = useState<'vistas' | 'conversion' | 'ingresos' | 'productos'>('vistas');
   const [showStatusViewer, setShowStatusViewer] = useState(false);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showPaymentMethods, setShowPaymentMethods] = useState(false);
+  const [showEditStore, setShowEditStore] = useState(false);
+  const [showEditProfilePhoto, setShowEditProfilePhoto] = useState(false);
+  const [showEditInfo, setShowEditInfo] = useState(false);
+  const [showViewProfilePhoto, setShowViewProfilePhoto] = useState<'profile' | 'banner' | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -207,18 +216,18 @@ const SellerAccountPage = () => {
 
   return (
     <SellerLayout>
-      <div className="min-h-screen bg-gray-50/50 pb-12 w-full font-sans">
+      <div className="min-h-screen bg-gray-50/50 pb-12 w-full font-sans ${isMobile ? 'mt-0' : 'mt-3'}">
         {/* Main Content */}
         <div className="w-full">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             
-            {/* Fixed Navigation Bar */}
-            <div className="fixed top-24 left-0 right-0 z-50 bg-white border-b shadow-md">
-              <div className="container mx-auto px-4 md:px-6">
+            {/* Navigation Bar - FIXED */}
+            <div className={`fixed z-50 bg-white border-b-2 border-gray-200 shadow-lg left-0 right-0 md:left-64 ${isMobile ? 'top-24 w-full' : 'top-[150px]'}`}>
+              <div className="px-2 md:px-3">
                 <TabsList className="grid w-full grid-cols-5 gap-0 bg-transparent rounded-none p-0 h-auto border-b-0 mb-0">
                   <TabsTrigger 
                     value="informacion" 
-                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5"
+                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
                   >
                     <User className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Información</span>
@@ -226,7 +235,7 @@ const SellerAccountPage = () => {
                   </TabsTrigger>
                   <TabsTrigger 
                     value="compras" 
-                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5"
+                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
                   >
                     <Package className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Mis Compras</span>
@@ -234,7 +243,7 @@ const SellerAccountPage = () => {
                   </TabsTrigger>
                   <TabsTrigger 
                     value="tienda" 
-                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5"
+                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
                   >
                     <Store className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Mi Tienda</span>
@@ -242,7 +251,7 @@ const SellerAccountPage = () => {
                   </TabsTrigger>
                   <TabsTrigger 
                     value="pedidos" 
-                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5"
+                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
                   >
                     <CreditCard className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Pedidos</span>
@@ -250,7 +259,7 @@ const SellerAccountPage = () => {
                   </TabsTrigger>
                   <TabsTrigger 
                     value="configuracion" 
-                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5"
+                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
                   >
                     <Settings className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Configuración</span>
@@ -261,9 +270,9 @@ const SellerAccountPage = () => {
             </div>
 
             {/* Tab Contents */}
-            <div className="w-full px-4 md:px-6">
+            <div className={`w-full px-4 md:px-6 ${isMobile ? 'pt-12' : ''}`}>
               <div className="container mx-auto">
-              <TabsContent value="informacion" className="space-y-6 md:space-y-8 -mt-6">
+              <TabsContent value="informacion" className={`${isMobile ? 'space-y-3 mt-0' : 'space-y-6 md:space-y-8 mt-6'}`}>
                 <div className="w-full max-w-2xl mx-auto">
                   <Card className="shadow-lg border-none overflow-hidden">
                     {/* Header */}
@@ -289,6 +298,7 @@ const SellerAccountPage = () => {
                           variant="outline" 
                           className="bg-white text-[#071d7f] hover:bg-blue-50 border-white p-2"
                           size="sm"
+                          onClick={() => setShowEditInfo(true)}
                         >
                           <Edit className="h-5 w-5" />
                         </Button>
@@ -401,7 +411,7 @@ const SellerAccountPage = () => {
               </TabsContent>
 
               {/* Mis Compras Tab */}
-              <TabsContent value="compras" className="space-y-6 mt-0">
+              <TabsContent value="compras" className="space-y-6 pt-8">
                 {/* Stats Cards - Individual Cards in Grid */}
                 <div className="grid grid-cols-6 gap-3">
                   {/* Pendientes Card */}
@@ -583,13 +593,24 @@ const SellerAccountPage = () => {
               </TabsContent>
 
               {/* Mi Tienda Tab */}
-              <TabsContent value="tienda" className="space-y-6 mt-0">
+              <TabsContent value="tienda" className={`space-y-6 mt-0 ${!isMobile ? 'pt-8' : ''}`}>
                 {/* Store Header */}
                 <Card className="shadow-lg border-none overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white pb-8">
+                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white pb-8 relative">
+                    <button 
+                      type="button"
+                      className="absolute top-4 left-4 p-2 bg-[#071d7f] hover:bg-[#071d7f]/90 rounded-lg transition-colors z-10"
+                      onClick={() => setShowEditProfilePhoto(true)}
+                      title="Editar foto de perfil"
+                    >
+                      <Edit className="h-5 w-5 text-white" />
+                    </button>
                     <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-4 flex-1">
-                        <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center overflow-hidden border-4 border-white">
+                      <div 
+                        className="flex items-center gap-4 flex-1 cursor-pointer"
+                        onClick={() => setShowViewProfilePhoto('profile')}
+                      >
+                        <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center overflow-hidden border-4 border-white hover:shadow-lg transition-shadow">
                           {store?.logo ? (
                             <img src={store.logo} alt={store?.name} className="w-full h-full object-cover" />
                           ) : (
@@ -597,38 +618,44 @@ const SellerAccountPage = () => {
                           )}
                         </div>
                         <div>
-                          <h2 className="text-2xl font-bold">{store?.name || "Mi Tienda"}</h2>
+                          <div className="flex items-center gap-2">
+                            <h2 className="text-2xl font-bold">{store?.name || "Mi Tienda"}</h2>
+                            <button 
+                              type="button"
+                              className="p-1.5 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                              onClick={() => setShowEditStore(true)}
+                              title="Editar información de la tienda"
+                            >
+                              <Edit className="h-4 w-4 text-white" />
+                            </button>
+                          </div>
                           <p className="text-blue-100 text-sm mt-1">{store?.description || "Descripción de tu tienda"}</p>
                         </div>
                       </div>
-                      <Button variant="outline" className="bg-white text-[#071d7f] hover:bg-blue-50 border-white">
-                        <Edit className="h-4 w-4 mr-2" />
-                        Editar
-                      </Button>
                     </div>
                   </CardHeader>
 
-                  <CardContent className="p-6">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="flex flex-col items-center justify-center p-4 bg-blue-50 rounded-lg">
-                        <Package className="h-6 w-6 text-blue-600 mb-2" />
-                        <p className="text-xs text-muted-foreground text-center">Productos</p>
-                        <p className="text-2xl font-bold text-blue-600">0</p>
+                  <CardContent className="p-4">
+                    <div className="flex gap-1.5 justify-between">
+                      <div className="flex flex-col items-center justify-center p-1.5 bg-blue-50 rounded-lg flex-1">
+                        <Package className="h-3 w-3 text-blue-600 mb-0.5" />
+                        <p className="text-[10px] text-muted-foreground text-center">Productos</p>
+                        <p className="text-base font-bold text-blue-600">0</p>
                       </div>
-                      <div className="flex flex-col items-center justify-center p-4 bg-green-50 rounded-lg">
-                        <ShoppingCart className="h-6 w-6 text-green-600 mb-2" />
-                        <p className="text-xs text-muted-foreground text-center">Ventas</p>
-                        <p className="text-2xl font-bold text-green-600">0</p>
+                      <div className="flex flex-col items-center justify-center p-1.5 bg-green-50 rounded-lg flex-1">
+                        <ShoppingCart className="h-3 w-3 text-green-600 mb-0.5" />
+                        <p className="text-[10px] text-muted-foreground text-center">Ventas</p>
+                        <p className="text-base font-bold text-green-600">0</p>
                       </div>
-                      <div className="flex flex-col items-center justify-center p-4 bg-amber-50 rounded-lg">
-                        <Star className="h-6 w-6 text-amber-600 mb-2" />
-                        <p className="text-xs text-muted-foreground text-center">Calificación</p>
-                        <p className="text-2xl font-bold text-amber-600">4.8</p>
+                      <div className="flex flex-col items-center justify-center p-1.5 bg-amber-50 rounded-lg flex-1">
+                        <Star className="h-3 w-3 text-amber-600 mb-0.5" />
+                        <p className="text-[10px] text-muted-foreground text-center">Calificación</p>
+                        <p className="text-base font-bold text-amber-600">4.8</p>
                       </div>
-                      <div className="flex flex-col items-center justify-center p-4 bg-purple-50 rounded-lg">
-                        <Users className="h-6 w-6 text-purple-600 mb-2" />
-                        <p className="text-xs text-muted-foreground text-center">Seguidores</p>
-                        <p className="text-2xl font-bold text-purple-600">0</p>
+                      <div className="flex flex-col items-center justify-center p-1.5 bg-purple-50 rounded-lg flex-1">
+                        <Users className="h-3 w-3 text-purple-600 mb-0.5" />
+                        <p className="text-[10px] text-muted-foreground text-center">Seguidores</p>
+                        <p className="text-base font-bold text-purple-600">0</p>
                       </div>
                     </div>
                   </CardContent>
@@ -843,33 +870,166 @@ const SellerAccountPage = () => {
                   </Accordion>
                 </Card>
 
-                {/* Store Stats */}
+                {/* Store Stats - Sticky Tabs */}
                 <Card className="shadow-lg border-none">
-                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white">
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                      <BarChart3 className="h-5 w-5" />
-                      Estadísticas de la Tienda
-                    </h3>
-                  </CardHeader>
-                  <CardContent className="p-6">
-                    <div className="grid md:grid-cols-4 gap-4">
-                      <div className="p-4 border rounded-lg">
-                        <p className="text-sm text-muted-foreground">Vistas Esta Semana</p>
-                        <p className="text-3xl font-bold text-[#071d7f] mt-2">0</p>
-                      </div>
-                      <div className="p-4 border rounded-lg">
-                        <p className="text-sm text-muted-foreground">Conversión</p>
-                        <p className="text-3xl font-bold text-green-600 mt-2">0%</p>
-                      </div>
-                      <div className="p-4 border rounded-lg">
-                        <p className="text-sm text-muted-foreground">Ingresos Este Mes</p>
-                        <p className="text-3xl font-bold text-blue-600 mt-2">$0</p>
-                      </div>
-                      <div className="p-4 border rounded-lg">
-                        <p className="text-sm text-muted-foreground">Productos Destacados</p>
-                        <p className="text-3xl font-bold text-amber-600 mt-2">0</p>
+                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white sticky top-40 z-30 py-3 px-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-base font-bold flex items-center gap-2">
+                        <BarChart3 className="h-5 w-5" />
+                        Estadísticas
+                      </h3>
+                      <div className="relative">
+                        <button
+                          onClick={() => setShowStatsFilter(!showStatsFilter)}
+                          className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"
+                          title="Filtro de tiempo"
+                        >
+                          <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                          </svg>
+                        </button>
+                        {showStatsFilter && (
+                          <div className="absolute right-0 mt-2 w-48 bg-white text-gray-900 rounded-lg shadow-lg z-50">
+                            <button
+                              onClick={() => { setStatsTimeFilter('semana'); setShowStatsFilter(false); }}
+                              className={`block w-full text-left px-4 py-2 hover:bg-gray-100 first:rounded-t-lg ${
+                                statsTimeFilter === 'semana' ? 'bg-blue-100 text-[#071d7f] font-medium' : ''
+                              }`}
+                            >
+                              Esta Semana
+                            </button>
+                            <button
+                              onClick={() => { setStatsTimeFilter('mes'); setShowStatsFilter(false); }}
+                              className={`block w-full text-left px-4 py-2 hover:bg-gray-100 ${
+                                statsTimeFilter === 'mes' ? 'bg-blue-100 text-[#071d7f] font-medium' : ''
+                              }`}
+                            >
+                              Este Mes
+                            </button>
+                            <button
+                              onClick={() => { setStatsTimeFilter('trimestre'); setShowStatsFilter(false); }}
+                              className={`block w-full text-left px-4 py-2 hover:bg-gray-100 ${
+                                statsTimeFilter === 'trimestre' ? 'bg-blue-100 text-[#071d7f] font-medium' : ''
+                              }`}
+                            >
+                              Este Trimestre
+                            </button>
+                            <button
+                              onClick={() => { setStatsTimeFilter('año'); setShowStatsFilter(false); }}
+                              className={`block w-full text-left px-4 py-2 hover:bg-gray-100 last:rounded-b-lg ${
+                                statsTimeFilter === 'año' ? 'bg-blue-100 text-[#071d7f] font-medium' : ''
+                              }`}
+                            >
+                              Este Año
+                            </button>
+                          </div>
+                        )}
                       </div>
                     </div>
+                    {/* Sticky Tabs - Scrollable */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                      <button
+                        onClick={() => setActiveStatTab('vistas')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                          activeStatTab === 'vistas'
+                            ? 'bg-white text-[#071d7f]'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Vistas
+                      </button>
+                      <button
+                        onClick={() => setActiveStatTab('conversion')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors whitespace-nowrap flex-shrink-0 ${
+                          activeStatTab === 'conversion'
+                            ? 'bg-white text-[#071d7f]'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Conversión
+                      </button>
+                      <button
+                        onClick={() => setActiveStatTab('ingresos')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          activeStatTab === 'ingresos'
+                            ? 'bg-white text-[#071d7f]'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Ingresos
+                      </button>
+                      <button
+                        onClick={() => setActiveStatTab('productos')}
+                        className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                          activeStatTab === 'productos'
+                            ? 'bg-white text-[#071d7f]'
+                            : 'bg-white/20 text-white hover:bg-white/30'
+                        }`}
+                      >
+                        Productos
+                      </button>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    {/* Vistas Tab Content */}
+                    {activeStatTab === 'vistas' && (
+                      <div className="text-center py-8">
+                        <Eye className="h-16 w-16 text-[#071d7f] mx-auto mb-4 opacity-50" />
+                        <p className="text-sm text-muted-foreground mb-2">Vistas en {
+                          statsTimeFilter === 'semana' ? 'esta semana' :
+                          statsTimeFilter === 'mes' ? 'este mes' :
+                          statsTimeFilter === 'trimestre' ? 'este trimestre' :
+                          'este año'
+                        }</p>
+                        <p className="text-5xl font-bold text-[#071d7f]">0</p>
+                        <p className="text-sm text-muted-foreground mt-4">Sin datos disponibles</p>
+                      </div>
+                    )}
+                    
+                    {/* Conversión Tab Content */}
+                    {activeStatTab === 'conversion' && (
+                      <div className="text-center py-8">
+                        <TrendingUp className="h-16 w-16 text-green-600 mx-auto mb-4 opacity-50" />
+                        <p className="text-sm text-muted-foreground mb-2">Tasa de conversión en {
+                          statsTimeFilter === 'semana' ? 'esta semana' :
+                          statsTimeFilter === 'mes' ? 'este mes' :
+                          statsTimeFilter === 'trimestre' ? 'este trimestre' :
+                          'este año'
+                        }</p>
+                        <p className="text-5xl font-bold text-green-600">0<span className="text-2xl">%</span></p>
+                        <p className="text-sm text-muted-foreground mt-4">Sin datos disponibles</p>
+                      </div>
+                    )}
+                    
+                    {/* Ingresos Tab Content */}
+                    {activeStatTab === 'ingresos' && (
+                      <div className="text-center py-8">
+                        <DollarSign className="h-16 w-16 text-blue-600 mx-auto mb-4 opacity-50" />
+                        <p className="text-sm text-muted-foreground mb-2">Ingresos en {
+                          statsTimeFilter === 'semana' ? 'esta semana' :
+                          statsTimeFilter === 'mes' ? 'este mes' :
+                          statsTimeFilter === 'trimestre' ? 'este trimestre' :
+                          'este año'
+                        }</p>
+                        <p className="text-5xl font-bold text-blue-600">$0</p>
+                        <p className="text-sm text-muted-foreground mt-4">Sin datos disponibles</p>
+                      </div>
+                    )}
+                    
+                    {/* Productos Tab Content */}
+                    {activeStatTab === 'productos' && (
+                      <div className="text-center py-8">
+                        <Package className="h-16 w-16 text-amber-600 mx-auto mb-4 opacity-50" />
+                        <p className="text-sm text-muted-foreground mb-2">Productos destacados en {
+                          statsTimeFilter === 'semana' ? 'esta semana' :
+                          statsTimeFilter === 'mes' ? 'este mes' :
+                          statsTimeFilter === 'trimestre' ? 'este trimestre' :
+                          'este año'
+                        }</p>
+                        <p className="text-5xl font-bold text-amber-600">0</p>
+                        <p className="text-sm text-muted-foreground mt-4">Sin datos disponibles</p>
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -1458,6 +1618,182 @@ const SellerAccountPage = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowPaymentMethods(false)}>
               Cerrar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Store Dialog */}
+      <Dialog open={showEditStore} onOpenChange={setShowEditStore}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#071d7f]">Editar Información de la Tienda</DialogTitle>
+            <DialogDescription>
+              Actualiza los detalles de tu tienda
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-store-name">Nombre de la Tienda</Label>
+              <Input 
+                id="edit-store-name" 
+                defaultValue={store?.name || ""} 
+                placeholder="Nombre de tu tienda"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-store-description">Descripción</Label>
+              <Textarea 
+                id="edit-store-description" 
+                defaultValue={store?.description || ""} 
+                placeholder="Describe tu tienda"
+                rows={4}
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditStore(false)}>
+              Cancelar
+            </Button>
+            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90" onClick={() => setShowEditStore(false)}>
+              Guardar Cambios
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Profile Photo Dialog */}
+      <Dialog open={showViewProfilePhoto !== null} onOpenChange={() => setShowViewProfilePhoto(null)}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#071d7f]">
+              {showViewProfilePhoto === 'profile' ? 'Foto de Perfil' : 'Banner de la Tienda'}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center gap-4">
+            <img 
+              src={showViewProfilePhoto === 'profile' ? (store?.logo || '') : (store?.banner || '')} 
+              alt={showViewProfilePhoto === 'profile' ? 'Foto de perfil' : 'Banner'}
+              className="max-w-full max-h-96 rounded-lg"
+            />
+            <Button 
+              className="bg-[#071d7f] hover:bg-[#071d7f]/90 w-full"
+              onClick={() => {
+                setShowViewProfilePhoto(null);
+                setShowEditProfilePhoto(true);
+              }}
+            >
+              <Edit className="h-4 w-4 mr-2" />
+              Editar Imagen
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Photo Dialog */}
+      <Dialog open={showEditProfilePhoto} onOpenChange={setShowEditProfilePhoto}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#071d7f]">Editar Foto de Perfil y Banner</DialogTitle>
+            <DialogDescription>
+              Carga una nueva foto de perfil o banner para tu tienda
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="profile-photo">Foto de Perfil</Label>
+                <span className="text-xs text-gray-500">800x800px mín.</span>
+              </div>
+              <label htmlFor="profile-photo" className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#071d7f] transition-colors cursor-pointer">
+                <Edit className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Haz clic para seleccionar una imagen</p>
+                <p className="text-xs text-gray-500 mt-1">Recomendado: 1000x1000px</p>
+                <input 
+                  id="profile-photo" 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="banner-photo">Banner de la Tienda</Label>
+                <span className="text-xs text-gray-500">1200x400px mín.</span>
+              </div>
+              <label htmlFor="banner-photo" className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#071d7f] transition-colors cursor-pointer">
+                <Edit className="h-8 w-8 text-gray-400 mx-auto mb-2" />
+                <p className="text-sm text-gray-600">Haz clic para seleccionar una imagen</p>
+                <p className="text-xs text-gray-500 mt-1">Recomendado: 1500x500px</p>
+                <input 
+                  id="banner-photo" 
+                  type="file" 
+                  accept="image/*" 
+                  className="hidden"
+                />
+              </label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditProfilePhoto(false)}>
+              Cancelar
+            </Button>
+            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90" onClick={() => setShowEditProfilePhoto(false)}>
+              Guardar Fotos
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Information Dialog */}
+      <Dialog open={showEditInfo} onOpenChange={setShowEditInfo}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-[#071d7f]">Editar Información de Contacto</DialogTitle>
+            <DialogDescription>
+              Actualiza tu información de contacto
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nombre Completo</Label>
+              <Input 
+                id="edit-name" 
+                defaultValue={user?.name || ""} 
+                placeholder="Tu nombre"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Teléfono</Label>
+              <Input 
+                id="edit-phone" 
+                defaultValue="+1 234 567 8900" 
+                placeholder="Tu teléfono"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-whatsapp">WhatsApp</Label>
+              <Input 
+                id="edit-whatsapp" 
+                defaultValue="+1 234 567 8900" 
+                placeholder="Tu número de WhatsApp"
+              />
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditInfo(false)}>
+              Cancelar
+            </Button>
+            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90" onClick={() => setShowEditInfo(false)}>
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>

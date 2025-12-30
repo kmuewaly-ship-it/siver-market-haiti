@@ -40,169 +40,324 @@ export const useB2CCartSupabase = () => {
   const [cart, setCart] = useState<B2CCart>(initialCart);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch or create cart for user
-  const fetchOrCreateCart = useCallback(async () => {
-    if (!user?.id) {
-      setCart(initialCart);
-      setIsLoading(false);
-      return;
-    }
-
+  // Fetch or create cart
+  const fetchOrCreateCart = useCallback(async (userId: string) => {
     try {
-      // Try to get existing open cart
+      console.log('Fetching or creating cart for user:', userId);
+      
+      // Try to get existing cart
       const { data: existingCart, error: fetchError } = await supabase
         .from('b2c_carts')
         .select('*')
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .eq('status', 'open')
-        .maybeSingle();
+        .single();
 
-      if (fetchError) throw fetchError;
+      let cartId: string;
 
-      if (existingCart) {
-        // Fetch cart items
-        const { data: items, error: itemsError } = await supabase
-          .from('b2c_cart_items')
-          .select('*')
-          .eq('cart_id', existingCart.id);
-
-        if (itemsError) throw itemsError;
-
-        const mappedItems: B2CCartItem[] = (items || []).map((item) => ({
-          id: item.id,
-          sellerCatalogId: item.seller_catalog_id,
-          sku: item.sku,
-          name: item.nombre,
-          price: Number(item.unit_price),
-          quantity: item.quantity,
-          totalPrice: Number(item.total_price),
-          image: item.image,
-          storeId: item.store_id,
-          storeName: item.store_name,
-          storeWhatsapp: item.store_whatsapp,
-        }));
-
-        setCart({
-          id: existingCart.id,
-          items: mappedItems,
-          totalItems: mappedItems.length,
-          totalQuantity: mappedItems.reduce((sum, item) => sum + item.quantity, 0),
-          totalPrice: mappedItems.reduce((sum, item) => sum + item.totalPrice, 0),
-          status: existingCart.status as 'open' | 'completed' | 'cancelled',
-        });
-      } else {
-        // Create new cart
+      if (fetchError && fetchError.code === 'PGRST116') {
+        // No cart exists, create one
+        console.log('No existing cart found, creating new one');
+        
         const { data: newCart, error: createError } = await supabase
           .from('b2c_carts')
-          .insert({ user_id: user.id, status: 'open' })
+          .insert([{
+            user_id: userId,
+            status: 'open',
+          }])
           .select()
           .single();
 
-        if (createError) throw createError;
+        if (createError) {
+          console.error('Error creating cart:', createError);
+          throw createError;
+        }
 
-        setCart({
-          ...initialCart,
-          id: newCart.id,
-        });
+        console.log('Cart created successfully:', newCart);
+        cartId = newCart.id;
+      } else if (fetchError) {
+        console.error('Error fetching cart:', fetchError);
+        throw fetchError;
+      } else {
+        console.log('Existing cart found:', existingCart);
+        cartId = existingCart.id;
       }
+
+      // Fetch cart items
+      const { data: items, error: itemsError } = await supabase
+        .from('b2c_cart_items')
+        .select('*')
+        .eq('cart_id', cartId);
+
+      if (itemsError) {
+        throw itemsError;
+      }
+
+      const formattedItems: B2CCartItem[] = (items || []).map(item => ({
+        id: item.id,
+        sellerCatalogId: item.seller_catalog_id,
+        sku: item.sku,
+        name: item.nombre,
+        price: item.unit_price,
+        quantity: item.quantity,
+        totalPrice: item.total_price,
+        image: item.image,
+        storeId: item.store_id,
+        storeName: item.store_name,
+        storeWhatsapp: item.store_whatsapp,
+      }));
+
+      const totalPrice = formattedItems.reduce((sum, item) => sum + item.totalPrice, 0);
+      const totalQuantity = formattedItems.reduce((sum, item) => sum + item.quantity, 0);
+
+      setCart({
+        id: cartId,
+        items: formattedItems,
+        totalItems: formattedItems.length,
+        totalQuantity,
+        totalPrice,
+        status: 'open',
+      });
+
+      setIsLoading(false);
     } catch (error) {
-      console.error('Error fetching/creating B2C cart:', error);
-    } finally {
+      console.error('Error fetching or creating cart:', error);
+      setIsLoading(false);
+      throw error;
+    }
+  }, []);
+
+  // Initialize cart when user logs in
+  useEffect(() => {
+    if (user?.id) {
+      console.log('useB2CCartSupabase: User detected, loading cart...');
+      setIsLoading(true);
+      fetchOrCreateCart(user.id)
+        .then(() => {
+          console.log('useB2CCartSupabase: Cart loaded successfully');
+        })
+        .catch(err => {
+          console.error('Error in fetchOrCreateCart:', err);
+          setIsLoading(false);
+        });
+    } else {
+      console.log('useB2CCartSupabase: No user, resetting cart');
+      setCart(initialCart);
       setIsLoading(false);
     }
-  }, [user?.id]);
-
-  useEffect(() => {
-    fetchOrCreateCart();
-  }, [fetchOrCreateCart]);
+  }, [user?.id, fetchOrCreateCart]);
 
   // Add item to cart
   const addItem = useCallback(async (item: {
-    sellerCatalogId?: string;
     sku: string;
     name: string;
     price: number;
-    image?: string;
-    storeId?: string;
-    storeName?: string;
-    storeWhatsapp?: string;
+    image?: string | null;
+    storeId?: string | null;
+    storeName?: string | null;
+    storeWhatsapp?: string | null;
   }) => {
+    if (!user?.id) {
+      toast.error('Debes estar autenticado para agregar items al carrito');
+      return;
+    }
+
     if (!cart.id) {
-      toast.error('Carrito no disponible');
+      toast.error('Carrito no disponible. Por favor recarga la página.');
       return;
     }
 
     try {
-      // Check if item already exists in cart
+      // Check if item already exists
       const existingItem = cart.items.find(i => i.sku === item.sku);
 
       if (existingItem) {
-        const newQuantity = existingItem.quantity + 1;
-
+        // Update quantity
         const { error } = await supabase
           .from('b2c_cart_items')
           .update({
-            quantity: newQuantity,
-            total_price: newQuantity * item.price,
+            quantity: existingItem.quantity + 1,
           })
           .eq('id', existingItem.id);
 
         if (error) throw error;
+
+        // Update local state
+        setCart(prev => ({
+          ...prev,
+          items: prev.items.map(i =>
+            i.id === existingItem.id
+              ? {
+                  ...i,
+                  quantity: i.quantity + 1,
+                  totalPrice: item.price * (i.quantity + 1),
+                }
+              : i
+          ),
+          totalQuantity: prev.totalQuantity + 1,
+          totalPrice: prev.totalPrice + item.price,
+        }));
+        
+        toast.success('Producto agregado al carrito');
       } else {
-        const { error } = await supabase
+        // Insert new item
+        const totalPrice = item.price * 1;
+        console.log('Inserting item:', {
+          cart_id: cart.id,
+          sku: item.sku,
+          nombre: item.name,
+          unit_price: item.price,
+          total_price: totalPrice,
+          quantity: 1,
+        });
+
+        // First insert without select
+        const { error: insertError } = await supabase
           .from('b2c_cart_items')
-          .insert({
+          .insert([{
             cart_id: cart.id,
-            seller_catalog_id: item.sellerCatalogId || null,
             sku: item.sku,
             nombre: item.name,
             unit_price: item.price,
+            total_price: totalPrice,
             quantity: 1,
-            total_price: item.price,
             image: item.image || null,
             store_id: item.storeId || null,
             store_name: item.storeName || null,
             store_whatsapp: item.storeWhatsapp || null,
-          });
+          }]);
 
-        if (error) throw error;
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          throw insertError;
+        }
+
+        // Now fetch the item we just created
+        const { data: newItem, error: fetchError } = await supabase
+          .from('b2c_cart_items')
+          .select('*')
+          .eq('sku', item.sku)
+          .eq('cart_id', cart.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+
+        if (fetchError) {
+          console.error('Fetch error:', fetchError);
+          throw fetchError;
+        }
+
+        if (!newItem) {
+          console.error('No data returned from fetch');
+          throw new Error('No data returned from fetch');
+        }
+
+        console.log('Item inserted successfully:', newItem);
+
+        const cartItem: B2CCartItem = {
+          id: newItem.id,
+          sellerCatalogId: newItem.seller_catalog_id,
+          sku: newItem.sku,
+          name: newItem.nombre,
+          price: newItem.unit_price,
+          quantity: 1,
+          totalPrice: newItem.total_price,
+          image: newItem.image,
+          storeId: newItem.store_id,
+          storeName: newItem.store_name,
+          storeWhatsapp: newItem.store_whatsapp,
+        };
+
+        // Update local state
+        setCart(prev => ({
+          ...prev,
+          items: [...prev.items, cartItem],
+          totalItems: prev.totalItems + 1,
+          totalQuantity: prev.totalQuantity + 1,
+          totalPrice: prev.totalPrice + item.price,
+        }));
+        
+        // Refetch all items to sync across components
+        const { data: allItems, error: refetchError } = await supabase
+          .from('b2c_cart_items')
+          .select('*')
+          .eq('cart_id', cart.id);
+
+        if (!refetchError && allItems) {
+          const formattedItems: B2CCartItem[] = allItems.map(item => ({
+            id: item.id,
+            sellerCatalogId: item.seller_catalog_id,
+            sku: item.sku,
+            name: item.nombre,
+            price: item.unit_price,
+            quantity: item.quantity,
+            totalPrice: item.total_price,
+            image: item.image,
+            storeId: item.store_id,
+            storeName: item.store_name,
+            storeWhatsapp: item.store_whatsapp,
+          }));
+
+          const totalPrice = formattedItems.reduce((sum, i) => sum + i.totalPrice, 0);
+          const totalQuantity = formattedItems.reduce((sum, i) => sum + i.quantity, 0);
+
+          setCart(prev => ({
+            ...prev,
+            items: formattedItems,
+            totalItems: formattedItems.length,
+            totalQuantity,
+            totalPrice,
+          }));
+        }
+        
+        toast.success('Producto agregado al carrito');
       }
-
-      await fetchOrCreateCart();
-      toast.success('Añadido al carrito');
     } catch (error) {
-      console.error('Error adding item:', error);
-      toast.error('Error al agregar producto');
+      console.error('Error adding item to cart:', error);
+      toast.error('Error al agregar item al carrito');
     }
-  }, [cart.id, cart.items, fetchOrCreateCart]);
+  }, [user?.id, cart.id, cart.items]);
 
   // Update item quantity
   const updateQuantity = useCallback(async (itemId: string, quantity: number) => {
-    if (quantity <= 0) {
-      await removeItem(itemId);
+    if (quantity < 1) {
+      removeItem(itemId);
       return;
     }
-
-    const item = cart.items.find(i => i.id === itemId);
-    if (!item) return;
 
     try {
       const { error } = await supabase
         .from('b2c_cart_items')
-        .update({
-          quantity,
-          total_price: quantity * item.price,
-        })
+        .update({ quantity })
         .eq('id', itemId);
 
       if (error) throw error;
 
-      await fetchOrCreateCart();
+      setCart(prev => {
+        const item = prev.items.find(i => i.id === itemId);
+        if (!item) return prev;
+
+        const quantityDiff = quantity - item.quantity;
+        return {
+          ...prev,
+          items: prev.items.map(i =>
+            i.id === itemId
+              ? {
+                  ...i,
+                  quantity,
+                  totalPrice: i.price * quantity,
+                }
+              : i
+          ),
+          totalQuantity: prev.totalQuantity + quantityDiff,
+          totalPrice: prev.totalPrice + quantityDiff * item.price,
+        };
+      });
     } catch (error) {
       console.error('Error updating quantity:', error);
       toast.error('Error al actualizar cantidad');
     }
-  }, [cart.items, fetchOrCreateCart]);
+  }, []);
 
   // Remove item from cart
   const removeItem = useCallback(async (itemId: string) => {
@@ -214,13 +369,25 @@ export const useB2CCartSupabase = () => {
 
       if (error) throw error;
 
-      await fetchOrCreateCart();
-      toast.success('Producto eliminado');
+      setCart(prev => {
+        const item = prev.items.find(i => i.id === itemId);
+        if (!item) return prev;
+
+        return {
+          ...prev,
+          items: prev.items.filter(i => i.id !== itemId),
+          totalItems: prev.totalItems - 1,
+          totalQuantity: prev.totalQuantity - item.quantity,
+          totalPrice: prev.totalPrice - item.totalPrice,
+        };
+      });
+
+      toast.success('Producto removido del carrito');
     } catch (error) {
       console.error('Error removing item:', error);
-      toast.error('Error al eliminar producto');
+      toast.error('Error al remover item');
     }
-  }, [fetchOrCreateCart]);
+  }, []);
 
   // Clear cart
   const clearCart = useCallback(async () => {
@@ -234,54 +401,28 @@ export const useB2CCartSupabase = () => {
 
       if (error) throw error;
 
-      await fetchOrCreateCart();
+      setCart(prev => ({
+        ...prev,
+        items: [],
+        totalItems: 0,
+        totalQuantity: 0,
+        totalPrice: 0,
+      }));
+
+      toast.success('Carrito vaciado');
     } catch (error) {
       console.error('Error clearing cart:', error);
       toast.error('Error al vaciar carrito');
-    }
-  }, [cart.id, fetchOrCreateCart]);
-
-  // Get items grouped by store
-  const getItemsByStore = useCallback(() => {
-    const itemsByStore = new Map<string, B2CCartItem[]>();
-    cart.items.forEach(item => {
-      const storeKey = item.storeId || 'unknown';
-      const existing = itemsByStore.get(storeKey) || [];
-      itemsByStore.set(storeKey, [...existing, item]);
-    });
-    return itemsByStore;
-  }, [cart.items]);
-
-  // Complete cart (mark as completed after checkout)
-  const completeCart = useCallback(async () => {
-    if (!cart.id) return;
-
-    try {
-      const { error } = await supabase
-        .from('b2c_carts')
-        .update({ status: 'completed' })
-        .eq('id', cart.id);
-
-      if (error) throw error;
-
-      setCart(initialCart);
-    } catch (error) {
-      console.error('Error completing cart:', error);
     }
   }, [cart.id]);
 
   return {
     cart,
     items: cart.items,
-    isLoading,
     addItem,
     updateQuantity,
     removeItem,
     clearCart,
-    completeCart,
-    getItemsByStore,
-    totalItems: () => cart.totalItems,
-    totalPrice: () => cart.totalPrice,
-    refetch: fetchOrCreateCart,
+    isLoading,
   };
 };

@@ -433,6 +433,8 @@ const AccountPage = () => {
   const [orderToCancel, setOrderToCancel] = useState<BuyerOrder | null>(null);
   const [showChangePassword, setShowChangePassword] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [editFormData, setEditFormData] = useState({ name: user?.name || '', email: user?.email || '', phone: '+1 234 567 8900' });
   const [passwordForm, setPasswordForm] = useState({ currentPassword: '', newPassword: '', confirmPassword: '' });
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [notificationSettings, setNotificationSettings] = useState({
@@ -646,22 +648,101 @@ const AccountPage = () => {
 
   if (!user) {
     return (
-      <div className="min-h-screen bg-background flex flex-col">
+      <div className="min-h-screen bg-gray-50/50 flex flex-col">
         {!isMobile && <Header />}
-        <main className={`flex-1 container mx-auto px-4 flex items-center justify-center ${isMobile ? 'pb-20' : 'pb-8'}`}>
-          <Card className="w-full max-w-md shadow-lg">
-            <CardHeader>
-              <CardTitle className="text-center text-[#071d7f]">Iniciar Sesión</CardTitle>
-            </CardHeader>
-            <CardContent className="text-center">
-              <p className="mb-4 text-muted-foreground">
-                Por favor inicia sesión para ver tu perfil.
+        <main className={`flex-1 container mx-auto px-4 flex items-center justify-center ${isMobile ? 'pb-20 py-8' : 'py-16'}`}>
+          <div className="w-full max-w-2xl space-y-8">
+            {/* Header Section */}
+            <div className="text-center space-y-3">
+              <h1 className="text-4xl md:text-5xl font-bold text-[#071d7f]">Accede a Tu Cuenta</h1>
+              <p className="text-lg text-gray-600">
+                Inicia sesión para ver tu perfil, compras, direcciones y más
               </p>
-              <Link to="/login">
-                <Button className="w-full bg-[#071d7f] hover:bg-[#0a2a9f]">Ir al Login</Button>
-              </Link>
-            </CardContent>
-          </Card>
+            </div>
+
+            {/* Main Card */}
+            <Card className="shadow-2xl border-0 overflow-hidden">
+              {/* Header Gradient */}
+              <div className="bg-gradient-to-r from-[#071d7f] to-blue-600 h-32 md:h-40 flex items-center justify-center">
+                <div className="flex items-center gap-4">
+                  <div className="w-20 h-20 md:w-24 md:h-24 rounded-full bg-white/20 border-4 border-white flex items-center justify-center backdrop-blur">
+                    <User className="h-10 w-10 md:h-12 md:w-12 text-white" />
+                  </div>
+                  <div className="text-white">
+                    <h2 className="text-2xl md:text-3xl font-bold">Mi Cuenta</h2>
+                    <p className="text-blue-100">Acceso Premium</p>
+                  </div>
+                </div>
+              </div>
+
+              <CardContent className="p-6 md:p-10">
+                <div className="space-y-8">
+                  {/* Benefits Grid */}
+                  <div className="grid md:grid-cols-3 gap-6">
+                    <div className="flex flex-col items-center text-center space-y-3 p-4 rounded-lg bg-blue-50">
+                      <div className="w-12 h-12 rounded-full bg-blue-100 flex items-center justify-center">
+                        <ShoppingBag className="h-6 w-6 text-[#071d7f]" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Mis Compras</h3>
+                        <p className="text-sm text-gray-600">Ver historial completo</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center text-center space-y-3 p-4 rounded-lg bg-green-50">
+                      <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center">
+                        <MapPin className="h-6 w-6 text-green-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Direcciones</h3>
+                        <p className="text-sm text-gray-600">Guardar direcciones</p>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col items-center text-center space-y-3 p-4 rounded-lg bg-purple-50">
+                      <div className="w-12 h-12 rounded-full bg-purple-100 flex items-center justify-center">
+                        <Shield className="h-6 w-6 text-purple-600" />
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-gray-900">Seguridad</h3>
+                        <p className="text-sm text-gray-600">Protege tu cuenta</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* CTA Section */}
+                  <div className="space-y-3 text-center">
+                    <p className="text-gray-700">
+                      ¿No tienes cuenta aún? <Link to="/register" className="text-[#071d7f] font-semibold hover:underline">Regístrate gratis</Link>
+                    </p>
+                    <div className="flex flex-col gap-3 pt-4">
+                      <Link to="/login" className="w-full">
+                        <Button className="w-full bg-[#071d7f] hover:bg-[#0a2a9f] text-white h-12 text-lg font-semibold shadow-lg hover:shadow-xl transition-all">
+                          <Lock className="h-5 w-5 mr-2" />
+                          Iniciar Sesión
+                        </Button>
+                      </Link>
+                      <Link to="/" className="w-full">
+                        <Button variant="outline" className="w-full h-12 text-lg font-semibold border-2 hover:bg-gray-50">
+                          <ArrowLeft className="h-5 w-5 mr-2" />
+                          Volver al Inicio
+                        </Button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Info Text */}
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+              <p className="text-gray-700">
+                <span className="text-[#071d7f] font-semibold">💳 Compra segura:</span> Todos tus datos están protegidos con cifrado SSL de nivel bancario
+              </p>
+            </div>
+          </div>
         </main>
         {!isMobile && <Footer />}
       </div>
@@ -674,39 +755,46 @@ const AccountPage = () => {
       
       <main className="flex-1">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          {/* Sticky Navigation Bar */}
-          <div className={`fixed top-24 left-0 right-0 z-40 w-full ${role === UserRole.CLIENT ? 'bg-white border-b shadow-md' : 'bg-white border-b shadow-md'}`}>
+          {/* Sticky Navigation Bar - Responsive */}
+          <div className={`fixed left-0 right-0 z-50 w-full bg-white border-b-2 border-gray-200 shadow-lg ${isMobile ? 'top-24' : 'top-31 lg:top-39'}`}>
             <div className={`${role === UserRole.CLIENT ? 'container mx-auto px-2 md:px-6' : 'w-full px-2 md:px-6'} py-0`}>
               <TabsList className="grid w-full grid-cols-4 gap-0 bg-transparent rounded-none p-0 h-auto border-b-0 mb-0">
+                {/* Info Tab */}
                 <TabsTrigger 
                   value="informacion" 
-                  className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5 data-[state=active]:shadow-none"
+                  className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 text-[10px] md:text-sm font-medium px-2 md:px-4 py-2 md:py-3 rounded-none border-b-3 md:border-b-4 border-transparent hover:bg-gray-50 transition-all data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
-                  <User className="h-3 w-3 md:h-4 md:w-4" />
+                  <User className="h-4 w-4 md:h-5 md:w-5" />
                   <span className="hidden sm:inline">Información</span>
                   <span className="sm:hidden">Info</span>
                 </TabsTrigger>
+
+                {/* Compras Tab */}
                 <TabsTrigger 
                   value="compras" 
-                  className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5 data-[state=active]:shadow-none"
+                  className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 text-[10px] md:text-sm font-medium px-2 md:px-4 py-2 md:py-3 rounded-none border-b-3 md:border-b-4 border-transparent hover:bg-gray-50 transition-all data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
-                  <Package className="h-3 w-3 md:h-4 md:w-4" />
+                  <Package className="h-4 w-4 md:h-5 md:w-5" />
                   <span className="hidden sm:inline">Mis Compras</span>
                   <span className="sm:hidden">Compras</span>
                 </TabsTrigger>
+
+                {/* Direcciones Tab */}
                 <TabsTrigger 
                   value="direcciones" 
-                  className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5 data-[state=active]:shadow-none"
+                  className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 text-[10px] md:text-sm font-medium px-2 md:px-4 py-2 md:py-3 rounded-none border-b-3 md:border-b-4 border-transparent hover:bg-gray-50 transition-all data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
-                  <MapPin className="h-3 w-3 md:h-4 md:w-4" />
+                  <MapPin className="h-4 w-4 md:h-5 md:w-5" />
                   <span className="hidden sm:inline">Direcciones</span>
                   <span className="sm:hidden">Dirs</span>
                 </TabsTrigger>
+
+                {/* Configuración Tab */}
                 <TabsTrigger 
                   value="configuracion" 
-                  className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-3 py-1 md:py-1.5 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1.5 data-[state=active]:shadow-none"
+                  className="flex flex-col md:flex-row items-center justify-center gap-0.5 md:gap-2 text-[10px] md:text-sm font-medium px-2 md:px-4 py-2 md:py-3 rounded-none border-b-3 md:border-b-4 border-transparent hover:bg-gray-50 transition-all data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:shadow-none"
                 >
-                  <Settings className="h-3 w-3 md:h-4 md:w-4" />
+                  <Settings className="h-4 w-4 md:h-5 md:w-5" />
                   <span className="hidden sm:inline">Configuración</span>
                   <span className="sm:hidden">Config</span>
                 </TabsTrigger>
@@ -715,10 +803,10 @@ const AccountPage = () => {
           </div>
 
           {/* Tab Contents */}
-          <div className={`${role === UserRole.CLIENT ? 'container mx-auto px-4 md:px-6 py-6 md:py-8' : 'w-full px-4 md:px-6 py-6 md:py-8'} pt-12`}>
+          <div className={`${role === UserRole.CLIENT ? 'container mx-auto px-4 md:px-6 py-6 md:py-8' : 'w-full px-4 md:px-6 py-6 md:py-8'} ${isMobile ? 'pt-12' : 'pt-30'}`}>
             
             {/* Información Tab */}
-            <TabsContent value="informacion" className="space-y-6 md:space-y-8 mt-0">
+            <TabsContent value="informacion" className={`${isMobile ? 'space-y-3 mt-0' : 'space-y-6 md:space-y-8 mt-0'}`}>
               <div className="w-full max-w-2xl mx-auto">
                 <Card className="shadow-lg border-none overflow-hidden">
                   {/* Header */}
@@ -744,6 +832,10 @@ const AccountPage = () => {
                         variant="outline" 
                         className="bg-white text-[#071d7f] hover:bg-blue-50 border-white p-2"
                         size="sm"
+                        onClick={() => {
+                          setEditFormData({ name: user?.name || '', email: user?.email || '', phone: '+1 234 567 8900' });
+                          setShowEditProfile(true);
+                        }}
                       >
                         <Edit className="h-5 w-5" />
                       </Button>
@@ -941,50 +1033,58 @@ const AccountPage = () => {
 
             {/* Configuración Tab */}
             <TabsContent value="configuracion" className="space-y-4 mt-0">
-              <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
-                <button 
-                  onClick={() => setShowSettings(true)}
-                  className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left"
-                >
-                  <div className="p-2 rounded-xl bg-blue-50 text-[#071d7f] group-hover:bg-[#071d7f] group-hover:text-white transition-colors mb-3 shadow-sm">
-                    <CreditCard className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-bold text-base text-gray-900 group-hover:text-[#071d7f] transition-colors">Métodos de Pago</h4>
-                  <p className="text-sm text-gray-500 mt-1">Gestiona tus tarjetas y cuentas.</p>
-                </button>
+              <div className="max-w-4xl">
+                {/* Top 3 Cards - Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                  <button 
+                    onClick={() => setShowSettings(true)}
+                    className="flex flex-col items-start p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all duration-200 text-left group"
+                  >
+                    <div className="p-2 rounded-lg bg-blue-100 text-[#071d7f] mb-3">
+                      <CreditCard className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900">Métodos de Pago</h4>
+                    <p className="text-sm text-gray-600">Gestiona tus tarjetas y cuentas.</p>
+                  </button>
 
-                <button 
-                  onClick={() => setShowSettings(true)}
-                  className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left"
-                >
-                  <div className="p-2 rounded-xl bg-blue-50 text-[#071d7f] group-hover:bg-[#071d7f] group-hover:text-white transition-colors mb-3 shadow-sm">
-                    <Bell className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-bold text-base text-gray-900 group-hover:text-[#071d7f] transition-colors">Notificaciones</h4>
-                  <p className="text-sm text-gray-500 mt-1">Configura alertas de pedidos.</p>
-                </button>
+                  <button 
+                    onClick={() => setShowNotifications(true)}
+                    className="flex flex-col items-start p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all duration-200 text-left group"
+                  >
+                    <div className="p-2 rounded-lg bg-amber-100 text-amber-600 mb-3">
+                      <Bell className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900">Notificaciones</h4>
+                    <p className="text-sm text-gray-600">Configura alertas de pedidos.</p>
+                  </button>
 
-                <button 
-                  onClick={() => setShowSettings(true)}
-                  className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-blue-100 transition-all duration-300 group text-left"
-                >
-                  <div className="p-2 rounded-xl bg-blue-50 text-[#071d7f] group-hover:bg-[#071d7f] group-hover:text-white transition-colors mb-3 shadow-sm">
-                    <Shield className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-bold text-base text-gray-900 group-hover:text-[#071d7f] transition-colors">Seguridad</h4>
-                  <p className="text-sm text-gray-500 mt-1">Contraseña y accesos.</p>
-                </button>
+                  <button 
+                    onClick={() => setShowChangePassword(true)}
+                    className="flex flex-col items-start p-4 bg-gray-50 hover:bg-gray-100 rounded-lg border border-gray-200 transition-all duration-200 text-left group"
+                  >
+                    <div className="p-2 rounded-lg bg-purple-100 text-purple-600 mb-3">
+                      <Shield className="h-5 w-5" />
+                    </div>
+                    <h4 className="font-semibold text-gray-900">Seguridad</h4>
+                    <p className="text-sm text-gray-600">Contraseña y accesos.</p>
+                  </button>
+                </div>
 
-                <button 
-                  onClick={signOut}
-                  className="flex flex-col items-start p-4 bg-white rounded-xl shadow-md hover:shadow-xl border border-transparent hover:border-red-100 transition-all duration-300 group text-left"
-                >
-                  <div className="p-2 rounded-xl bg-red-50 text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors mb-3 shadow-sm">
-                    <LogOut className="h-5 w-5" />
-                  </div>
-                  <h4 className="font-bold text-base text-gray-900 group-hover:text-red-700 transition-colors">Cerrar Sesión</h4>
-                  <p className="text-sm text-gray-500 mt-1">Salir de tu cuenta.</p>
-                </button>
+                {/* Logout Button - Bottom Right */}
+                <div className="flex justify-end">
+                  <button 
+                    onClick={signOut}
+                    className="flex items-center gap-3 p-3 px-6 bg-red-50 hover:bg-red-100 rounded-lg border border-red-200 transition-all duration-200 text-left group"
+                  >
+                    <div className="p-1.5 rounded-lg bg-red-100 text-red-600">
+                      <LogOut className="h-4 w-4" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-sm text-gray-900">Cerrar Sesión</h4>
+                      <p className="text-xs text-gray-600">Salir de tu cuenta.</p>
+                    </div>
+                  </button>
+                </div>
               </div>
             </TabsContent>
           </div>
@@ -1095,6 +1195,65 @@ const AccountPage = () => {
             <Button variant="outline" onClick={() => setShowNotifications(false)}>Cancelar</Button>
             <Button onClick={handleNotificationsSave} className="bg-[#071d7f] hover:bg-[#0a2a9f]">
               Guardar Preferencias
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Profile Dialog */}
+      <Dialog open={showEditProfile} onOpenChange={setShowEditProfile}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-[#071d7f]">
+              <Edit className="h-5 w-5" />
+              Editar Perfil
+            </DialogTitle>
+            <DialogDescription>
+              Actualiza tu información personal
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-name">Nombre Completo</Label>
+              <input
+                id="edit-name"
+                type="text"
+                placeholder="Nombre completo"
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#071d7f] focus:border-transparent"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-email">Correo Electrónico</Label>
+              <input
+                id="edit-email"
+                type="email"
+                placeholder="ejemplo@email.com"
+                value={editFormData.email}
+                onChange={(e) => setEditFormData({ ...editFormData, email: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#071d7f] focus:border-transparent"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-phone">Teléfono</Label>
+              <input
+                id="edit-phone"
+                type="tel"
+                placeholder="+1 234 567 8900"
+                value={editFormData.phone}
+                onChange={(e) => setEditFormData({ ...editFormData, phone: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#071d7f] focus:border-transparent"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEditProfile(false)}>Cancelar</Button>
+            <Button onClick={() => {
+              showToast({ title: 'Éxito', description: 'Perfil actualizado correctamente' });
+              setShowEditProfile(false);
+            }} className="bg-[#071d7f] hover:bg-[#0a2a9f]">
+              Guardar Cambios
             </Button>
           </DialogFooter>
         </DialogContent>

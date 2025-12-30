@@ -58,9 +58,9 @@ const SellerDashboard = () => {
       <div className="min-h-screen bg-gradient-to-b from-background via-blue-50/30 to-background">
         <Header />
 
-        <main className="container mx-auto px-4 py-0 mt-0">
+        <main className="container mx-auto px-4 py-6 mt-3">
           {/* Welcome Section */}
-          <div className="mb-8 -mt-4">
+          <div className="mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-2">
               ¡Bienvenido de vuelta, {user?.name?.split(' ')[0]}!
             </h1>
