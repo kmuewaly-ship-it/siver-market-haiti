@@ -13,6 +13,8 @@ export interface ProductB2BCard {
   imagen_principal: string;
   categoria_id: string;
   source_product_id?: string; // Reference to products table for variants
+  variant_count?: number; // Number of variants with same image
+  variant_ids?: string[]; // IDs of all variants
 }
 
 export interface CartItemB2B {
