@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Package, Palette, Check, Ruler, AlertCircle } from "lucide-react";
+import { Minus, Plus, Package, Palette, Check, Ruler, AlertCircle, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AttributeCombination } from "@/types/b2b";
 
@@ -14,6 +14,8 @@ interface VariantInfo {
   option_type?: string;
   parent_product_id?: string;
   attribute_combination?: AttributeCombination;
+  images?: string[];
+  image_url?: string;
 }
 
 interface VariantOption {
@@ -48,7 +50,9 @@ interface VariantSelectorB2BProps {
   variantType?: string;
   colorOptions?: VariantOption[];
   basePrice: number;
+  baseImage?: string;
   onSelectionChange?: (selections: VariantSelection[], totalQty: number, totalPrice: number) => void;
+  onVariantImageChange?: (imageUrl: string | null) => void;
 }
 
 // Attribute type display configuration
@@ -93,13 +97,16 @@ const getColorHex = (colorName: string): string | null => {
 /**
  * VariantSelectorB2B - EAV-aware variant selector
  * Shows interdependent selectors for color, size, age based on attribute_combination
+ * Updates parent component with variant-specific image when selection changes
  */
 const VariantSelectorB2B = ({
   variants,
   variantsByType: propVariantsByType,
   variantTypes: propVariantTypes,
   basePrice,
+  baseImage,
   onSelectionChange,
+  onVariantImageChange,
 }: VariantSelectorB2BProps) => {
   // Selected values for each attribute type
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
@@ -197,6 +204,14 @@ const VariantSelectorB2B = ({
       return Object.entries(selectedAttributes).every(([key, value]) => combo[key] === value);
     });
   }, [selectedAttributes, orderedAttributeTypes, variants]);
+
+  // Notify parent of variant image change
+  useEffect(() => {
+    if (onVariantImageChange) {
+      const variantImage = matchingVariant?.image_url || matchingVariant?.images?.[0] || null;
+      onVariantImageChange(variantImage);
+    }
+  }, [matchingVariant, onVariantImageChange]);
 
   // Handle attribute selection
   const handleSelectAttribute = (type: string, value: string) => {

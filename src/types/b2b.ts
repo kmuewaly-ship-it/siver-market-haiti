@@ -7,6 +7,10 @@ export interface AttributeCombination {
   color?: string;
   size?: string;
   age?: string;
+  model?: string;
+  voltage?: string;
+  watts?: string;
+  material?: string;
   [key: string]: string | undefined;
 }
 
@@ -21,6 +25,8 @@ export interface ProductVariantEAV {
   attribute_combination: AttributeCombination;
   product_id: string;
   is_active?: boolean;
+  images?: string[]; // Variant-specific images
+  image_url?: string; // Primary variant image
 }
 
 export interface ProductVariantInfo {
@@ -32,13 +38,15 @@ export interface ProductVariantInfo {
   option_type?: string; // 'color', 'size', 'material', etc.
   parent_product_id?: string; // Which product this variant belongs to
   attribute_combination?: AttributeCombination; // EAV data
+  images?: string[]; // Variant-specific images
+  image_url?: string; // Primary variant image
 }
 
 export interface VariantOption {
   productId: string;
   label: string;
   code?: string;
-  image?: string;
+  image?: string; // Image for this specific option
   price: number;
   stock: number;
   type: string; // 'color' | 'size' | 'age' | 'combo' | 'unknown'
@@ -49,6 +57,28 @@ export type ColorOption = VariantOption;
 
 export interface VariantsByType {
   [type: string]: VariantOption[];
+}
+
+// Variant with image for matrix management
+export interface VariantMatrixItem {
+  id?: string;
+  sku: string;
+  attributeValues: Record<string, string>; // { color: 'Rojo', size: 'M' }
+  price: number;
+  priceAdjustment: number;
+  stock: number;
+  imageUrl: string;
+  imageFile?: File; // For upload
+  isNew?: boolean;
+}
+
+// Attribute definition for matrix
+export interface AttributeDefinition {
+  id: string;
+  name: string;
+  displayName: string;
+  type: 'color' | 'size' | 'text' | 'select';
+  values: string[];
 }
 
 export interface ProductB2BCard {

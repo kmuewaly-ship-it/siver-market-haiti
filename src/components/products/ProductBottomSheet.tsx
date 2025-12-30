@@ -107,14 +107,18 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
   const [selections, setSelections] = useState<any[]>([]);
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
+  const [variantImage, setVariantImage] = useState<string | null>(null);
 
   const isSeller = user?.role === UserRole.SELLER;
+  
+  // Current display image (variant-specific or product default)
+  const displayImage = variantImage || product?.image || '';
 
-  // Reset quantity when product changes or opens
   useEffect(() => {
     if (product) {
       setQuantity(product?.variants && product.variants.length > 0 ? 0 : 1);
       setSelections([]);
+      setVariantImage(null);
       console.log('[ProductBottomSheet] Product opened:', {
         name: product.name,
         hasVariants: !!product.variants,
@@ -159,7 +163,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         <DrawerHeader className="flex-shrink-0 pb-2 flex items-center justify-between">
           <div className="flex gap-3 items-start text-left flex-1">
             <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-              <img src={product!.image} alt={product!.name} className="w-full h-full object-cover" />
+              <img src={displayImage} alt={product!.name} className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
               <DrawerTitle className="text-sm sm:text-base font-bold line-clamp-2">{product!.name}</DrawerTitle>
@@ -183,7 +187,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         <SheetHeader className="flex-shrink-0 pb-2 flex items-center justify-between pr-6">
           <div className="flex gap-3 items-start text-left flex-1">
             <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-              <img src={product!.image} alt={product!.name} className="w-full h-full object-cover" />
+              <img src={displayImage} alt={product!.name} className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
               <SheetTitle className="text-lg font-bold line-clamp-2">{product!.name}</SheetTitle>
@@ -217,6 +221,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               variantType={product?.variantType || 'unknown'}
               colorOptions={product?.colorOptions}
               basePrice={product?.priceB2B || product?.price || 0}
+              baseImage={product?.image}
+              onVariantImageChange={(img) => setVariantImage(img)}
               onSelectionChange={(list, totalQty) => {
                 setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity })));
                 setQuantity(totalQty);
