@@ -263,8 +263,33 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
     setIsAdding(true);
 
     try {
-      if (selected && selected.length > 0) {
-        // With variations
+      // Check if we have grouped B2B variant selections
+      const hasGroupedVariants = product?.variants && product.variants.length > 0 && selections.length > 0;
+      
+      if (hasGroupedVariants) {
+        // B2B grouped variants - use selections from VariantSelectorB2B
+        const nonZeroSelections = selections.filter((s: any) => s.quantity > 0);
+        if (nonZeroSelections.length === 0) {
+          onClose();
+          return;
+        }
+
+        for (const sel of nonZeroSelections) {
+          const variant = product.variants?.find((v: any) => v.id === sel.variantId);
+          if (variant) {
+            await addItemB2B({
+              userId: user.id,
+              sku: variant.sku,
+              name: `${product.name} - ${variant.label}`,
+              priceB2B: variant.precio || priceB2B,
+              quantity: sel.quantity,
+              image: product.image,
+            });
+          }
+        }
+        toast.success(`Agregado al carrito B2B: ${nonZeroSelections.length} variaciones`);
+      } else if (selected && selected.length > 0) {
+        // With variations from regular VariantSelector
         const nonZero = selected.filter((v) => v.quantity && v.quantity > 0);
         if (nonZero.length === 0) {
           onClose();
@@ -385,12 +410,24 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 {/* Content */}
                 <div className="px-4 pb-24 overflow-y-auto flex-1">
                   <div className="mb-4">
-                    <VariantSelector 
-                      productId={product?.source_product_id || product?.id || ''}
-                      basePrice={product?.price || 0}
-                      isB2B={isSeller}
-                      onSelectionChange={(list) => setSelections(list)}
-                    />
+                    {/* Use B2B variant selector if grouped variants exist */}
+                    {product?.variants && product.variants.length > 0 ? (
+                      <VariantSelectorB2B 
+                        variants={product.variants}
+                        basePrice={product?.priceB2B || product?.price || 0}
+                        onSelectionChange={(list, totalQty, totalPrice) => {
+                          setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: s.label })));
+                          setQuantity(totalQty);
+                        }}
+                      />
+                    ) : (
+                      <VariantSelector 
+                        productId={product?.source_product_id || product?.id || ''}
+                        basePrice={product?.price || 0}
+                        isB2B={isSeller}
+                        onSelectionChange={(list) => setSelections(list)}
+                      />
+                    )}
                   </div>
 
                   {isSeller && (
@@ -437,40 +474,72 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
 
                 {/* Footer - Fixed Position */}
                 <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-4 border-t bg-white max-w-sm mx-auto">
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
-                      <button
-                        onClick={() => handleQuantityChange(-1)}
-                        disabled={quantity <= (isSeller ? moq : 1)}
-                        className="p-2 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Minus className="w-4 h-4" />
-                      </button>
-                      <span className="w-8 text-center font-semibold text-sm">{quantity}</span>
-                      <button
-                        onClick={() => handleQuantityChange(1)}
-                        disabled={quantity >= stock}
-                        className="p-2 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        <Plus className="w-4 h-4" />
-                      </button>
-                    </div>
-                    
-                    <Badge className="bg-white text-foreground border-2 px-2 py-1 text-xs font-medium" style={{ borderColor: '#071d7f' }}>
-                      <div style={{ color: '#29892a' }}>
-                        ${(currentPrice * quantity).toFixed(2)}
+                  {/* Show simplified footer when using B2B variant selector */}
+                  {product?.variants && product.variants.length > 0 ? (
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex flex-col">
+                        <span className="text-xs text-muted-foreground">
+                          {selections.length > 0 ? `${selections.filter((s: any) => s.quantity > 0).length} tallas` : 'Selecciona tallas'}
+                        </span>
+                        <span className="text-lg font-bold text-primary">
+                          {quantity > 0 ? `${quantity} uds` : '0 uds'}
+                        </span>
                       </div>
-                    </Badge>
+                      
+                      <Badge className="bg-white text-foreground border-2 px-3 py-1.5 text-sm font-bold" style={{ borderColor: '#071d7f' }}>
+                        <div style={{ color: '#29892a' }}>
+                          ${selections.reduce((sum: number, s: any) => {
+                            const variant = product.variants?.find((v: any) => v.id === s.variantId);
+                            return sum + ((variant?.precio || priceB2B) * s.quantity);
+                          }, 0).toFixed(2)}
+                        </div>
+                      </Badge>
 
-                    <Button 
-                      onClick={() => handleAddToCart(selections.length > 0 ? selections : selectedVariations)} 
-                      className="flex-1 h-10 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white" 
-                      disabled={stock === 0 || isAdding || (isSeller && quantity < moq)}
-                    >
-                      <ShoppingCart className="w-3 h-3" />
-                      {isAdding ? 'Agregando...' : 'Comprar'}
-                    </Button>
-                  </div>
+                      <Button 
+                        onClick={() => handleAddToCart()} 
+                        className="flex-1 max-w-[140px] h-10 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white" 
+                        disabled={quantity === 0 || isAdding}
+                      >
+                        <ShoppingCart className="w-3 h-3 mr-1" />
+                        {isAdding ? 'Agregando...' : 'Comprar'}
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                        <button
+                          onClick={() => handleQuantityChange(-1)}
+                          disabled={quantity <= (isSeller ? moq : 1)}
+                          className="p-2 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Minus className="w-4 h-4" />
+                        </button>
+                        <span className="w-8 text-center font-semibold text-sm">{quantity}</span>
+                        <button
+                          onClick={() => handleQuantityChange(1)}
+                          disabled={quantity >= stock}
+                          className="p-2 hover:bg-gray-200 rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Plus className="w-4 h-4" />
+                        </button>
+                      </div>
+                      
+                      <Badge className="bg-white text-foreground border-2 px-2 py-1 text-xs font-medium" style={{ borderColor: '#071d7f' }}>
+                        <div style={{ color: '#29892a' }}>
+                          ${(currentPrice * quantity).toFixed(2)}
+                        </div>
+                      </Badge>
+
+                      <Button 
+                        onClick={() => handleAddToCart(selections.length > 0 ? selections : selectedVariations)} 
+                        className="flex-1 h-10 text-xs font-semibold bg-blue-600 hover:bg-blue-700 text-white" 
+                        disabled={stock === 0 || isAdding || (isSeller && quantity < moq)}
+                      >
+                        <ShoppingCart className="w-3 h-3" />
+                        {isAdding ? 'Agregando...' : 'Comprar'}
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (
