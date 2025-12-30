@@ -510,7 +510,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                             {group.variants.length} variantes • {group.detectedAttributes.length} atributos
                           </CardDescription>
                         </CardHeader>
-                        <CardContent className="text-xs">
+                        <CardContent className="text-xs space-y-3">
+                          {/* Attributes */}
                           <div className="space-y-2">
                             {group.detectedAttributes.map(attr => (
                               <div key={attr.columnName} className="flex items-center gap-2">
@@ -527,6 +528,40 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                               </div>
                             ))}
                           </div>
+                          
+                          {/* Variant Images Preview */}
+                          {group.variants.some(v => v.imageUrl) && (
+                            <div className="border-t pt-2">
+                              <p className="text-muted-foreground mb-2">Imágenes por variante:</p>
+                              <div className="flex gap-2 flex-wrap">
+                                {group.variants.slice(0, 6).map((variant, vi) => (
+                                  <div key={vi} className="relative group">
+                                    {variant.imageUrl ? (
+                                      <img 
+                                        src={variant.imageUrl} 
+                                        alt={Object.values(variant.attributeValues).join(' ')}
+                                        className="w-12 h-12 rounded object-cover border"
+                                      />
+                                    ) : (
+                                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border">
+                                        <Package className="h-4 w-4 text-muted-foreground" />
+                                      </div>
+                                    )}
+                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
+                                      <span className="text-[8px] text-white text-center px-1">
+                                        {Object.values(variant.attributeValues).slice(0, 2).join(' / ')}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                                {group.variants.length > 6 && (
+                                  <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border text-xs text-muted-foreground">
+                                    +{group.variants.length - 6}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </CardContent>
                       </Card>
                     ))}

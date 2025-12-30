@@ -21,7 +21,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useQuery } from '@tanstack/react-query';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 import EmbeddingService from '@/services/ai/embeddingService';
-import VariantManager from './VariantManager';
+import VariantMatrixManager from './VariantMatrixManager';
 
 interface ProductEditDialogProps {
   productId: string;
@@ -434,10 +434,11 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
 
               <TabsContent value="variants" className="space-y-4 mt-4">
                 {product && (
-                  <VariantManager 
+                  <VariantMatrixManager 
                     productId={productId} 
                     productSku={product.sku_interno}
                     basePrice={product.precio_mayorista}
+                    productImage={product.imagen_principal}
                   />
                 )}
               </TabsContent>

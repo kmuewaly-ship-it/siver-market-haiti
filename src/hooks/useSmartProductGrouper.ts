@@ -328,16 +328,13 @@ export const importGroupedProducts = async (
         const variantPrice = priceCalculator(variant.costBase);
         const priceAdjustment = variantPrice - b2bPrice;
 
-        // Build attribute combination JSON
+        // Build attribute combination JSON with readable values
         const attributeCombination: Record<string, string> = {};
         for (const [colName, value] of Object.entries(variant.attributeValues)) {
           const attr = group.detectedAttributes.find(a => a.columnName === colName);
-          if (attr) {
-            const attrId = attributeCache[attr.attributeName];
-            const optId = optionCache[attrId]?.[value];
-            if (attrId && optId) {
-              attributeCombination[attrId] = optId;
-            }
+          if (attr && value) {
+            // Store human-readable key-value pairs (e.g., { color: "Rojo", size: "M" })
+            attributeCombination[attr.attributeName] = value;
           }
         }
 

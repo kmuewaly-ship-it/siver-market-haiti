@@ -1,25 +1,52 @@
-import { useState, useCallback, useMemo } from 'react';
+import { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { 
   Plus, X, Upload, Trash2, Image as ImageIcon, 
-  Palette, Ruler, Package, Zap, RefreshCw, Eye
+  Palette, Ruler, Package, Zap, RefreshCw, Eye, Save, Loader2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AttributeDefinition, VariantMatrixItem } from '@/types/b2b';
+import { supabase } from '@/integrations/supabase/client';
+import { useAllProductVariants, ProductVariant } from '@/hooks/useProductVariants';
+import { useVariantManagement } from '@/hooks/useVariantManagement';
+import { useToast } from '@/hooks/use-toast';
+import { useCatalog } from '@/hooks/useCatalog';
 
 interface VariantMatrixManagerProps {
-  basePrice: number;
-  baseSku: string;
-  productName: string;
-  existingAttributes?: AttributeDefinition[];
+  // For editing existing products
+  productId?: string;
+  productSku?: string;
+  basePrice?: number;
+  productImage?: string | null;
+  // For creating new products (standalone mode)
+  baseSku?: string;
+  productName?: string;
   existingVariants?: VariantMatrixItem[];
   onVariantsChange?: (variants: VariantMatrixItem[]) => void;
-  onImageUpload?: (file: File, variantSku: string) => Promise<string>;
+}
+
+interface AttributeDefinition {
+  id: string;
+  name: string;
+  displayName: string;
+  type: 'color' | 'size' | 'text' | 'select';
+  values: string[];
+}
+
+interface VariantMatrixItem {
+  id?: string;
+  sku: string;
+  attributeValues: Record<string, string>;
+  price: number;
+  priceAdjustment: number;
+  stock: number;
+  imageUrl: string;
+  imageFile?: File;
+  isNew?: boolean;
+  isModified?: boolean;
 }
 
 // Common attribute presets
@@ -52,25 +79,88 @@ const ATTRIBUTE_PRESETS: Record<string, { displayName: string; icon: typeof Pale
 };
 
 const VariantMatrixManager = ({
-  basePrice,
+  productId,
+  productSku,
+  basePrice = 0,
+  productImage,
   baseSku,
   productName,
-  existingAttributes = [],
   existingVariants = [],
   onVariantsChange,
-  onImageUpload,
 }: VariantMatrixManagerProps) => {
+  const { toast } = useToast();
+  const { uploadImage } = useCatalog();
+  
+  // DB integration for existing products
+  const { data: dbVariants = [], isLoading: loadingVariants, refetch } = useAllProductVariants(productId);
+  const variantManagement = useVariantManagement(productId || '');
+  
+  const isEditMode = !!productId;
+  const effectiveSku = productSku || baseSku || 'NEW';
+  const effectivePrice = basePrice || 0;
+
   // State for attribute definitions
-  const [attributes, setAttributes] = useState<AttributeDefinition[]>(existingAttributes);
+  const [attributes, setAttributes] = useState<AttributeDefinition[]>([]);
   const [newAttributeName, setNewAttributeName] = useState('');
   const [newAttributeValue, setNewAttributeValue] = useState('');
   const [activeAttributeId, setActiveAttributeId] = useState<string | null>(null);
 
   // Generated variants from attribute combinations
   const [variants, setVariants] = useState<VariantMatrixItem[]>(existingVariants);
+  const [saving, setSaving] = useState(false);
   
   // Preview state
   const [previewVariant, setPreviewVariant] = useState<VariantMatrixItem | null>(null);
+
+  // Extract attributes from existing DB variants
+  useEffect(() => {
+    if (isEditMode && dbVariants.length > 0) {
+      // Parse attribute_combination from DB variants to build attributes
+      const detectedAttrs: Record<string, Set<string>> = {};
+      
+      dbVariants.forEach(v => {
+        const combo = (v as any).attribute_combination as Record<string, string> | null;
+        if (combo && typeof combo === 'object') {
+          Object.entries(combo).forEach(([key, value]) => {
+            if (!detectedAttrs[key]) detectedAttrs[key] = new Set();
+            if (value) detectedAttrs[key].add(value);
+          });
+        }
+        // Also use option_type/option_value as fallback
+        if (v.option_type && v.option_value) {
+          if (!detectedAttrs[v.option_type]) detectedAttrs[v.option_type] = new Set();
+          detectedAttrs[v.option_type].add(v.option_value);
+        }
+      });
+
+      const newAttrs: AttributeDefinition[] = Object.entries(detectedAttrs).map(([name, values], idx) => ({
+        id: `attr-${idx}`,
+        name,
+        displayName: ATTRIBUTE_PRESETS[name]?.displayName || name,
+        type: name === 'color' ? 'color' : 'text',
+        values: Array.from(values),
+      }));
+
+      setAttributes(newAttrs);
+
+      // Convert DB variants to matrix items
+      const matrixItems: VariantMatrixItem[] = dbVariants.map(v => {
+        const combo = (v as any).attribute_combination as Record<string, string> | null;
+        const images = Array.isArray(v.images) ? v.images : [];
+        return {
+          id: v.id,
+          sku: v.sku,
+          attributeValues: combo || { [v.option_type]: v.option_value },
+          price: v.price || effectivePrice,
+          priceAdjustment: (v.price || effectivePrice) - effectivePrice,
+          stock: v.stock,
+          imageUrl: images[0] || '',
+        };
+      });
+
+      setVariants(matrixItems);
+    }
+  }, [dbVariants, isEditMode, effectivePrice]);
 
   // Add a new attribute type
   const addAttribute = useCallback((name: string) => {
@@ -122,7 +212,6 @@ const VariantMatrixManager = ({
       return;
     }
 
-    // Get all combinations
     const generateCombinations = (attrs: AttributeDefinition[]): Record<string, string>[] => {
       if (attrs.length === 0) return [{}];
       
@@ -141,8 +230,7 @@ const VariantMatrixManager = ({
 
     const combinations = generateCombinations(attributes);
     
-    // Create variant items
-    const newVariants: VariantMatrixItem[] = combinations.map((combo, index) => {
+    const newVariants: VariantMatrixItem[] = combinations.map((combo) => {
       const variantLabel = Object.values(combo).join('-');
       const existingVariant = variants.find(v => 
         JSON.stringify(v.attributeValues) === JSON.stringify(combo)
@@ -150,44 +238,99 @@ const VariantMatrixManager = ({
       
       return {
         id: existingVariant?.id,
-        sku: existingVariant?.sku || `${baseSku}-${variantLabel.toUpperCase().replace(/\s+/g, '')}`,
+        sku: existingVariant?.sku || `${effectiveSku}-${variantLabel.toUpperCase().replace(/\s+/g, '')}`,
         attributeValues: combo,
-        price: existingVariant?.price ?? basePrice,
+        price: existingVariant?.price ?? effectivePrice,
         priceAdjustment: existingVariant?.priceAdjustment ?? 0,
         stock: existingVariant?.stock ?? 0,
         imageUrl: existingVariant?.imageUrl ?? '',
-        isNew: !existingVariant,
+        isNew: !existingVariant?.id,
       };
     });
 
     setVariants(newVariants);
     onVariantsChange?.(newVariants);
-  }, [attributes, baseSku, basePrice, variants, onVariantsChange]);
+  }, [attributes, effectiveSku, effectivePrice, variants, onVariantsChange]);
 
   // Update a single variant
   const updateVariant = useCallback((sku: string, updates: Partial<VariantMatrixItem>) => {
     setVariants(prev => {
-      const updated = prev.map(v => v.sku === sku ? { ...v, ...updates } : v);
+      const updated = prev.map(v => v.sku === sku ? { ...v, ...updates, isModified: true } : v);
       onVariantsChange?.(updated);
       return updated;
     });
   }, [onVariantsChange]);
 
-  // Handle image file selection
-  const handleImageSelect = useCallback(async (file: File, variantSku: string) => {
-    if (onImageUpload) {
-      try {
-        const imageUrl = await onImageUpload(file, variantSku);
-        updateVariant(variantSku, { imageUrl });
-      } catch (error) {
-        console.error('Error uploading image:', error);
-      }
-    } else {
-      // Create local preview URL
+  // Handle image file upload
+  const handleImageUpload = async (file: File, variantSku: string) => {
+    if (!productId) {
+      // Local preview for new products
       const previewUrl = URL.createObjectURL(file);
       updateVariant(variantSku, { imageUrl: previewUrl, imageFile: file });
+      return;
     }
-  }, [onImageUpload, updateVariant]);
+
+    try {
+      const url = await uploadImage(file, productId);
+      updateVariant(variantSku, { imageUrl: url });
+      toast({ title: 'Imagen subida' });
+    } catch (error) {
+      toast({ title: 'Error al subir imagen', variant: 'destructive' });
+    }
+  };
+
+  // Save all variants to database
+  const saveVariants = async () => {
+    if (!productId) return;
+
+    setSaving(true);
+    try {
+      for (const variant of variants) {
+        const attributeCombination: Record<string, string> = {};
+        Object.entries(variant.attributeValues).forEach(([key, value]) => {
+          attributeCombination[key] = value;
+        });
+
+        const variantData = {
+          product_id: productId,
+          sku: variant.sku,
+          name: Object.values(variant.attributeValues).join(' / '),
+          option_type: Object.keys(variant.attributeValues)[0] || 'variant',
+          option_value: Object.values(variant.attributeValues)[0] || variant.sku,
+          price: variant.price,
+          stock: variant.stock,
+          images: variant.imageUrl ? [variant.imageUrl] : [],
+          attribute_combination: attributeCombination,
+        };
+
+        if (variant.id) {
+          // Update existing
+          await variantManagement.updateVariant.mutateAsync({
+            id: variant.id,
+            updates: variantData,
+          });
+        } else {
+          // Create new
+          await variantManagement.createVariant.mutateAsync(variantData);
+        }
+      }
+
+      toast({ title: 'Variantes guardadas' });
+      refetch();
+    } catch (error) {
+      toast({ title: 'Error al guardar variantes', variant: 'destructive' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // Delete a variant
+  const handleDeleteVariant = async (variant: VariantMatrixItem) => {
+    if (variant.id && productId) {
+      await variantManagement.deleteVariant.mutateAsync(variant.id);
+    }
+    setVariants(prev => prev.filter(v => v.sku !== variant.sku));
+  };
 
   // Get icon for attribute type
   const getAttributeIcon = (name: string) => {
@@ -205,6 +348,14 @@ const VariantMatrixManager = ({
     if (!preset) return [];
     return preset.values.filter(v => !attr.values.includes(v));
   }, [activeAttributeId, attributes]);
+
+  if (loadingVariants) {
+    return (
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -225,7 +376,7 @@ const VariantMatrixManager = ({
             <div 
               key={attr.id} 
               className={cn(
-                "p-4 rounded-lg border transition-all",
+                "p-4 rounded-lg border transition-all cursor-pointer",
                 activeAttributeId === attr.id 
                   ? "border-primary bg-primary/5" 
                   : "border-border bg-muted/30"
@@ -282,14 +433,17 @@ const VariantMatrixManager = ({
                     onChange={(e) => setNewAttributeValue(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter' && newAttributeValue.trim()) {
+                        e.preventDefault();
                         addAttributeValue(attr.id, newAttributeValue.trim());
                       }
                     }}
                     className="flex-1"
+                    onClick={(e) => e.stopPropagation()}
                   />
                   <Button
                     size="sm"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       if (newAttributeValue.trim()) {
                         addAttributeValue(attr.id, newAttributeValue.trim());
                       }
@@ -396,11 +550,19 @@ const VariantMatrixManager = ({
       {variants.length > 0 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base flex items-center gap-2">
-              <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
-              Configurar Variantes
-              <Badge variant="secondary">{variants.length} variantes</Badge>
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">3</span>
+                Configurar Variantes
+                <Badge variant="secondary">{variants.length} variantes</Badge>
+              </CardTitle>
+              {isEditMode && (
+                <Button onClick={saveVariants} size="sm" disabled={saving}>
+                  {saving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                  Guardar
+                </Button>
+              )}
+            </div>
             <CardDescription>
               Asigna stock, precio e imagen específica a cada combinación
             </CardDescription>
@@ -409,12 +571,13 @@ const VariantMatrixManager = ({
             <ScrollArea className="max-h-[400px]">
               <div className="space-y-2">
                 {/* Header */}
-                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground p-2 bg-muted/50 rounded-md sticky top-0">
+                <div className="grid grid-cols-12 gap-2 text-xs font-medium text-muted-foreground p-2 bg-muted/50 rounded-md sticky top-0 z-10">
                   <div className="col-span-3">Variante</div>
                   <div className="col-span-2">SKU</div>
                   <div className="col-span-2">Precio</div>
                   <div className="col-span-2">Stock</div>
-                  <div className="col-span-3">Imagen</div>
+                  <div className="col-span-2">Imagen</div>
+                  <div className="col-span-1"></div>
                 </div>
 
                 {/* Rows */}
@@ -446,6 +609,7 @@ const VariantMatrixManager = ({
                         value={variant.sku}
                         onChange={(e) => updateVariant(variant.sku, { sku: e.target.value })}
                         className="h-8 text-xs"
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
 
@@ -459,9 +623,10 @@ const VariantMatrixManager = ({
                           value={variant.price}
                           onChange={(e) => updateVariant(variant.sku, { 
                             price: parseFloat(e.target.value) || 0,
-                            priceAdjustment: (parseFloat(e.target.value) || 0) - basePrice
+                            priceAdjustment: (parseFloat(e.target.value) || 0) - effectivePrice
                           })}
                           className="h-8 text-xs"
+                          onClick={(e) => e.stopPropagation()}
                         />
                       </div>
                     </div>
@@ -474,13 +639,14 @@ const VariantMatrixManager = ({
                         value={variant.stock}
                         onChange={(e) => updateVariant(variant.sku, { stock: parseInt(e.target.value) || 0 })}
                         className="h-8 text-xs"
+                        onClick={(e) => e.stopPropagation()}
                       />
                     </div>
 
                     {/* Image */}
-                    <div className="col-span-3 flex items-center gap-2">
+                    <div className="col-span-2 flex items-center gap-1">
                       {variant.imageUrl ? (
-                        <div className="relative w-10 h-10 rounded overflow-hidden bg-muted flex-shrink-0">
+                        <div className="relative w-8 h-8 rounded overflow-hidden bg-muted flex-shrink-0">
                           <img 
                             src={variant.imageUrl} 
                             alt={variant.sku}
@@ -493,29 +659,46 @@ const VariantMatrixManager = ({
                               updateVariant(variant.sku, { imageUrl: '' });
                             }}
                           >
-                            <X className="h-4 w-4 text-white" />
+                            <X className="h-3 w-3 text-white" />
                           </button>
                         </div>
                       ) : (
-                        <label className="w-10 h-10 rounded border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors flex-shrink-0">
-                          <Upload className="h-4 w-4 text-muted-foreground" />
+                        <label className="w-8 h-8 rounded border-2 border-dashed border-border flex items-center justify-center cursor-pointer hover:border-primary transition-colors flex-shrink-0">
+                          <Upload className="h-3 w-3 text-muted-foreground" />
                           <input
                             type="file"
                             accept="image/*"
                             className="hidden"
                             onChange={(e) => {
+                              e.stopPropagation();
                               const file = e.target.files?.[0];
-                              if (file) handleImageSelect(file, variant.sku);
+                              if (file) handleImageUpload(file, variant.sku);
                             }}
                           />
                         </label>
                       )}
                       <Input
-                        placeholder="URL de imagen"
+                        placeholder="URL"
                         value={variant.imageUrl}
                         onChange={(e) => updateVariant(variant.sku, { imageUrl: e.target.value })}
                         className="h-8 text-xs flex-1"
+                        onClick={(e) => e.stopPropagation()}
                       />
+                    </div>
+
+                    {/* Delete */}
+                    <div className="col-span-1 flex justify-end">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteVariant(variant);
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -543,12 +726,18 @@ const VariantMatrixManager = ({
                     alt={previewVariant.sku}
                     className="w-full h-full object-cover"
                   />
+                ) : productImage ? (
+                  <img 
+                    src={productImage} 
+                    alt="Product"
+                    className="w-full h-full object-cover opacity-50"
+                  />
                 ) : (
                   <ImageIcon className="h-12 w-12 text-muted-foreground/30" />
                 )}
               </div>
               <div className="flex-1">
-                <h4 className="font-medium">{productName}</h4>
+                <h4 className="font-medium">{productName || productSku || 'Producto'}</h4>
                 <div className="flex flex-wrap gap-1 mt-2">
                   {Object.entries(previewVariant.attributeValues).map(([key, value]) => (
                     <Badge key={key} variant="secondary" className="text-xs">
