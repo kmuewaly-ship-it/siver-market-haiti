@@ -1,9 +1,9 @@
-﻿import { useState, MouseEvent } from 'react';
+import { useState, MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, AlertCircle, Check, MessageCircle, ShieldCheck, TrendingUp } from 'lucide-react';
+import { ShoppingCart, MessageCircle, ShieldCheck, TrendingUp, Layers } from 'lucide-react';
 import { ProductB2BCard, CartItemB2B } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { Badge } from '@/components/ui/badge';
 import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
 
 interface ProductCardB2BProps {
@@ -14,83 +14,91 @@ interface ProductCardB2BProps {
 }
 
 const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "50312345678" }: ProductCardB2BProps) => {
-  const [cantidad, setCantidad] = useState(product.moq);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const isMobile = useIsMobile();
 
-  const subtotal = cantidad * product.precio_b2b;
   const isOutOfStock = product.stock_fisico === 0;
+  const hasMultipleVariants = (product.variant_count || 1) > 1;
+  const hasPriceRange = product.precio_b2b_max && product.precio_b2b_max !== product.precio_b2b;
 
-  // Calcular descuentos según cantidad
-  const getDiscount = () => {
-    if (cantidad >= product.moq * 10) return 0.20; // 20% descuento
-    if (cantidad >= product.moq * 5) return 0.15; // 15% descuento
-    if (cantidad >= product.moq * 3) return 0.10; // 10% descuento
-    if (cantidad >= product.moq * 2) return 0.05; // 5% descuento
-    return 0;
-  };
-
-  const discountPercent = getDiscount();
-  const discountedPrice = product.precio_b2b * (1 - discountPercent);
-  
   // Calculate profit based on suggested retail price
-  const profit = (product.precio_sugerido || 0) - discountedPrice;
+  const profit = (product.precio_sugerido || 0) - product.precio_b2b;
 
   const handleAddToCart = (e: MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    // Use ProductBottomSheet for both mobile and desktop
     setIsSheetOpen(true);
   };
 
   const handleWhatsApp = (e: MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    const text = `Hola, estoy interesado en el siguiente producto:\n\n*${product.nombre}*\nSKU: ${product.sku}\nPrecio: $${discountedPrice.toFixed(2)}\nCantidad: ${cantidad}\n\nLink/Imagen: ${product.imagen_principal}`;
+    const text = `Hola, estoy interesado en el siguiente producto:\n\n*${product.nombre}*\nSKU: ${product.sku}\nPrecio: $${product.precio_b2b.toFixed(2)}\n\nLink/Imagen: ${product.imagen_principal}`;
     window.open(`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  // Format price range
+  const formatPriceRange = () => {
+    if (hasPriceRange) {
+      return `$${product.precio_b2b.toFixed(2)} - $${product.precio_b2b_max!.toFixed(2)}`;
+    }
+    return `$${product.precio_b2b.toFixed(2)}`;
   };
 
   return (
     <div className={`group bg-white rounded-lg border hover:shadow-lg transition-all duration-300 flex flex-col h-full overflow-hidden ${
-      cartItem ? 'border-blue-500 ring-1 ring-blue-500' : 'border-gray-200'
+      cartItem ? 'border-primary ring-1 ring-primary' : 'border-border'
     }`}>
       {/* Image Section */}
-      <div className="relative aspect-square bg-gray-100 overflow-hidden">
+      <div className="relative aspect-square bg-muted overflow-hidden">
         <Link to={`/producto/${product.sku}`} className="block w-full h-full">
           <img
             src={product.imagen_principal}
             alt={product.nombre}
             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = '/placeholder.svg';
+            }}
           />
         </Link>
         
         {/* Badges Overlay */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {product.variant_count && product.variant_count > 1 && (
-            <span className="bg-purple-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-              {product.variant_count} variantes
-            </span>
+          {/* Variants Badge - Most prominent */}
+          {hasMultipleVariants && (
+            <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1">
+              <Layers className="w-3 h-3" />
+              {product.variant_count} tallas
+            </Badge>
           )}
+          
+          {/* Profit Badge */}
           {profit > 0 && (
-            <span className="bg-green-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 shadow-sm">
-              <TrendingUp className="w-3 h-3" /> Ganas: ${profit.toFixed(2)}
-            </span>
+            <Badge className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1">
+              <TrendingUp className="w-3 h-3" /> +${profit.toFixed(2)}
+            </Badge>
           )}
-          {discountPercent > 0 && (
-            <span className="bg-[#071d7f] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-              -{Math.round(discountPercent * 100)}%
-            </span>
-          )}
+          
+          {/* In Cart Badge */}
           {cartItem && (
-            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1">
-              <Check className="w-3 h-3" /> En carrito
-            </span>
+            <Badge className="bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5">
+              En carrito
+            </Badge>
           )}
         </div>
 
+        {/* Stock Badge - Top Right */}
+        <div className="absolute top-2 right-2">
+          {product.stock_fisico > 0 && (
+            <Badge variant="secondary" className="text-[10px] font-medium bg-white/90 text-foreground">
+              {product.stock_fisico} disp.
+            </Badge>
+          )}
+        </div>
 
-
+        {/* Out of Stock Overlay */}
         {isOutOfStock && (
           <div className="absolute inset-0 bg-black/50 flex items-center justify-center">
-            <span className="bg-red-600 text-white px-3 py-1 rounded text-xs font-bold">Agotado</span>
+            <Badge variant="destructive" className="text-xs font-bold">Agotado</Badge>
           </div>
         )}
       </div>
@@ -99,49 +107,63 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
       <div className="p-3 flex flex-col flex-1">
         {/* Title */}
         <Link to={`/producto/${product.sku}`}>
-          <h3 className="text-sm text-gray-700 line-clamp-1 mb-1 leading-snug hover:text-blue-600 transition-colors" title={product.nombre}>
+          <h3 className="text-sm text-foreground line-clamp-2 mb-2 leading-snug hover:text-primary transition-colors font-medium" title={product.nombre}>
             {product.nombre}
           </h3>
         </Link>
 
-        {/* Price */}
-        <Link to={`/producto/${product.sku}`}>
-          <div className="mt-1 hover:opacity-80 transition-opacity">
-            <div className="flex items-baseline gap-1.5">
-              {/* Price badge for B2B card */}
-              <span className="inline-flex items-center gap-1 bg-[#fff5f6] border border-[#f2dede] px-2 py-0.5 rounded-md">
-                <span className="text-[#94111f] font-bold text-base">${discountedPrice.toFixed(2)}</span>
-                <span className="text-[10px] font-medium text-[#94111f]">USD</span>
+        {/* Price Section */}
+        <div className="mt-1 space-y-1">
+          {/* B2B Price */}
+          <div className="flex items-baseline gap-2 flex-wrap">
+            <span className="inline-flex items-center gap-1 bg-destructive/10 border border-destructive/20 px-2 py-0.5 rounded-md">
+              <span className="text-destructive font-bold text-base">
+                {formatPriceRange()}
               </span>
-              {product.precio_sugerido && (
-                <span className="text-xs text-green-600 font-semibold">
-                  ${product.precio_sugerido.toFixed(2)} PVP
+              <span className="text-[10px] font-medium text-destructive">USD</span>
+            </span>
+          </div>
+          
+          {/* PVP / Suggested Price */}
+          {product.precio_sugerido > 0 && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-green-600 font-semibold">
+                PVP: ${product.precio_sugerido.toFixed(2)}
+              </span>
+              {profit > 0 && (
+                <span className="text-[10px] text-muted-foreground">
+                  ({((profit / product.precio_b2b) * 100).toFixed(0)}% margen)
                 </span>
               )}
             </div>
-          </div>
-        </Link>
-
-        {/* Min Order */}
-        <div className="flex items-center justify-between mt-1">
-          <p className="text-xs text-amber-600 font-medium">Mínimo: {product.moq} unidades</p>
+          )}
         </div>
 
-        {/* Trust Badges (Mock) */}
+        {/* Min Order & Variants Info */}
+        <div className="flex items-center justify-between mt-2 text-xs">
+          <span className="text-amber-600 font-medium">Min: {product.moq} uds</span>
+          {hasMultipleVariants && product.variants && (
+            <span className="text-muted-foreground">
+              {product.variants.map(v => v.label).slice(0, 4).join(', ')}
+              {product.variants.length > 4 && '...'}
+            </span>
+          )}
+        </div>
+
+        {/* Trust Badges */}
         <div className="flex items-center gap-2 mt-2 mb-3">
-          <div className="flex items-center gap-0.5 text-[10px] font-bold text-gray-700 bg-gray-100 px-1 rounded">
+          <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
             <ShieldCheck className="w-3 h-3 text-orange-500" />
             Verified
           </div>
-          <span className="text-[10px] text-gray-400">3 yrs  CN</span>
         </div>
 
-        {/* Spacer to push actions to bottom */}
+        {/* Spacer */}
         <div className="flex-1"></div>
 
         {/* Actions Row */}
-        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-gray-100">
-          {/* Contact Button - Left */}
+        <div className="flex items-center justify-between gap-2 mt-2 pt-2 border-t border-border">
+          {/* WhatsApp Button */}
           <Button
             variant="outline"
             size="sm"
@@ -151,18 +173,20 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
             <MessageCircle className="w-4 h-4" />
           </Button>
           
-          {/* B2B Button - Right */}
+          {/* Add to Cart Button */}
           <Button
             size="sm"
-            className="h-8 px-3 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
+            className="h-8 flex-1 text-xs font-medium bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
             onClick={handleAddToCart}
             disabled={isOutOfStock}
           >
             <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-            B2B
+            {hasMultipleVariants ? 'Elegir Tallas' : 'Agregar'}
           </Button>
         </div>
       </div>
+
+      {/* Product Bottom Sheet for variant selection */}
       <ProductBottomSheet 
         product={{
           id: product.id,
@@ -173,7 +197,10 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
           priceB2B: product.precio_b2b,
           pvp: product.precio_sugerido,
           moq: product.moq,
-          stock: product.stock_fisico
+          stock: product.stock_fisico,
+          // Pass variant info for the selector
+          variants: product.variants,
+          variantIds: product.variant_ids,
         }}
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
