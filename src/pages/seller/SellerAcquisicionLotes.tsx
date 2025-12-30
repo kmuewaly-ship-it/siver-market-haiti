@@ -114,7 +114,7 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
   const [currentPage, setCurrentPage] = useState(0);
   const [allProducts, setAllProducts] = useState<ProductB2BCard[]>([]);
   const [hasMore, setHasMore] = useState(true);
-  const itemsPerPage = 12;
+  const itemsPerPage = 24;
   const loadMoreRef = useRef<HTMLDivElement>(null);
   const [whatsappNumber, setWhatsappNumber] = useState("50369596772");
 
@@ -314,13 +314,22 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
                 ))}
               </div>
 
-              {/* Infinite scroll trigger */}
-              <div ref={loadMoreRef} className="flex justify-center py-4">
+              {/* Load more section */}
+              <div ref={loadMoreRef} className="flex flex-col items-center gap-3 py-6">
                 {isFetching && (
                   <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
                 )}
+                {hasMore && !isFetching && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setCurrentPage(prev => prev + 1)}
+                    className="px-8"
+                  >
+                    Cargar más productos
+                  </Button>
+                )}
                 {!hasMore && !isFetching && allProducts.length > 0 && (
-                  <p className="text-sm text-gray-500">No hay más productos</p>
+                  <p className="text-sm text-gray-500">Mostrando todos los {allProducts.length} productos</p>
                 )}
               </div>
             </>
