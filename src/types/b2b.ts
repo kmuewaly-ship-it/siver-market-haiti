@@ -12,14 +12,18 @@ export interface ProductVariantInfo {
   parent_product_id?: string; // Which product this variant belongs to
 }
 
-export interface ColorOption {
+export interface VariantOption {
   productId: string;
   label: string;
   code?: string;
   image?: string;
   price: number;
   stock: number;
+  type: string; // 'color' | 'size' | 'age' | 'combo' | 'unknown'
 }
+
+// Backwards compatibility alias
+export type ColorOption = VariantOption;
 
 export interface ProductB2BCard {
   id: string;
@@ -35,9 +39,13 @@ export interface ProductB2BCard {
   source_product_id?: string; // Reference to products table for variants
   variant_count?: number; // Number of variants
   variant_ids?: string[]; // IDs of all variants
-  variants?: ProductVariantInfo[]; // Size/other variants
-  color_options?: ColorOption[]; // Color options (from grouped products)
-  has_color_variants?: boolean; // Whether this product has multiple colors
+  variants?: ProductVariantInfo[]; // Size/other variants from product_variants table
+  variant_options?: VariantOption[]; // Variants derived from grouped products (color, age, size, etc.)
+  variant_type?: string; // Primary type: 'color' | 'size' | 'age' | 'combo'
+  has_grouped_variants?: boolean; // Whether this product has multiple grouped variants
+  // Backwards compatibility
+  color_options?: VariantOption[];
+  has_color_variants?: boolean;
 }
 
 export interface CartItemB2B {

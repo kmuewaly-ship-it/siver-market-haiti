@@ -15,39 +15,57 @@ const extractBaseSku = (sku: string): string => {
 };
 
 /**
- * Extract color code from SKU (middle part)
- * "1005006634174277-kj1c4420a-4y" -> "kj1c4420a"
+ * Extract variant info from SKU suffix
+ * Returns type: 'size' | 'color' | 'age' | 'combo'
  */
-const extractColorCode = (sku: string): string => {
-  if (!sku) return '';
+const extractVariantInfo = (sku: string, nombre: string): { type: string; value: string; code: string } => {
+  if (!sku) return { type: 'unknown', value: '', code: '' };
+  
   const parts = sku.split('-');
-  if (parts.length >= 2) {
-    return parts[1] || '';
+  const suffix = parts.slice(1).join('-');
+  
+  // Check for age patterns (18-24m, 2-3y, 4y, etc.)
+  const ageMatch = suffix.match(/(\d+[-–]?\d*[mMyY]|[\w-]*years?)/i);
+  if (ageMatch) {
+    const ageValue = ageMatch[1].replace(/[-–]/g, '-');
+    return { type: 'age', value: formatAgeLabel(ageValue), code: ageValue };
   }
-  return '';
-};
-
-/**
- * Extract color label from product name or SKU
- */
-const extractColorLabel = (nombre: string, sku: string): string => {
-  // Try to extract color from name (after last " - ")
+  
+  // Check for standard sizes (S, M, L, XL, XXL)
+  const sizeMatch = suffix.match(/^([SMLX]{1,3})$/i);
+  if (sizeMatch) {
+    return { type: 'size', value: sizeMatch[1].toUpperCase(), code: sizeMatch[1].toLowerCase() };
+  }
+  
+  // Check for color in name
   const nameParts = nombre.split(' - ');
   if (nameParts.length > 1) {
-    const lastPart = nameParts[nameParts.length - 1].trim();
-    // Check if it looks like a color (not a size)
-    if (!/^\d/.test(lastPart) && !/^[SMLX]{1,3}$/i.test(lastPart)) {
-      return lastPart;
+    const lastPart = nameParts[nameParts.length - 1].trim().toLowerCase();
+    const colors = ['blanco', 'negro', 'rojo', 'azul', 'verde', 'amarillo', 'rosa', 'morado', 'naranja', 'gris', 
+                    'white', 'black', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'orange', 'gray', 'grey',
+                    'beige', 'brown', 'marron', 'cafe', 'turquesa', 'turquoise', 'coral', 'lavanda', 'lavender'];
+    if (colors.some(c => lastPart.includes(c))) {
+      return { type: 'color', value: nameParts[nameParts.length - 1].trim(), code: suffix };
     }
   }
   
-  // Use color code from SKU as fallback
-  const colorCode = extractColorCode(sku);
-  if (colorCode) {
-    return colorCode.toUpperCase();
+  // Default: treat middle part as color code
+  if (parts.length >= 2 && parts[1]) {
+    return { type: 'color', value: parts[1].toUpperCase(), code: parts[1] };
   }
   
-  return '';
+  return { type: 'unknown', value: suffix, code: suffix };
+};
+
+/**
+ * Format age label for display
+ */
+const formatAgeLabel = (age: string): string => {
+  return age
+    .replace(/(\d+)[-–](\d+)([mMyY])/i, '$1-$2$3')
+    .replace(/m$/i, 'M')
+    .replace(/y$/i, 'Y')
+    .replace(/years?$/i, 'Y');
 };
 
 /**
@@ -55,28 +73,28 @@ const extractColorLabel = (nombre: string, sku: string): string => {
  */
 const cleanProductName = (nombre: string): string => {
   return nombre
-    .replace(/\s*[-–]\s*\d+-\d+[mMyY]\s*$/i, '')
-    .replace(/\s*[-–]\s*\d+[mMyY]\s*$/i, '')
+    .replace(/\s*[-–]\s*\d+[-–]?\d*[mMyY]\s*$/i, '')
     .replace(/\s*[-–]\s*[SMLX]{1,3}\s*$/i, '')
     .replace(/\s*[-–]\s*[\w-]+years?\s*$/i, '')
-    // Remove color suffixes (common colors in Spanish/English)
-    .replace(/\s*[-–]\s*(blanco|negro|rojo|azul|verde|amarillo|rosa|morado|naranja|gris|white|black|red|blue|green|yellow|pink|purple|orange|gray|grey)\s*$/i, '')
+    .replace(/\s*[-–]\s*(blanco|negro|rojo|azul|verde|amarillo|rosa|morado|naranja|gris|white|black|red|blue|green|yellow|pink|purple|orange|gray|grey|beige|brown|marron|cafe|turquesa|coral|lavanda|lavender)\s*$/i, '')
     .trim();
 };
 
-interface ColorOption {
+interface VariantOption {
   productId: string;
   label: string;
   code: string;
   image: string;
   price: number;
   stock: number;
+  type: string; // 'color' | 'size' | 'age' | 'combo'
 }
 
 interface GroupedProduct {
   representative: any;
-  products: any[]; // All products in this group (different colors)
-  colorOptions: ColorOption[];
+  products: any[];
+  variantOptions: VariantOption[];
+  variantType: string; // Primary variant type detected
   baseSku: string;
   baseName: string;
   totalStock: number;
@@ -86,7 +104,7 @@ interface GroupedProduct {
 }
 
 /**
- * Group products by base SKU to combine color variants
+ * Group products by base SKU to combine variants
  */
 const groupProductsBySku = (products: any[]): GroupedProduct[] => {
   const skuGroups = new Map<string, any[]>();
@@ -110,15 +128,26 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
     const baseName = cleanProductName(representative.nombre || '');
     const productIds = groupProducts.map(p => p.id);
     
-    // Create color options from each product in the group
-    const colorOptions: ColorOption[] = groupProducts.map(p => ({
-      productId: p.id,
-      label: extractColorLabel(p.nombre || '', p.sku_interno || ''),
-      code: extractColorCode(p.sku_interno || ''),
-      image: p.imagen_principal || '/placeholder.svg',
-      price: p.precio_mayorista || 0,
-      stock: p.stock_fisico || 0,
-    }));
+    // Create variant options from each product in the group with type detection
+    const variantOptions: VariantOption[] = groupProducts.map(p => {
+      const variantInfo = extractVariantInfo(p.sku_interno || '', p.nombre || '');
+      return {
+        productId: p.id,
+        label: variantInfo.value || p.nombre,
+        code: variantInfo.code,
+        image: p.imagen_principal || '/placeholder.svg',
+        price: p.precio_mayorista || 0,
+        stock: p.stock_fisico || 0,
+        type: variantInfo.type,
+      };
+    });
+    
+    // Detect primary variant type (most common)
+    const typeCounts: Record<string, number> = {};
+    variantOptions.forEach(v => {
+      typeCounts[v.type] = (typeCounts[v.type] || 0) + 1;
+    });
+    const variantType = Object.entries(typeCounts).sort((a, b) => b[1] - a[1])[0]?.[0] || 'unknown';
     
     // Calculate aggregates
     const totalStock = groupProducts.reduce((sum, v) => sum + (v.stock_fisico || 0), 0);
@@ -129,7 +158,8 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
     groupedProducts.push({
       representative,
       products: groupProducts,
-      colorOptions,
+      variantOptions,
+      variantType,
       baseSku,
       baseName,
       totalStock,
@@ -238,11 +268,11 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
         });
         
         // Determine variant count for display
-        const hasMultipleColors = group.colorOptions.length > 1;
+        const hasGroupedVariants = group.variantOptions.length > 1;
         const hasVariants = allVariants.length > 0;
-        const totalVariantCount = hasMultipleColors 
-          ? group.colorOptions.length + allVariants.length 
-          : allVariants.length || group.colorOptions.length;
+        const totalVariantCount = hasGroupedVariants 
+          ? group.variantOptions.length + allVariants.length 
+          : allVariants.length || group.variantOptions.length;
         
         return {
           id: p.id,
@@ -259,9 +289,13 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           variant_ids: [...group.productIds, ...allVariants.map(v => v.id)],
           variants: allVariants,
           source_product_id: p.id,
-          // New fields for color handling
-          color_options: group.colorOptions,
-          has_color_variants: hasMultipleColors,
+          // New unified variant fields
+          variant_options: group.variantOptions,
+          variant_type: group.variantType,
+          has_grouped_variants: hasGroupedVariants,
+          // Backwards compatibility
+          color_options: group.variantOptions,
+          has_color_variants: hasGroupedVariants,
         };
       });
 
@@ -326,10 +360,10 @@ export const useFeaturedProductsB2B = (limit = 6) => {
           });
         });
 
-        const hasMultipleColors = group.colorOptions.length > 1;
-        const totalVariantCount = hasMultipleColors 
-          ? group.colorOptions.length + allVariants.length 
-          : allVariants.length || group.colorOptions.length;
+        const hasGroupedVariants = group.variantOptions.length > 1;
+        const totalVariantCount = hasGroupedVariants 
+          ? group.variantOptions.length + allVariants.length 
+          : allVariants.length || group.variantOptions.length;
         
         return {
           id: p.id,
@@ -346,8 +380,11 @@ export const useFeaturedProductsB2B = (limit = 6) => {
           variant_ids: [...group.productIds, ...allVariants.map(v => v.id)],
           variants: allVariants,
           source_product_id: p.id,
-          color_options: group.colorOptions,
-          has_color_variants: hasMultipleColors,
+          variant_options: group.variantOptions,
+          variant_type: group.variantType,
+          has_grouped_variants: hasGroupedVariants,
+          color_options: group.variantOptions,
+          has_color_variants: hasGroupedVariants,
         };
       });
 

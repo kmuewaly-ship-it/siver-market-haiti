@@ -201,7 +201,10 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
           // Pass variant info for the selector
           variants: product.variants,
           variantIds: product.variant_ids,
-          // Pass color options
+          // Pass unified variant options with type
+          variantOptions: product.variant_options,
+          variantType: product.variant_type,
+          // Backwards compatibility
           colorOptions: product.color_options,
           hasColorVariants: product.has_color_variants,
         }}
