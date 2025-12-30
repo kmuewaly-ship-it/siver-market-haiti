@@ -1,1 +1,4 @@
 project_id = "foseflhlhqmlnneohkji"
+
+[functions.normalize-products]
+verify_jwt = true

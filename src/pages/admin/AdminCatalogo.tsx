@@ -8,13 +8,14 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useCatalog, Product, ProductFilters } from '@/hooks/useCatalog';
-import { Package, AlertTriangle, TrendingDown, Search, Upload, Plus, Download, Settings, Loader2, Cpu, ExternalLink, DollarSign, Layers } from 'lucide-react';
+import { Package, AlertTriangle, TrendingDown, Search, Upload, Plus, Download, Settings, Loader2, Cpu, ExternalLink, DollarSign, Layers, RefreshCw } from 'lucide-react';
 import BulkImportDialog from '@/components/catalog/BulkImportDialog';
 import SmartBulkImportDialog from '@/components/catalog/SmartBulkImportDialog';
 import ProductFormDialog from '@/components/catalog/ProductFormDialog';
 import ProductEditDialog from '@/components/catalog/ProductEditDialog';
 import ProductEmbeddingsManager from '@/components/admin/ProductEmbeddingsManager';
 import BulkPriceUpdateDialog from '@/components/catalog/BulkPriceUpdateDialog';
+import { ProductNormalizationTool } from '@/components/admin/ProductNormalizationTool';
 
 const AdminCatalogo = () => {
   const { useProducts, useCategories, useSuppliers, useCatalogKPIs } = useCatalog();
@@ -82,6 +83,10 @@ const AdminCatalogo = () => {
           <TabsTrigger value="embeddings" className="gap-2">
             <Cpu className="h-4 w-4" />
             IA / Embeddings
+          </TabsTrigger>
+          <TabsTrigger value="normalization" className="gap-2">
+            <RefreshCw className="h-4 w-4" />
+            Normalizar EAV
           </TabsTrigger>
         </TabsList>
 
@@ -310,6 +315,12 @@ const AdminCatalogo = () => {
 
         <TabsContent value="embeddings">
           <ProductEmbeddingsManager />
+        </TabsContent>
+
+        <TabsContent value="normalization">
+          <ProductNormalizationTool onComplete={() => {
+            // Refetch products after normalization
+          }} />
         </TabsContent>
       </Tabs>
       {/* Dialogs */}

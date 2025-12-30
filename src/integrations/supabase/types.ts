@@ -1418,6 +1418,48 @@ export type Database = {
           },
         ]
       }
+      product_migration_log: {
+        Row: {
+          id: string
+          migrated_at: string | null
+          new_variant_id: string | null
+          original_product_id: string | null
+          parent_sku: string
+          status: string | null
+        }
+        Insert: {
+          id?: string
+          migrated_at?: string | null
+          new_variant_id?: string | null
+          original_product_id?: string | null
+          parent_sku: string
+          status?: string | null
+        }
+        Update: {
+          id?: string
+          migrated_at?: string | null
+          new_variant_id?: string | null
+          original_product_id?: string | null
+          parent_sku?: string
+          status?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_migration_log_new_variant_id_fkey"
+            columns: ["new_variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_migration_log_original_product_id_fkey"
+            columns: ["original_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_price_history: {
         Row: {
           campo_modificado: string
@@ -1645,8 +1687,10 @@ export type Database = {
           id: string
           imagen_principal: string | null
           is_active: boolean
+          is_parent: boolean | null
           moq: number
           nombre: string
+          parent_product_id: string | null
           peso_kg: number | null
           precio_mayorista: number
           precio_promocional: number | null
@@ -1676,8 +1720,10 @@ export type Database = {
           id?: string
           imagen_principal?: string | null
           is_active?: boolean
+          is_parent?: boolean | null
           moq?: number
           nombre: string
+          parent_product_id?: string | null
           peso_kg?: number | null
           precio_mayorista?: number
           precio_promocional?: number | null
@@ -1707,8 +1753,10 @@ export type Database = {
           id?: string
           imagen_principal?: string | null
           is_active?: boolean
+          is_parent?: boolean | null
           moq?: number
           nombre?: string
+          parent_product_id?: string | null
           peso_kg?: number | null
           precio_mayorista?: number
           precio_promocional?: number | null
@@ -1731,6 +1779,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
             referencedColumns: ["id"]
           },
           {
@@ -2648,8 +2703,10 @@ export type Database = {
           id: string
           imagen_principal: string | null
           is_active: boolean
+          is_parent: boolean | null
           moq: number
           nombre: string
+          parent_product_id: string | null
           peso_kg: number | null
           precio_mayorista: number
           precio_promocional: number | null
