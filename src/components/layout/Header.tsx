@@ -95,7 +95,7 @@ const Header = ({
   const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
   const showB2B = isB2B && !isClientPreview && !isHomePage;
   const cartItems = showB2B ? b2bItems : b2cItems;
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + ('quantity' in item ? item.quantity : item.cantidad), 0);
   const cartLink = showB2B ? "/seller/carrito" : "/carrito";
 
   const catBarRef = useRef(null);

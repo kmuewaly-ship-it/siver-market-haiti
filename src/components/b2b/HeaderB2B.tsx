@@ -88,7 +88,7 @@ const HeaderB2B = ({
   const {
     items: cartItems
   } = useB2BCartItems();
-  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+  const cartCount = cartItems.reduce((sum, item) => sum + item.cantidad, 0);
   const {
     data: categories = [],
     isLoading: categoriesLoading
