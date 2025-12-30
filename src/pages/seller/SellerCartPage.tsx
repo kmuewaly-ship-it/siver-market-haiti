@@ -83,7 +83,7 @@ const SellerCartPage = () => {
 
       // Generate WhatsApp message
       const itemsList = items
-        .map((item, index) => `${index + 1}. ${item.nombre} x ${item.cantidad} uds - $${item.subtotal.toFixed(2)}`)
+        .map((item, index) => `${index + 1}. ${item.name} x ${item.cantidad} uds - $${item.subtotal.toFixed(2)}`)
         .join('\n');
 
       const message = `📱 *Nuevo Pedido para Negociación - Siver Market*
@@ -223,7 +223,7 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                                   onClick={() =>
                                     updateQuantity(
                                       item.productId,
-                                      Math.max(item.moq || 1, item.cantidad - 1)
+                                      Math.max(1, item.cantidad - 1)
                                     )
                                   }
                                   className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"

@@ -180,7 +180,7 @@ const CartPage = () => {
                       {storeItems.map((item) => (
                         <div
                           key={item.id}
-                          onClick={() => navigate(`/producto/${item.productId || item.id}`)}
+                          onClick={() => navigate(`/producto/${item.sellerCatalogId || item.sku}`)}
                           className="border-b border-gray-200 last:border-b-0 p-1 hover:bg-gray-100 transition flex gap-2 cursor-pointer"
                           style={{ backgroundColor: 'white' }}
                         >
