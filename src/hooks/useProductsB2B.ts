@@ -18,55 +18,119 @@ const extractBaseSku = (sku: string): string => {
  * Extract variant info from SKU suffix
  * Returns type: 'size' | 'color' | 'age' | 'combo'
  */
-const extractVariantInfo = (sku: string, nombre: string): { type: string; value: string; code: string } => {
-  if (!sku) return { type: 'unknown', value: '', code: '' };
+interface VariantExtraction {
+  type: string;
+  value: string;
+  code: string;
+}
+
+/**
+ * Extract ALL variant info from SKU suffix
+ * Returns array of variants: [{ type: 'age', value: '6T', code: '6t' }, { type: 'color', value: 'Champagne', code: 'champagne' }]
+ */
+const extractAllVariantsFromSku = (sku: string): VariantExtraction[] => {
+  if (!sku) return [];
   
   const parts = sku.split('-');
-  const suffix = parts.slice(1).join('-');
+  if (parts.length <= 1) return [];
   
-  // Check for age patterns (18-24m, 2-3y, 4y, etc.)
-  const ageMatch = suffix.match(/(\d+[-–]?\d*[mMyY]|[\w-]*years?)/i);
-  if (ageMatch) {
-    const ageValue = ageMatch[1].replace(/[-–]/g, '-');
-    return { type: 'age', value: formatAgeLabel(ageValue), code: ageValue };
-  }
+  const variants: VariantExtraction[] = [];
+  const suffixParts = parts.slice(1); // All parts after base SKU
   
-  // Check for standard sizes (S, M, L, XL, XXL)
-  const sizeMatch = suffix.match(/^([SMLX]{1,3})$/i);
-  if (sizeMatch) {
-    return { type: 'size', value: sizeMatch[1].toUpperCase(), code: sizeMatch[1].toLowerCase() };
-  }
+  // Known color names (single and compound)
+  const singleColors = ['champagne', 'white', 'black', 'red', 'blue', 'green', 
+                        'yellow', 'pink', 'purple', 'orange', 'gray', 'grey', 'beige', 'brown', 'navy',
+                        'cream', 'gold', 'silver', 'rose', 'coral', 'lavender', 'turquoise', 'teal',
+                        'maroon', 'olive', 'peach', 'mint', 'ivory', 'burgundy', 'khaki', 'aqua',
+                        'apricot', 'wine', 'sky', 'coffee', 'camel', 'mocha', 'blush'];
+  const compoundColors = ['light-blue', 'peach-pink', 'hot-pink', 'sky-blue', 'royal-blue', 
+                          'dark-blue', 'dark-green', 'light-green', 'light-pink', 'dark-grey',
+                          'off-white', 'rose-gold', 'baby-blue', 'baby-pink'];
   
-  // Check for color in name
-  const nameParts = nombre.split(' - ');
-  if (nameParts.length > 1) {
-    const lastPart = nameParts[nameParts.length - 1].trim().toLowerCase();
-    const colors = ['blanco', 'negro', 'rojo', 'azul', 'verde', 'amarillo', 'rosa', 'morado', 'naranja', 'gris', 
-                    'white', 'black', 'red', 'blue', 'green', 'yellow', 'pink', 'purple', 'orange', 'gray', 'grey',
-                    'beige', 'brown', 'marron', 'cafe', 'turquesa', 'turquoise', 'coral', 'lavanda', 'lavender'];
-    if (colors.some(c => lastPart.includes(c))) {
-      return { type: 'color', value: nameParts[nameParts.length - 1].trim(), code: suffix };
+  let processedParts: string[] = [];
+  let i = 0;
+  
+  while (i < suffixParts.length) {
+    const part = suffixParts[i].toLowerCase();
+    const nextPart = suffixParts[i + 1]?.toLowerCase();
+    
+    // Check for hyphenated color (e.g., "light-blue", "peach-pink")
+    if (nextPart) {
+      const compound = `${part}-${nextPart}`;
+      if (compoundColors.includes(compound) || 
+          (singleColors.includes(part) && singleColors.includes(nextPart))) {
+        processedParts.push(compound);
+        i += 2;
+        continue;
+      }
     }
+    
+    processedParts.push(part);
+    i++;
   }
   
-  // Default: treat middle part as color code
-  if (parts.length >= 2 && parts[1]) {
-    return { type: 'color', value: parts[1].toUpperCase(), code: parts[1] };
-  }
+  // All color names for matching
+  const allColors = [...singleColors, ...compoundColors];
   
-  return { type: 'unknown', value: suffix, code: suffix };
+  processedParts.forEach(part => {
+    // Check for age patterns (3-4t, 6t, 8y, 10y, 11-12y, 18-24m, etc.)
+    const ageMatch = part.match(/^(\d+(?:-\d+)?)\s*([tTyYmM])$/);
+    if (ageMatch) {
+      const ageValue = ageMatch[1].toUpperCase() + ageMatch[2].toUpperCase();
+      variants.push({ type: 'age', value: ageValue, code: part });
+      return;
+    }
+    
+    // Check for size patterns (110, 120, 130, 140, 150 - cm sizes)
+    const cmSizeMatch = part.match(/^(100|110|120|130|140|150|160|170|180)$/);
+    if (cmSizeMatch) {
+      variants.push({ type: 'size', value: cmSizeMatch[1] + 'cm', code: part });
+      return;
+    }
+    
+    // Check for standard sizes (S, M, L, XL, XXL, 2XL, 3XL)
+    const sizeMatch = part.match(/^([2-5]?x?[sml]|xx?l|xxx?l)$/i);
+    if (sizeMatch) {
+      variants.push({ type: 'size', value: sizeMatch[1].toUpperCase(), code: part });
+      return;
+    }
+    
+    // Check for color names
+    if (allColors.includes(part)) {
+      const colorLabel = part.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+      variants.push({ type: 'color', value: colorLabel, code: part });
+      return;
+    }
+    
+    // Skip product codes (alphanumeric with letters and numbers, likely internal codes)
+    if (/^[a-z]{2,}\d+[a-z]*$/i.test(part)) {
+      return; // Skip codes like "kj1c4420a", "dh01021bh"
+    }
+  });
+  
+  return variants;
 };
 
 /**
- * Format age label for display
+ * Legacy function for backward compatibility - returns primary variant
  */
-const formatAgeLabel = (age: string): string => {
-  return age
-    .replace(/(\d+)[-–](\d+)([mMyY])/i, '$1-$2$3')
-    .replace(/m$/i, 'M')
-    .replace(/y$/i, 'Y')
-    .replace(/years?$/i, 'Y');
+const extractVariantInfo = (sku: string, nombre: string): { type: string; value: string; code: string } => {
+  const allVariants = extractAllVariantsFromSku(sku);
+  
+  if (allVariants.length === 0) {
+    return { type: 'unknown', value: '', code: '' };
+  }
+  
+  // Priority: age > size > color
+  const priority = ['age', 'size', 'color'];
+  for (const type of priority) {
+    const variant = allVariants.find(v => v.type === type);
+    if (variant) return variant;
+  }
+  
+  return allVariants[0];
 };
+
 
 /**
  * Clean product name by removing variant suffixes
@@ -133,30 +197,36 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
     const baseName = cleanProductName(representative.nombre || '');
     const productIds = groupProducts.map(p => p.id);
     
-    // Create variant options from each product in the group with type detection
-    const variantOptions: VariantOption[] = groupProducts.map(p => {
-      const variantInfo = extractVariantInfo(p.sku_interno || '', p.nombre || '');
-      return {
-        productId: p.id,
-        label: variantInfo.value || p.nombre,
-        code: variantInfo.code,
-        image: p.imagen_principal || '/placeholder.svg',
-        price: p.precio_mayorista || 0,
-        stock: p.stock_fisico || 0,
-        type: variantInfo.type,
-      };
-    });
-    
-    // Group variants by type
+    // Extract ALL variants from each product using new multi-variant extraction
     const variantsByType: VariantsByType = {};
-    variantOptions.forEach(v => {
-      if (!variantsByType[v.type]) {
-        variantsByType[v.type] = [];
-      }
-      // Avoid duplicates by label
-      if (!variantsByType[v.type].find(existing => existing.label === v.label)) {
-        variantsByType[v.type].push(v);
-      }
+    const allVariantOptions: VariantOption[] = [];
+    
+    groupProducts.forEach(p => {
+      const allVariants = extractAllVariantsFromSku(p.sku_interno || '');
+      
+      allVariants.forEach(variantInfo => {
+        const variantOption: VariantOption = {
+          productId: p.id,
+          label: variantInfo.value,
+          code: variantInfo.code,
+          image: p.imagen_principal || '/placeholder.svg',
+          price: p.precio_mayorista || 0,
+          stock: p.stock_fisico || 0,
+          type: variantInfo.type,
+        };
+        
+        allVariantOptions.push(variantOption);
+        
+        // Group by type
+        if (!variantsByType[variantInfo.type]) {
+          variantsByType[variantInfo.type] = [];
+        }
+        
+        // Avoid duplicates by label within each type
+        if (!variantsByType[variantInfo.type].find(existing => existing.label === variantInfo.value)) {
+          variantsByType[variantInfo.type].push(variantOption);
+        }
+      });
     });
     
     // Get all detected types (sorted by priority: color, size, age, unknown)
@@ -174,7 +244,7 @@ const groupProductsBySku = (products: any[]): GroupedProduct[] => {
     groupedProducts.push({
       representative,
       products: groupProducts,
-      variantOptions,
+      variantOptions: allVariantOptions,
       variantsByType,
       variantTypes,
       baseSku,
