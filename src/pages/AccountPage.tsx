@@ -21,7 +21,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useQuery } from "@tanstack/react-query";
 import { useBuyerOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from "@/hooks/useBuyerOrders";
-import { useCart } from "@/hooks/useCart";
+import { addItemB2C } from "@/services/cartService";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
@@ -423,7 +423,6 @@ const AccountPage = () => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { toast: showToast } = useToast();
-  const { addItem } = useCart();
   const [showAddresses, setShowAddresses] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [isRequestingUpgrade, setIsRequestingUpgrade] = useState(false);
@@ -570,15 +569,24 @@ const AccountPage = () => {
       });
       return;
     }
-    order.order_items_b2b.forEach(item => {
-      for (let i = 0; i < item.cantidad; i++) {
-        addItem({
-          id: item.product_id || item.sku,
+    
+    if (!user?.id) {
+      showToast({ title: "Error", description: "Usuario no identificado", variant: 'destructive' });
+      return;
+    }
+
+    order.order_items_b2b.forEach(async (item) => {
+      try {
+        await addItemB2C({
+          userId: user.id,
+          sku: item.sku,
           name: item.nombre,
           price: item.precio_unitario,
-          image: '',
-          sku: item.sku
+          quantity: item.cantidad,
+          sellerCatalogId: (item as any).seller_catalog_id,
         });
+      } catch (error) {
+        console.error('Error adding item to cart:', error);
       }
     });
     showToast({

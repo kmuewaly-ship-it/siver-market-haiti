@@ -3,12 +3,13 @@ import { useNavigate, Link, Navigate } from 'react-router-dom';
 import GlobalHeader from '@/components/layout/GlobalHeader';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
-import { useCart } from '@/hooks/useCart';
-import { useB2CCartSupabase } from '@/hooks/useB2CCartSupabase';
+import { useB2CCartItems } from '@/hooks/useB2CCartItems';
 import { useAddresses, Address } from '@/hooks/useAddresses';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCreateB2COrder } from '@/hooks/useB2COrders';
+import { useCreateB2COrder, useCompleteB2CCart } from '@/hooks/useB2COrders';
+import { validateB2CCheckout, getFieldError, hasFieldError, CheckoutValidationError } from '@/services/checkoutValidation';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -34,6 +35,7 @@ import {
   Pencil,
   Truck,
   Store,
+  AlertCircle,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -43,12 +45,12 @@ type DeliveryMethod = 'address' | 'pickup';
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user, role, isLoading: authLoading } = useAuth();
-  const { items, totalPrice, clearCart } = useCart();
-  const { clearCart: completeCart, cart: b2cCart } = useB2CCartSupabase();
+  const { items, isLoading: cartLoading } = useB2CCartItems();
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { pickupPoints, isLoading: pickupPointsLoading } = usePickupPoints();
   const isMobile = useIsMobile();
   const createOrder = useCreateB2COrder();
+  const completeCart = useCompleteB2CCart();
 
   // Redirect sellers/admins to B2B checkout
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
@@ -63,6 +65,7 @@ const CheckoutPage = () => {
   const [paymentReference, setPaymentReference] = useState('');
   const [orderNotes, setOrderNotes] = useState('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<CheckoutValidationError[]>([]);
 
   // Redirect after hooks are called
   if (isB2BUser && !authLoading) {
@@ -118,9 +121,9 @@ const CheckoutPage = () => {
   };
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
-  const subtotal = totalPrice();
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
 
-  if (authLoading || addressesLoading || pickupPointsLoading) {
+  if (authLoading || cartLoading || addressesLoading || pickupPointsLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-background">
         <Loader2 className="h-12 w-12 animate-spin text-[#071d7f]" />
@@ -236,23 +239,26 @@ const CheckoutPage = () => {
   }
 
   const handlePlaceOrder = async () => {
-    // Validate delivery method
-    if (deliveryMethod === 'address') {
-      if (!selectedAddress) {
-        toast.error('Selecciona una dirección de envío');
-        return;
-      }
-    } else {
-      if (!selectedPickupPoint) {
-        toast.error('Selecciona un punto de retiro');
-        return;
-      }
-    }
+    // Validate checkout form
+    const errors = validateB2CCheckout({
+      items: items.map(item => ({ id: item.id, quantity: item.quantity })),
+      selectedAddress,
+      deliveryMethod,
+      selectedPickupPoint,
+      paymentMethod,
+      paymentReference,
+    });
 
-    if (paymentMethod !== 'stripe' && !paymentReference.trim()) {
-      toast.error('Ingresa la referencia de pago');
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      // Show first error as toast
+      const firstError = errors[0];
+      toast.error(firstError.message);
       return;
     }
+
+    // Clear validation errors on successful validation
+    setValidationErrors([]);
 
     if (items.length === 0) {
       toast.error('El carrito está vacío');
@@ -272,6 +278,7 @@ const CheckoutPage = () => {
         image: item.image,
         store_id: item.storeId,
         store_name: item.storeName,
+        seller_catalog_id: item.sellerCatalogId,
       }));
 
       // Prepare shipping address (for address delivery)
@@ -288,9 +295,10 @@ const CheckoutPage = () => {
       } : undefined;
 
       // Create the order in database
+      const totalPrice = items.reduce((sum, item) => sum + item.totalPrice, 0);
       const order = await createOrder.mutateAsync({
         items: orderItems,
-        total_amount: totalPrice(),
+        total_amount: totalPrice,
         total_quantity: items.reduce((sum, item) => sum + item.quantity, 0),
         payment_method: paymentMethod,
         payment_reference: paymentReference || undefined,
@@ -303,13 +311,28 @@ const CheckoutPage = () => {
       if (order) {
         setOrderId(order.id.slice(0, 8).toUpperCase());
         
-        // Complete the B2C cart in Supabase if it exists
-        if (b2cCart?.id) {
-          await completeCart();
+        // Complete the cart by marking it as completed
+        try {
+          // Get the cart ID from the first item
+          const { data: cartData } = await supabase
+            .from('b2c_carts')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('status', 'open')
+            .limit(1)
+            .single();
+          
+          if (cartData?.id) {
+            console.log('Completing cart:', cartData.id);
+            // This will automatically invalidate queries and clear cache
+            await completeCart.mutateAsync(cartData.id);
+            console.log('Cart completion mutation finished');
+          }
+        } catch (cartError) {
+          console.error('Error completing cart:', cartError);
+          // Don't fail the order if cart completion fails
         }
         
-        // Clear the local cart (zustand)
-        clearCart();
         setOrderPlaced(true);
       }
     } catch (error) {
@@ -337,11 +360,17 @@ const CheckoutPage = () => {
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
             {/* Delivery Method Selection */}
-            <Card className="p-6">
+            <Card className={`p-6 ${hasFieldError(validationErrors, 'deliveryMethod') ? 'border-red-500 border-2' : ''}`}>
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <Truck className="h-5 w-5 text-[#071d7f]" />
                 Opción de Entrega
               </h2>
+              {hasFieldError(validationErrors, 'deliveryMethod') && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">{getFieldError(validationErrors, 'deliveryMethod')}</p>
+                </div>
+              )}
               
               <RadioGroup 
                 value={deliveryMethod} 
@@ -400,7 +429,7 @@ const CheckoutPage = () => {
 
             {/* Shipping Address */}
             {deliveryMethod === 'address' && (
-              <Card className="p-6">
+              <Card className={`p-6 ${hasFieldError(validationErrors, 'selectedAddress') ? 'border-red-500 border-2' : ''}`}>
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-lg font-bold flex items-center gap-2">
                     <MapPin className="h-5 w-5 text-[#071d7f]" />
@@ -415,6 +444,13 @@ const CheckoutPage = () => {
                     Gestionar
                   </Button>
                 </div>
+
+                {hasFieldError(validationErrors, 'selectedAddress') && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{getFieldError(validationErrors, 'selectedAddress')}</p>
+                  </div>
+                )}
 
                 {addresses.length === 0 ? (
                   <div className="text-center py-6 bg-muted/50 rounded-lg">
@@ -550,11 +586,18 @@ const CheckoutPage = () => {
             </Card>
 
             {/* Payment Method */}
-            <Card className="p-6">
+            <Card className={`p-6 ${hasFieldError(validationErrors, 'paymentMethod') ? 'border-red-500 border-2' : ''}`}>
               <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-[#071d7f]" />
                 Método de Pago
               </h2>
+              
+              {hasFieldError(validationErrors, 'paymentMethod') && (
+                <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+                  <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <p className="text-sm text-red-700">{getFieldError(validationErrors, 'paymentMethod')}</p>
+                </div>
+              )}
               
               <div className="space-y-3">
                 {paymentMethods.map((method) => {
@@ -605,8 +648,11 @@ const CheckoutPage = () => {
                       value={paymentReference}
                       onChange={(e) => setPaymentReference(e.target.value)}
                       placeholder="Número de referencia"
-                      className="mt-1"
+                      className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
                     />
+                    {hasFieldError(validationErrors, 'paymentReference') && (
+                      <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
+                    )}
                   </div>
                 </div>
               )}
@@ -624,8 +670,11 @@ const CheckoutPage = () => {
                       value={paymentReference}
                       onChange={(e) => setPaymentReference(e.target.value)}
                       placeholder="Código de transacción MonCash"
-                      className="mt-1"
+                      className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
                     />
+                    {hasFieldError(validationErrors, 'paymentReference') && (
+                      <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
+                    )}
                   </div>
                 </div>
               )}

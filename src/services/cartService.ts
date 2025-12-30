@@ -11,6 +11,7 @@ interface B2CAddItemParams {
   storeId?: string | null;
   storeName?: string | null;
   storeWhatsapp?: string | null;
+  sellerCatalogId?: string | null;
 }
 
 interface B2BAddItemParams {
@@ -77,7 +78,7 @@ export const addItemB2C = async (params: B2CAddItemParams) => {
       .from('b2c_cart_items')
       .insert([{
         cart_id: cart.id,
-        seller_catalog_id: null,
+        seller_catalog_id: params.sellerCatalogId || null,
         sku: params.sku,
         nombre: params.name,
         unit_price: params.price,

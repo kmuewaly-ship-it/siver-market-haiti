@@ -3,14 +3,14 @@ import { Home, LayoutGrid, Sparkles, ShoppingBag, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
-import { useB2CCartSupabase } from "@/hooks/useB2CCartSupabase";
-import { useCartB2B } from "@/hooks/useCartB2B";
+import { useB2CCartItems } from "@/hooks/useB2CCartItems";
+import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 
 const MobileBottomNav = () => {
   const location = useLocation();
   const { role } = useAuth();
-  const { cart: b2cCart } = useB2CCartSupabase();
-  const { cart: b2bCart } = useCartB2B();
+  const { items: b2cItems } = useB2CCartItems();
+  const { items: b2bItems } = useB2BCartItems();
   
   // Hide on admin routes
   const isAdminRoute = location.pathname.startsWith("/admin");
@@ -24,7 +24,8 @@ const MobileBottomNav = () => {
   const cartLink = isB2B ? "/seller/carrito" : "/carrito";
   
   // Get cart count based on user type
-  const cartCount = isB2B ? b2bCart.totalItems : b2cCart.totalItems;
+  const cartItems = isB2B ? b2bItems : b2cItems;
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartBadge = cartCount > 0 ? (cartCount > 99 ? "99+" : cartCount.toString()) : undefined;
   
   const categoriesLink = "/categorias";

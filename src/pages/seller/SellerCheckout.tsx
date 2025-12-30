@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { useB2BCartSupabase } from '@/hooks/useB2BCartSupabase';
-import { useCartB2B } from '@/hooks/useCartB2B';
+import { useB2BCartItems } from '@/hooks/useB2BCartItems';
 import { useKYC } from '@/hooks/useKYC';
 import { useSellerCredits } from '@/hooks/useSellerCredits';
 import { useAddresses, Address } from '@/hooks/useAddresses';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
+import { useCompleteB2BCart } from '@/hooks/useBuyerOrders';
+import { validateB2BCheckout, getFieldError, hasFieldError, type CheckoutValidationError } from '@/services/checkoutValidation';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -47,13 +48,12 @@ type DeliveryMethod = 'address' | 'pickup';
 const SellerCheckout = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { cart, clearCart } = useCartB2B();
-  const { markOrderAsPaid } = useB2BCartSupabase();
-  const cartLoading = false;
+  const { items, isLoading: cartLoading } = useB2BCartItems();
   const { isVerified } = useKYC();
   const { credit, availableCredit, hasActiveCredit, calculateMaxCreditForCart } = useSellerCredits();
   const { addresses, isLoading: addressesLoading, createAddress } = useAddresses();
   const { pickupPoints, isLoading: pickupPointsLoading } = usePickupPoints();
+  const completeCart = useCompleteB2BCart();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('address');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
@@ -65,8 +65,13 @@ const SellerCheckout = () => {
   const [creditAmount, setCreditAmount] = useState(0);
   const [useSiverCredit, setUseSiverCredit] = useState(false);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<CheckoutValidationError[]>([]);
   
-  // Create order from local cart
+  // Calcular totales desde items de BD
+  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  const totalQuantity = items.reduce((sum, item) => sum + item.cantidad, 0);
+  
+  // Create order from BD cart
   const createOrder = async (
     paymentMethod: 'stripe' | 'moncash' | 'transfer',
     shippingAddress?: {
@@ -83,7 +88,7 @@ const SellerCheckout = () => {
     deliveryMethod?: DeliveryMethod,
     pickupPointId?: string
   ) => {
-    if (!user?.id || cart.items.length === 0) {
+    if (!user?.id || items.length === 0) {
       toast.error('Carrito vacío o usuario no autenticado');
       return null;
     }
@@ -105,12 +110,15 @@ const SellerCheckout = () => {
       }
 
       // Create order with shipping address and delivery info in metadata
+      const orderSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+      const orderTotalQuantity = items.reduce((sum, item) => sum + item.cantidad, 0);
+      
       const { data: order, error: orderError } = await supabase
         .from('orders_b2b')
         .insert({
           seller_id: user.id,
-          total_amount: cart.subtotal,
-          total_quantity: cart.totalQuantity,
+          total_amount: orderSubtotal,
+          total_quantity: orderTotalQuantity,
           payment_method: paymentMethod,
           status: 'draft',
           currency: 'USD',
@@ -122,14 +130,15 @@ const SellerCheckout = () => {
       if (orderError) throw orderError;
 
       // Create order items
-      const orderItems = cart.items.map(item => ({
+      const orderItems = items.map(item => ({
         order_id: order.id,
         product_id: item.productId,
         sku: item.sku,
-        nombre: item.nombre,
+        nombre: item.name,
         cantidad: item.cantidad,
-        precio_unitario: item.precio_b2b,
+        precio_unitario: item.precioB2B,
         subtotal: item.subtotal,
+        seller_catalog_id: null, // B2B items are from products table, not seller_catalog
       }));
 
       const { error: itemsError } = await supabase
@@ -137,9 +146,6 @@ const SellerCheckout = () => {
         .insert(orderItems);
 
       if (itemsError) throw itemsError;
-
-      // Clear local cart
-      clearCart();
 
       return order;
     } catch (error) {
@@ -173,8 +179,8 @@ const SellerCheckout = () => {
   });
 
   // Calculate max credit for current cart (never 100% - max is what admin configured, typically less)
-  const maxCreditAmount = calculateMaxCreditForCart(cart.subtotal);
-  const remainingToPay = cart.subtotal - creditAmount;
+  const maxCreditAmount = calculateMaxCreditForCart(subtotal);
+  const remainingToPay = subtotal - creditAmount;
 
   // Can use credit only if verified and has active credit
   const canUseCredit = isVerified && hasActiveCredit && maxCreditAmount > 0;
@@ -267,7 +273,7 @@ const SellerCheckout = () => {
     );
   }
 
-  if (cart.totalItems === 0 && !orderPlaced) {
+  if (items.length === 0 && !orderPlaced) {
     return (
       <SellerLayout>
         <div className="min-h-screen bg-background">
@@ -352,27 +358,27 @@ const SellerCheckout = () => {
   }
 
   const handlePlaceOrder = async () => {
-    if (!user) {
-      toast.error('Debes iniciar sesión');
+    // Validate form using centralized validation service
+    const errors = validateB2BCheckout({
+      items: items.map(item => ({ id: item.id, quantity: item.cantidad })),
+      selectedAddress: deliveryMethod === 'address' ? selectedAddressId : null,
+      deliveryMethod,
+      selectedPickupPoint: deliveryMethod === 'pickup' ? selectedPickupPoint : null,
+      paymentMethod,
+      paymentReference,
+    });
+
+    if (errors.length > 0) {
+      setValidationErrors(errors);
+      toast.error(errors[0].message);
       return;
     }
 
-    // Validate delivery method
-    if (deliveryMethod === 'address') {
-      if (!selectedAddressId) {
-        toast.error('Selecciona una dirección de envío');
-        return;
-      }
-    } else {
-      if (!selectedPickupPoint) {
-        toast.error('Selecciona un punto de retiro');
-        return;
-      }
-    }
+    // Clear validation errors if all checks pass
+    setValidationErrors([]);
 
-    // Validate payment reference for non-Stripe methods
-    if (paymentMethod !== 'stripe' && !paymentReference.trim()) {
-      toast.error('Ingresa la referencia de pago');
+    if (!user) {
+      toast.error('Debes iniciar sesión');
       return;
     }
 
@@ -438,9 +444,13 @@ const SellerCheckout = () => {
 
       // Handle payment completion based on method
       if (paymentMethod === 'stripe') {
-        // For Stripe, simulate payment success
-        const paid = await markOrderAsPaid(order.id);
-        if (paid) {
+        // For Stripe, mark order as paid
+        const { error: updateError } = await supabase
+          .from('orders_b2b')
+          .update({ status: 'paid' })
+          .eq('id', order.id);
+        
+        if (!updateError) {
           toast.success(useSiverCredit && creditAmount > 0 
             ? 'Pago procesado con crédito combinado' 
             : 'Pago procesado correctamente');
@@ -453,6 +463,28 @@ const SellerCheckout = () => {
       }
 
       setOrderPlaced(true);
+      
+      // Clear the B2B cart by marking it as completed
+      try {
+        console.log('Clearing B2B cart for user:', user.id);
+        // Get the seller's open cart
+        const { data: carts } = await supabase
+          .from('b2b_carts')
+          .select('id')
+          .eq('buyer_user_id', user.id)
+          .eq('status', 'open')
+          .limit(1);
+        
+        if (carts && carts.length > 0) {
+          console.log('Marking B2B cart as completed:', carts[0].id);
+          // This will automatically invalidate queries and clear cache
+          await completeCart.mutateAsync(carts[0].id);
+          console.log('B2B cart completion mutation finished');
+        }
+      } catch (cartError) {
+        console.error('Error clearing B2B cart:', cartError);
+        // Don't fail the order if cart clearing fails
+      }
     } catch (error) {
       console.error('Error placing order:', error);
       toast.error('Error al procesar el pedido');
@@ -502,11 +534,18 @@ const SellerCheckout = () => {
               </Card>
 
               {/* Delivery Method Selection */}
-              <Card className="p-6">
+              <Card className={`p-6 ${hasFieldError(validationErrors, 'deliveryMethod') ? 'border-red-500' : ''}`}>
                 <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
                   <Truck className="h-5 w-5 text-primary" />
                   Opción de Entrega
                 </h2>
+                
+                {hasFieldError(validationErrors, 'deliveryMethod') && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{getFieldError(validationErrors, 'deliveryMethod')}</p>
+                  </div>
+                )}
                 
                 <RadioGroup 
                   value={deliveryMethod} 
@@ -565,11 +604,18 @@ const SellerCheckout = () => {
 
               {/* Shipping Address - Only show if address delivery selected */}
               {deliveryMethod === 'address' && (
-              <Card className="p-6">
+              <Card className={`p-6 ${hasFieldError(validationErrors, 'selectedAddress') ? 'border-red-500' : ''}`}>
                 <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
                   Dirección de Envío
                 </h2>
+
+                {hasFieldError(validationErrors, 'selectedAddress') && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{getFieldError(validationErrors, 'selectedAddress')}</p>
+                  </div>
+                )}
                 
                 {addresses.length > 0 && !showNewAddressForm ? (
                   <div className="space-y-3">
@@ -798,10 +844,10 @@ const SellerCheckout = () => {
 
               <Card className="p-6">
                 <h2 className="text-xl font-bold mb-4">
-                  Productos ({cart.items.length})
+                  Productos ({items.length})
                 </h2>
                 <div className="space-y-4">
-                  {cart.items.map((item) => (
+                  {items.map((item) => (
                     <div
                       key={item.productId}
                       className="flex gap-4 pb-4 border-b last:border-b-0"
@@ -810,13 +856,13 @@ const SellerCheckout = () => {
                         <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold">{item.nombre}</p>
+                        <p className="font-semibold">{item.name}</p>
                         <p className="text-sm text-muted-foreground mb-1">
                         </p>
                         <div className="flex items-center gap-4 text-sm">
                           <span>{item.cantidad} unidades</span>
                           <span>×</span>
-                          <span>${item.precio_b2b.toFixed(2)}</span>
+                          <span>${item.precioB2B.toFixed(2)}</span>
                           <span>=</span>
                           <span className="font-semibold text-primary">
                             ${item.subtotal.toFixed(2)}
@@ -829,8 +875,15 @@ const SellerCheckout = () => {
               </Card>
 
               {/* Payment Method */}
-              <Card className="p-6">
+              <Card className={`p-6 ${hasFieldError(validationErrors, 'paymentMethod') ? 'border-red-500' : ''}`}>
                 <h2 className="text-xl font-bold mb-4">Método de Pago</h2>
+
+                {hasFieldError(validationErrors, 'paymentMethod') && (
+                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
+                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-sm text-red-700">{getFieldError(validationErrors, 'paymentMethod')}</p>
+                  </div>
+                )}
                 
                 {/* Show KYC prompt if not verified */}
                 {!isVerified && (
@@ -936,7 +989,7 @@ const SellerCheckout = () => {
                           <div className="pt-3 border-t border-purple-200">
                             <div className="flex justify-between text-sm">
                               <span>Total del pedido:</span>
-                              <span>${cart.subtotal.toFixed(2)}</span>
+                              <span>${subtotal.toFixed(2)}</span>
                             </div>
                             <div className="flex justify-between text-sm text-purple-600">
                               <span>Crédito Siver aplicado:</span>
@@ -1035,8 +1088,11 @@ const SellerCheckout = () => {
                         placeholder="Ej: Número de transacción o confirmación"
                         value={paymentReference}
                         onChange={(e) => setPaymentReference(e.target.value)}
-                        className="mt-1"
+                        className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
                       />
+                      {hasFieldError(validationErrors, 'paymentReference') && (
+                        <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="payment-notes">Notas (opcional)</Label>
@@ -1063,13 +1119,13 @@ const SellerCheckout = () => {
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal:</span>
                     <span className="font-semibold text-foreground">
-                      ${cart.subtotal.toFixed(2)}
+                      ${subtotal.toFixed(2)}
                     </span>
                   </div>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Total Unidades:</span>
                     <span className="font-semibold text-foreground">
-                      {cart.totalQuantity}
+                      {totalQuantity}
                     </span>
                   </div>
                 </div>
@@ -1094,7 +1150,7 @@ const SellerCheckout = () => {
                   onClick={handlePlaceOrder}
                   disabled={
                     isProcessing || 
-                    cart.totalItems === 0 ||
+                    items.length === 0 ||
                     (deliveryMethod === 'address' && !selectedAddressId) ||
                     (deliveryMethod === 'pickup' && !selectedPickupPoint)
                   }

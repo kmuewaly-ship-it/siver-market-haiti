@@ -1,10 +1,8 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { UserRole } from "@/types/auth";
-import { useSmartCart } from "@/hooks/useSmartCart";
-import { useB2CCartSupabase } from "@/hooks/useB2CCartSupabase";
-import { useCartB2B } from "@/hooks/useCartB2B";
 import { addItemB2C, addItemB2B } from "@/services/cartService";
 import VariantSelector from './VariantSelector';
 import { toast } from "sonner";
@@ -46,6 +44,7 @@ interface Product {
   moq?: number;
   stock?: number;
   source_product_id?: string;
+  sellerCatalogId?: string;
 }
 
 interface SelectedVariation {
@@ -59,15 +58,11 @@ interface ProductBottomSheetProps {
   isOpen: boolean;
   onClose: () => void;
   selectedVariations?: SelectedVariation[];
-  b2bCartInstance?: ReturnType<typeof useCartB2B>;
 }
 
-export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariations, b2bCartInstance }: ProductBottomSheetProps) => {
+export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariations }: ProductBottomSheetProps) => {
   const { user } = useAuth();
-  const { addToCart } = useSmartCart();
-  const b2cCartSupabase = useB2CCartSupabase();
-  const b2bCartFromHook = useCartB2B();
-  const b2bCart = b2bCartInstance || b2bCartFromHook;
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
   const [quantity, setQuantity] = useState(1);
   const [selections, setSelections] = useState<any[]>([]);
@@ -230,8 +225,18 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
   );
 
   const handleAddToCart = async (selected?: SelectedVariation[]) => {
-    if (!product || !user?.id) {
+    // Validate product exists
+    if (!product) {
+      console.error('Product is null in handleAddToCart');
       toast.error('Producto no disponible');
+      return;
+    }
+
+    // Validate user is logged in
+    if (!user?.id) {
+      console.log('User not authenticated, redirecting to login');
+      toast.error('Debes iniciar sesión para comprar');
+      setTimeout(() => navigate('/login'), 500);
       return;
     }
 
@@ -272,6 +277,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               storeId: product.storeId,
               storeName: product.storeName,
               storeWhatsapp: product.storeWhatsapp,
+              sellerCatalogId: product.sellerCatalogId,
             });
           }
           toast.success(`Añadido al carrito (${nonZero.reduce((s, x) => s + x.quantity, 0)} unidades)`);
@@ -310,8 +316,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
             image: product.image,
             storeId: product.storeId || '',
             storeName: product.storeName || 'Marketplace',
-            storeWhatsapp: product.storeWhatsapp || '',
-          });
+            storeWhatsapp: product.storeWhatsapp || '',            sellerCatalogId: product.sellerCatalogId,          });
           console.log('[B2C Add] Successfully added to cart');
           toast.success(`Añadido al carrito (${quantity} unidades)`);
         }

@@ -5,9 +5,7 @@ import useVariantDrawerStore from '@/stores/useVariantDrawerStore';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/auth';
-import { useCart } from '@/hooks/useCart';
-import { useB2CCartSupabase } from '@/hooks/useB2CCartSupabase';
-import { useB2BCartSupabase } from '@/hooks/useB2BCartSupabase';
+import { addItemB2C, addItemB2B } from '@/services/cartService';
 import { useToast } from '@/hooks/use-toast';
 import { X, TrendingUp } from 'lucide-react';
 
@@ -19,9 +17,6 @@ const VariantDrawer: React.FC = () => {
   const [totalPrice, setTotalPrice] = useState(0);
 
   const { user, role } = useAuth();
-  const b2bCart = useB2BCartSupabase();
-  const b2cCart = useB2CCartSupabase();
-  const localCart = useCart();
   const { toast } = useToast();
 
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
@@ -66,6 +61,11 @@ const VariantDrawer: React.FC = () => {
       return;
     }
 
+    if (!user?.id) {
+      toast({ title: 'Error', description: 'Debes estar autenticado para agregar items', variant: 'destructive' });
+      return;
+    }
+
     // If there are selected variants, add each selection
     if (selections.length > 0 && totalQty > 0) {
       for (const sel of selections) {
@@ -73,72 +73,51 @@ const VariantDrawer: React.FC = () => {
         if (qty <= 0) continue;
 
         if (isB2BUser) {
-          // Add to B2B supabase cart
-          await b2bCart.addItem({
+          // Add to B2B cart via service
+          await addItemB2B({
+            userId: user.id,
             productId: product.source_product_id || product.id,
             sku: product.sku || product.id,
-            nombre: product.nombre,
-            unitPrice: product.costB2B ?? product.price ?? 0,
+            name: product.nombre,
+            priceB2B: product.costB2B ?? product.price ?? 0,
             quantity: qty,
-            moq: product.moq || 1,
-            stockDisponible: product.stock || 0,
+            image: product.images?.[0] || undefined,
           });
-        } else if (user && user.id) {
-          // Authenticated client -> B2C supabase
-          await b2cCart.addItem({
+        } else {
+          // Add to B2C cart via service
+          await addItemB2C({
+            userId: user.id,
             sku: product.sku || product.id,
             name: product.nombre,
             price: product.price || 0,
+            quantity: qty,
             image: product.images?.[0] || undefined,
-            storeId: undefined,
-            storeName: undefined,
-            storeWhatsapp: undefined,
           });
-        } else {
-          // Guest -> local cart (zustand)
-          for (let i = 0; i < qty; i++) {
-            localCart.addItem({
-              id: product.id,
-              name: product.nombre,
-              price: product.price || 0,
-              image: product.images?.[0] || '',
-              sku: product.sku || product.id,
-            });
-          }
         }
       }
       toast({ title: isB2BUser ? 'Agregado al pedido B2B' : 'Agregado al carrito', description: `${product.nombre} (${totalQty} uds)` });
     } else if (totalQty > 0) {
       // No variant selections, fallback to single add
       if (isB2BUser) {
-        await b2bCart.addItem({
+        await addItemB2B({
+          userId: user.id,
           productId: product.source_product_id || product.id,
           sku: product.sku || product.id,
-          nombre: product.nombre,
-          unitPrice: product.costB2B ?? product.price ?? 0,
+          name: product.nombre,
+          priceB2B: product.costB2B ?? product.price ?? 0,
           quantity: totalQty,
-          moq: product.moq || 1,
-          stockDisponible: product.stock || 0,
+          image: product.images?.[0] || undefined,
         });
         toast({ title: 'Agregado al pedido B2B', description: `${product.nombre} (${totalQty} uds)` });
-      } else if (user && user.id) {
-        await b2cCart.addItem({
+      } else {
+        await addItemB2C({
+          userId: user.id,
           sku: product.sku || product.id,
           name: product.nombre,
           price: product.price || 0,
+          quantity: totalQty,
           image: product.images?.[0] || undefined,
         });
-        toast({ title: 'Agregado al carrito' });
-      } else {
-        for (let i = 0; i < totalQty; i++) {
-          localCart.addItem({
-            id: product.id,
-            name: product.nombre,
-            price: product.price || 0,
-            image: product.images?.[0] || '',
-            sku: product.sku || product.id,
-          });
-        }
         toast({ title: 'Agregado al carrito' });
       }
     }

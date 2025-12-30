@@ -103,6 +103,7 @@ const AppContent = () => {
             <Route path="/categoria/:slug" element={<LazyRoute><CategoryProductsPage /></LazyRoute>} />
             <Route path="/tienda/:storeId" element={<LazyRoute><StoreProfilePage /></LazyRoute>} />
             <Route path="/producto/:sku" element={<LazyRoute><ProductPage /></LazyRoute>} />
+            <Route path="/producto/catalogo/:catalogId" element={<LazyRoute><ProductPage /></LazyRoute>} />
             <Route path="/cuenta" element={<LazyRoute><AccountPage /></LazyRoute>} />
             <Route path="/mis-compras" element={<LazyRoute><MyPurchasesPage /></LazyRoute>} />
             <Route path="/carrito" element={<LazyRoute><CartPage /></LazyRoute>} />

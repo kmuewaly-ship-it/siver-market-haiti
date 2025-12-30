@@ -1,6 +1,15 @@
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ShoppingCart, Trash2, Package, MessageCircle } from "lucide-react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useB2CCartItems } from "@/hooks/useB2CCartItems";
@@ -9,6 +18,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useState, useMemo } from "react";
 import { UserRole } from "@/types/auth";
+import { supabase } from "@/integrations/supabase/client";
 
 const CartPage = () => {
   const navigate = useNavigate();
@@ -16,6 +26,9 @@ const CartPage = () => {
   const isMobile = useIsMobile();
   const { user, role } = useAuth();
   const [isNegotiating, setIsNegotiating] = useState(false);
+  const [showClearCartDialog, setShowClearCartDialog] = useState(false);
+  const [showRemoveItemDialog, setShowRemoveItemDialog] = useState(false);
+  const [itemToRemove, setItemToRemove] = useState<{ id: string; name: string } | null>(null);
 
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
   const totalPrice = items.reduce((sum, item) => sum + item.totalPrice, 0);
@@ -26,17 +39,88 @@ const CartPage = () => {
     return <Navigate to="/seller/carrito" replace />;
   }
 
-  // Stub functions for now
-  const removeItem = (itemId: string) => {
-    toast.message('Funcionalidad próximamente');
+  // Show confirmation dialog for removing item
+  const handleRemoveItem = (itemId: string, itemName: string) => {
+    setItemToRemove({ id: itemId, name: itemName });
+    setShowRemoveItemDialog(true);
   };
 
-  const updateQuantity = (itemId: string, quantity: number) => {
-    toast.message('Funcionalidad próximamente');
+  // Remove item from cart after confirmation
+  const removeItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase
+        .from('b2c_cart_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+      toast.success('Producto eliminado del carrito');
+      setShowRemoveItemDialog(false);
+      setItemToRemove(null);
+    } catch (error) {
+      console.error('Error removing item:', error);
+      toast.error('No se pudo eliminar el producto');
+    }
   };
 
-  const clearCart = () => {
-    toast.message('Funcionalidad próximamente');
+  // Update item quantity
+  const updateQuantity = async (itemId: string, quantity: number) => {
+    if (quantity < 1) {
+      await removeItem(itemId);
+      return;
+    }
+
+    try {
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+
+      const newTotalPrice = item.price * quantity;
+
+      const { error } = await supabase
+        .from('b2c_cart_items')
+        .update({
+          quantity,
+          total_price: newTotalPrice
+        })
+        .eq('id', itemId);
+
+      if (error) throw error;
+      toast.success('Cantidad actualizada');
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      toast.error('No se pudo actualizar la cantidad');
+    }
+  };
+
+  // Show confirmation dialog for clearing cart
+  const handleClearCart = () => {
+    setShowClearCartDialog(true);
+  };
+
+  // Clear entire cart after confirmation
+  const clearCart = async () => {
+    try {
+      if (!user?.id) {
+        toast.error('Usuario no identificado');
+        return;
+      }
+
+      const { error } = await supabase
+        .from('b2c_cart_items')
+        .delete()
+        .eq('cart_id', (await supabase
+          .from('b2c_carts')
+          .select('id')
+          .eq('user_id', user.id)
+          .single()).data?.id);
+
+      if (error) throw error;
+      toast.success('Carrito vaciado');
+      setShowClearCartDialog(false);
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      toast.error('No se pudo vaciar el carrito');
+    }
   };
 
   // Group items by store
@@ -180,7 +264,7 @@ const CartPage = () => {
                       {storeItems.map((item) => (
                         <div
                           key={item.id}
-                          onClick={() => navigate(`/producto/${item.sellerCatalogId || item.sku}`)}
+                          onClick={() => navigate(`/producto/${item.sku}`)}
                           className="border-b border-gray-200 last:border-b-0 p-1 hover:bg-gray-100 transition flex gap-2 cursor-pointer"
                           style={{ backgroundColor: 'white' }}
                         >
@@ -208,7 +292,10 @@ const CartPage = () => {
                                 </p>
                               </div>
                               <button
-                                onClick={() => removeItem(item.id)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveItem(item.id, item.name);
+                                }}
                                 className="text-gray-400 hover:text-red-600 transition ml-2 flex-shrink-0"
                                 title="Eliminar del carrito"
                               >
@@ -227,7 +314,10 @@ const CartPage = () => {
                             <div className="flex items-center justify-between mt-2">
                               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                                 <button
-                                  onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, Math.max(1, item.quantity - 1));
+                                  }}
                                   className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
                                 >
                                   −
@@ -236,7 +326,10 @@ const CartPage = () => {
                                   {item.quantity}
                                 </span>
                                 <button
-                                  onClick={() => updateQuantity(item.id, item.quantity + 1)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, item.quantity + 1);
+                                  }}
                                   className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
                                 >
                                   +
@@ -276,15 +369,25 @@ const CartPage = () => {
         <div className={`fixed left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 ${isMobile ? 'bottom-10' : 'bottom-4'} z-40 flex justify-center`}>
           <div className="rounded-lg p-2 border border-gray-300 shadow-md w-full" style={{ backgroundColor: '#efefef' }}>
             <div className="flex gap-2 justify-between">
-              {/* Botón WhatsApp */}
+              {/* Botón WhatsApp Soporte */}
               <button
                 onClick={handleWhatsAppSupport}
-                className="px-3 py-2 rounded-lg font-semibold text-sm transition hover:bg-gray-200 border border-gray-300 flex items-center justify-center gap-1.5"
+                className="px-3 py-2 rounded-lg font-semibold text-sm transition hover:bg-green-200 border border-gray-300 flex items-center justify-center gap-1.5"
                 style={{ color: '#29892a' }}
                 title="Contactar por WhatsApp"
               >
                 <MessageCircle className="w-4 h-4" />
                 Soporte
+              </button>
+
+              {/* Botón Vaciar Carrito */}
+              <button
+                onClick={handleClearCart}
+                className="px-3 py-2 rounded-lg font-semibold text-sm transition hover:bg-red-200 border border-gray-300 flex items-center justify-center gap-1.5 text-red-600"
+                title="Vaciar carrito"
+              >
+                <Trash2 className="w-4 h-4" />
+                Vaciar
               </button>
 
               {/* Botón Comprar */}
@@ -302,6 +405,48 @@ const CartPage = () => {
       )}
 
       {!isMobile && <Footer />}
+
+      {/* Clear Cart Confirmation Dialog */}
+      <AlertDialog open={showClearCartDialog} onOpenChange={setShowClearCartDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Vaciar carrito</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar todos los productos de tu carrito? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clearCart()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Vaciar carrito
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove Item Confirmation Dialog */}
+      <AlertDialog open={showRemoveItemDialog} onOpenChange={setShowRemoveItemDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar producto</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Deseas eliminar "{itemToRemove?.name}" de tu carrito?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => itemToRemove && removeItem(itemToRemove.id)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

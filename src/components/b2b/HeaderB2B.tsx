@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { usePublicCategories } from "@/hooks/useCategories";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { cn } from "@/lib/utils";
-import { useCartB2B } from "@/hooks/useCartB2B";
+import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 import { searchProductsByImage } from "@/services/api/imageSearch";
 import { toast } from "sonner";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -86,9 +86,9 @@ const HeaderB2B = ({
   const imageInputRef = useRef<HTMLInputElement>(null);
   const searchContainerRef = useRef<HTMLDivElement>(null);
   const {
-    cart
-  } = useCartB2B();
-  const cartCount = cart.totalItems;
+    items: cartItems
+  } = useB2BCartItems();
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const {
     data: categories = [],
     isLoading: categoriesLoading

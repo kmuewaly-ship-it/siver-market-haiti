@@ -9,8 +9,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { searchProductsByImage } from "@/services/api/imageSearch";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
-import { useCart } from "@/hooks/useCart";
-import { useCartB2B } from "@/hooks/useCartB2B";
+import { useB2CCartItems } from "@/hooks/useB2CCartItems";
+import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 import { useViewMode } from "@/contexts/ViewModeContext";
 
 // Web Speech API types
@@ -82,8 +82,8 @@ const Header = ({
   const prevCartCountRef = useRef<number>(0);
   
   const { role } = useAuth();
-  const { totalItems: b2cTotalItems } = useCart();
-  const { cart: b2bCart } = useCartB2B();
+  const { items: b2cItems } = useB2CCartItems();
+  const { items: b2bItems } = useB2BCartItems();
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
   const navigate = useNavigate();
   const location = useLocation();
@@ -94,7 +94,8 @@ const Header = ({
   // Determine which cart to use
   const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
   const showB2B = isB2B && !isClientPreview && !isHomePage;
-  const cartCount = showB2B ? b2bCart.totalQuantity : b2cTotalItems();
+  const cartItems = showB2B ? b2bItems : b2cItems;
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
   const cartLink = showB2B ? "/seller/carrito" : "/carrito";
 
   const catBarRef = useRef(null);

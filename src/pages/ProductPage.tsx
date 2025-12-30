@@ -30,12 +30,49 @@ import {
 } from "@/components/ui/drawer";
 import { ChevronRight, ChevronLeft, ShoppingCart, Heart, Store as StoreIcon, Package, TrendingUp, Calculator, Shield, Truck, RotateCcw, Award, MessageCircle, Zap, Info, Star, X, ArrowLeft, Search, Share2, MoreVertical } from "lucide-react";
 
-// Hook to fetch product from both seller_catalog and products table
-const useProductBySku = (sku: string | undefined) => {
+// Hook to fetch product from both seller_catalog and products table by SKU or catalog ID
+const useProductBySku = (sku: string | undefined, catalogId: string | undefined) => {
   return useQuery({
-    queryKey: ["product-by-sku", sku],
+    queryKey: ["product-by-sku", sku, catalogId],
     queryFn: async () => {
+      // If catalogId is provided, search directly in seller_catalog by ID
+      if (catalogId) {
+        const {
+          data: sellerProduct,
+          error: sellerError
+        } = await supabase.from("seller_catalog").select(`
+            *,
+            store:stores!seller_catalog_seller_store_id_fkey(
+              id, name, logo, whatsapp, is_active
+            ),
+            source_product:products!seller_catalog_source_product_id_fkey(
+              id, categoria_id, precio_mayorista, precio_sugerido_venta, moq, stock_fisico, galeria_imagenes,
+              category:categories!products_categoria_id_fkey(id, name, slug)
+            )
+          `).eq("id", catalogId).eq("is_active", true).maybeSingle();
+        
+        if (sellerProduct) {
+          return {
+            type: 'seller_catalog' as const,
+            id: sellerProduct.id,
+            sku: sellerProduct.sku,
+            nombre: sellerProduct.nombre,
+            descripcion: sellerProduct.descripcion,
+            precio_venta: sellerProduct.precio_venta,
+            precio_costo: sellerProduct.precio_costo,
+            stock: sellerProduct.stock,
+            images: sellerProduct.images || sellerProduct.source_product?.galeria_imagenes || [],
+            store: sellerProduct.store,
+            source_product: sellerProduct.source_product
+          };
+        }
+      }
+
+      // Otherwise search by SKU
       if (!sku) return null;
+
+      // Clean up SKU if it has -undefined suffix
+      const cleanSku = sku.replace(/-undefined$/, '');
 
       // First try to find in seller_catalog (B2C)
       const {
@@ -50,7 +87,7 @@ const useProductBySku = (sku: string | undefined) => {
             id, categoria_id, precio_mayorista, precio_sugerido_venta, moq, stock_fisico, galeria_imagenes,
             category:categories!products_categoria_id_fkey(id, name, slug)
           )
-        `).eq("sku", sku).eq("is_active", true).maybeSingle();
+        `).eq("sku", cleanSku).eq("is_active", true).maybeSingle();
       if (sellerProduct) {
         return {
           type: 'seller_catalog' as const,
@@ -74,7 +111,7 @@ const useProductBySku = (sku: string | undefined) => {
       } = await supabase.from("products").select(`
           *,
           category:categories!products_categoria_id_fkey(id, name, slug)
-        `).eq("sku_interno", sku).eq("is_active", true).maybeSingle();
+        `).eq("sku_interno", cleanSku).eq("is_active", true).maybeSingle();
       if (b2bProduct) {
         return {
           type: 'products' as const,
@@ -162,7 +199,8 @@ const ProductPage = () => {
     }
   };
   const {
-    sku
+    sku,
+    catalogId
   } = useParams();
   const navigate = useNavigate();
   const {
@@ -180,7 +218,7 @@ const ProductPage = () => {
   const {
     data: product,
     isLoading
-  } = useProductBySku(sku);
+  } = useProductBySku(sku, catalogId);
   // Load store profile when product comes from a seller catalog (used to determine currency)
   const {
     data: storeData
@@ -653,8 +691,16 @@ const ProductPage = () => {
         </div>}
 
       <main className={`container mx-auto ${isMobile ? 'px-0 pb-12' : 'px-4 pb-12'} py-4`}>
-        {/* Breadcrumb */}
-        
+        {/* Breadcrumb / Retorno Button - Desktop */}
+        {!isMobile && (
+          <button 
+            onClick={() => navigate(-1)}
+            className="flex items-center gap-2 text-[#071d7f] hover:text-[#0a2a9f] mb-6 group transition-all"
+          >
+            <ArrowLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="font-medium text-sm">Volver</span>
+          </button>
+        )}
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Image Gallery */}

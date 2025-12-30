@@ -7,7 +7,7 @@ import { useCategories } from "@/hooks/useCategories";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { searchProductsByImage } from "@/services/api/imageSearch";
-import { useCartB2B } from "@/hooks/useCartB2B";
+import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 
 interface SearchResult {
   id: string;
@@ -88,8 +88,8 @@ const SellerMobileHeader = ({
   const location = useLocation();
   
   const { data: categories = [] } = useCategories();
-  const { cart } = useCartB2B();
-  const cartCount = cart.totalQuantity;
+  const { items: cartItems } = useB2BCartItems();
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
 
   // Bounce animation when cart count increases
   useEffect(() => {

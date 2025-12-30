@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
+import { useCartSync } from '@/hooks/useCartSync';
 
 export interface B2CCartItem {
   id: string;
@@ -22,6 +23,7 @@ export const useB2CCartItems = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const hasInitialLoadedRef = useRef(false);
+  const subscriptionRef = useRef<any>(null);
 
   const loadCartItems = useCallback(async (showLoading = false) => {
     if (!user?.id) {
@@ -85,14 +87,69 @@ export const useB2CCartItems = () => {
     }
   }, [user?.id, loadCartItems]);
 
-  // Refresh items every 3 seconds silently (no loading indicator)
-  useEffect(() => {
-    const interval = setInterval(() => {
-      loadCartItems(false); // Don't show loading on auto-refresh
-    }, 3000);
+  // Subscribe to cross-tab cart changes
+  const { broadcastCartUpdate } = useCartSync(() => {
+    console.log('Cart update detected from another tab, reloading...');
+    loadCartItems(false);
+  });
 
-    return () => clearInterval(interval);
-  }, [loadCartItems]);
+  // Subscribe to real-time changes using Supabase
+  useEffect(() => {
+    if (!user?.id) return;
+
+    console.log('Setting up real-time subscription for b2c_cart_items');
+
+    // Subscribe to changes in b2c_cart_items
+    const itemsSubscription = supabase
+      .channel(`b2c_cart_items:user_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'b2c_cart_items',
+        },
+        (payload) => {
+          console.log('Real-time cart item update received:', payload);
+          // Reload cart items on any change
+          loadCartItems(false);
+          // Broadcast to other tabs
+          broadcastCartUpdate('b2c');
+        }
+      )
+      .subscribe();
+
+    // Also subscribe to changes in b2c_carts (for status changes like completed)
+    const cartsSubscription = supabase
+      .channel(`b2c_carts:user_${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'b2c_carts',
+        },
+        (payload) => {
+          console.log('Real-time cart status update received:', payload);
+          // Reload cart items when cart status changes
+          loadCartItems(false);
+          // Broadcast to other tabs
+          broadcastCartUpdate('b2c');
+        }
+      )
+      .subscribe();
+
+    subscriptionRef.current = itemsSubscription;
+
+    return () => {
+      if (itemsSubscription) {
+        supabase.removeChannel(itemsSubscription);
+      }
+      if (cartsSubscription) {
+        supabase.removeChannel(cartsSubscription);
+      }
+    };
+  }, [user?.id, loadCartItems, broadcastCartUpdate]);
 
   return { items, isLoading, error, refetch: loadCartItems };
 };

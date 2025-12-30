@@ -12,6 +12,7 @@ export interface B2COrderItem {
   image?: string;
   store_id?: string;
   store_name?: string;
+  seller_catalog_id?: string;
 }
 
 export interface CreateB2COrderParams {
@@ -124,6 +125,7 @@ export const useCreateB2COrder = () => {
         cantidad: item.cantidad,
         precio_unitario: item.precio_unitario,
         subtotal: item.subtotal,
+        seller_catalog_id: item.seller_catalog_id || null,
       }));
 
       const { error: itemsError } = await supabase
@@ -152,10 +154,13 @@ export const useCreateB2COrder = () => {
 // Hook to complete/mark B2C cart as completed
 export const useCompleteB2CCart = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (cartId: string) => {
       if (!user?.id) throw new Error('Usuario no autenticado');
+
+      console.log('Marking cart as completed:', cartId);
 
       const { error } = await supabase
         .from('b2c_carts')
@@ -164,6 +169,26 @@ export const useCompleteB2CCart = () => {
         .eq('user_id', user.id);
 
       if (error) throw error;
+      
+      console.log('Cart marked as completed successfully');
+      
+      // Wait a bit for DB to sync
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return { cartId };
+    },
+    onSuccess: (data) => {
+      console.log('Cart completion success, invalidating queries');
+      // Clear all cart-related queries immediately
+      queryClient.setQueryData(['b2c-cart-items', user?.id], []);
+      // Invalidate cart queries to force refetch
+      queryClient.invalidateQueries({ queryKey: ['b2c-cart-items'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+      // Force immediate refetch
+      queryClient.refetchQueries({ queryKey: ['b2c-cart-items'], type: 'active' });
+    },
+    onError: (error: Error) => {
+      console.error('Error completing cart:', error);
     },
   });
 };

@@ -1,7 +1,6 @@
 import { Heart, Package, Store, TrendingUp, ShoppingCart, MessageCircle } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { useSmartCart } from "@/hooks/useSmartCart";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
@@ -50,7 +49,6 @@ interface ProductCardProps {
 const ProductCard = ({ product, b2bData }: ProductCardProps) => {
   const [isFavorite, setIsFavorite] = useState(false);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
-  const { addToCart } = useSmartCart();
   const { user } = useAuth();
   const isMobile = useIsMobile();
 

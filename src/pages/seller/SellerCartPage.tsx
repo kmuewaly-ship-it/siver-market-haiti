@@ -1,6 +1,15 @@
 import { useState } from "react";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, Loader2, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useB2BCartItems } from "@/hooks/useB2BCartItems";
@@ -12,24 +21,107 @@ import { toast } from "sonner";
 const SellerCartPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { items, isLoading } = useB2BCartItems();
+  const { items, isLoading, refetch } = useB2BCartItems();
   const isMobile = useIsMobile();
   const [isNegotiating, setIsNegotiating] = useState(false);
+  const [showClearCartDialog, setShowClearCartDialog] = useState(false);
+  const [showRemoveItemDialog, setShowRemoveItemDialog] = useState(false);
+  const [itemToRemove, setItemToRemove] = useState<{ id: string; name: string } | null>(null);
 
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.cantidad, 0);
 
-  // Stub functions for now
-  const removeItem = (productId: string) => {
-    toast.message('Funcionalidad próximamente');
+  // Remove item from cart after confirmation
+  const removeItem = async (itemId: string) => {
+    try {
+      const { error } = await supabase
+        .from('b2b_cart_items')
+        .delete()
+        .eq('id', itemId);
+
+      if (error) throw error;
+      toast.success('Producto eliminado del carrito');
+      setShowRemoveItemDialog(false);
+      setItemToRemove(null);
+      refetch();
+    } catch (error) {
+      console.error('Error removing item:', error);
+      toast.error('No se pudo eliminar el producto');
+    }
   };
 
-  const updateQuantity = (productId: string, newQty: number) => {
-    toast.message('Funcionalidad próximamente');
+  // Update item quantity
+  const updateQuantity = async (itemId: string, newQty: number) => {
+    if (newQty < 1) {
+      await removeItem(itemId);
+      return;
+    }
+
+    try {
+      const item = items.find(i => i.id === itemId);
+      if (!item) return;
+
+      const newSubtotal = item.precioB2B * newQty;
+
+      const { error } = await supabase
+        .from('b2b_cart_items')
+        .update({
+          quantity: newQty,
+          total_price: newSubtotal
+        })
+        .eq('id', itemId);
+
+      if (error) throw error;
+      toast.success('Cantidad actualizada');
+      refetch();
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      toast.error('No se pudo actualizar la cantidad');
+    }
   };
 
-  const clearCart = () => {
-    toast.message('Funcionalidad próximamente');
+  // Show confirmation dialog for removing item
+  const handleRemoveItem = (itemId: string, itemName: string) => {
+    setItemToRemove({ id: itemId, name: itemName });
+    setShowRemoveItemDialog(true);
+  };
+
+  // Show confirmation dialog for clearing cart
+  const handleClearCart = () => {
+    setShowClearCartDialog(true);
+  };
+
+  // Clear entire cart after confirmation
+  const clearCart = async () => {
+    try {
+      if (!user?.id) {
+        toast.error('Usuario no identificado');
+        return;
+      }
+
+      // Get all cart IDs for this user
+      const { data: carts } = await supabase
+        .from('b2b_carts')
+        .select('id')
+        .eq('buyer_user_id', user.id)
+        .eq('status', 'open');
+
+      if (carts && carts.length > 0) {
+        for (const cart of carts) {
+          await supabase
+            .from('b2b_cart_items')
+            .delete()
+            .eq('cart_id', cart.id);
+        }
+      }
+
+      toast.success('Carrito vaciado');
+      setShowClearCartDialog(false);
+      refetch();
+    } catch (error) {
+      console.error('Error clearing cart:', error);
+      toast.error('Error al vaciar carrito');
+    }
   };
 
   const handleNegotiateViaWhatsApp = async () => {
@@ -172,8 +264,8 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                   <div className="p-1 space-y-0 bg-white" style={{ backgroundColor: '#d9d9d9' }}>
                     {items.map((item) => (
                       <div
-                        key={item.productId}
-                        onClick={() => navigate(`/producto/${item.productId}`)}
+                        key={item.id}
+                        onClick={() => navigate(`/producto/${item.sku}`)}
                         className="border-b border-gray-200 last:border-b-0 p-1 hover:bg-gray-100 transition flex gap-2 cursor-pointer"
                         style={{ backgroundColor: 'white' }}
                       >
@@ -201,7 +293,10 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                                 </p>
                               </div>
                               <button
-                                onClick={() => removeItem(item.productId)}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleRemoveItem(item.id, item.name);
+                                }}
                                 className="text-gray-400 hover:text-red-600 transition ml-2 flex-shrink-0"
                                 title="Eliminar del carrito"
                               >
@@ -220,12 +315,10 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             <div className="flex items-center justify-between mt-2">
                               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                                 <button
-                                  onClick={() =>
-                                    updateQuantity(
-                                      item.productId,
-                                      Math.max(1, item.cantidad - 1)
-                                    )
-                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, Math.max(1, item.cantidad - 1));
+                                  }}
                                   className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
                                 >
                                   −
@@ -234,12 +327,10 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                                   {item.cantidad}
                                 </span>
                                 <button
-                                  onClick={() =>
-                                    updateQuantity(
-                                      item.productId,
-                                      item.cantidad + 1
-                                    )
-                                  }
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, item.cantidad + 1);
+                                  }}
                                   className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
                                 >
                                   +
@@ -294,6 +385,48 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
           </div>
         )}
       </div>
+
+      {/* Clear Cart Confirmation Dialog */}
+      <AlertDialog open={showClearCartDialog} onOpenChange={setShowClearCartDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Vaciar carrito</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Estás seguro de que deseas eliminar todos los productos de tu carrito B2B? Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => clearCart()}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Vaciar carrito
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Remove Item Confirmation Dialog */}
+      <AlertDialog open={showRemoveItemDialog} onOpenChange={setShowRemoveItemDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Eliminar producto</AlertDialogTitle>
+            <AlertDialogDescription>
+              ¿Deseas eliminar "{itemToRemove?.name}" de tu carrito B2B?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="flex gap-3 justify-end">
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => itemToRemove && removeItem(itemToRemove.id)}
+              className="bg-red-600 hover:bg-red-700 text-white"
+            >
+              Eliminar
+            </AlertDialogAction>
+          </div>
+        </AlertDialogContent>
+      </AlertDialog>
     </SellerLayout>
   );
 };

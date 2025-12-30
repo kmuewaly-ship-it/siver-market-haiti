@@ -182,3 +182,45 @@ export const useCancelBuyerOrder = () => {
     },
   });
 };
+
+// Hook to complete/mark B2B cart as completed
+export const useCompleteB2BCart = () => {
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (cartId: string) => {
+      if (!user?.id) throw new Error('Usuario no autenticado');
+
+      console.log('Marking B2B cart as completed:', cartId);
+
+      const { error } = await supabase
+        .from('b2b_carts')
+        .update({ status: 'completed' })
+        .eq('id', cartId)
+        .eq('buyer_user_id', user.id);
+
+      if (error) throw error;
+      
+      console.log('B2B cart marked as completed successfully');
+      
+      // Wait a bit for DB to sync
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      return { cartId };
+    },
+    onSuccess: (data) => {
+      console.log('B2B cart completion success, invalidating queries');
+      // Clear all cart-related queries immediately
+      queryClient.setQueryData(['b2b-cart-items', user?.id], []);
+      // Invalidate cart queries to force refetch
+      queryClient.invalidateQueries({ queryKey: ['b2b-cart-items'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      // Force immediate refetch
+      queryClient.refetchQueries({ queryKey: ['b2b-cart-items'], type: 'active' });
+    },
+    onError: (error: Error) => {
+      console.error('Error completing B2B cart:', error);
+    },
+  });
+};

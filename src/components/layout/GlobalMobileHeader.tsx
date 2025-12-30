@@ -7,8 +7,8 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { searchProductsByImage } from "@/services/api/imageSearch";
-import { useCart } from "@/hooks/useCart";
-import { useCartB2B } from "@/hooks/useCartB2B";
+import { useB2CCartItems } from "@/hooks/useB2CCartItems";
+import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useViewMode } from "@/contexts/ViewModeContext";
@@ -85,11 +85,11 @@ const GlobalMobileHeader = ({
     data: categories = []
   } = usePublicCategories();
   const {
-    totalItems
-  } = useCart();
+    items: b2cItems
+  } = useB2CCartItems();
   const {
-    cart: cartB2B
-  } = useCartB2B();
+    items: b2bItems
+  } = useB2BCartItems();
   const {
     role
   } = useAuth();
@@ -99,14 +99,16 @@ const GlobalMobileHeader = ({
     canToggle
   } = useViewMode();
 
+  // Determine which cart to use
+  const isB2B = role === UserRole.SELLER || role === UserRole.ADMIN;
+  const cartItems = isB2B && !isClientPreview ? b2bItems : b2cItems;
+  const cartCount = cartItems.reduce((sum, item) => sum + item.quantity, 0);
+
   // Determinar si es seller/admin para mostrar header B2B
   const isSellerOrAdmin = role === UserRole.SELLER || role === UserRole.ADMIN;
 
   // Cuando está en modo preview cliente, usar carrito B2C y estilo de cliente
   const showAsClient = isSellerOrAdmin && isClientPreview;
-
-  // Usar carrito B2B para seller/admin en modo B2B, B2C para clientes o preview
-  const cartCount = isSellerOrAdmin && !isClientPreview ? cartB2B.totalItems : totalItems();
 
   // Bounce animation when cart count increases
   useEffect(() => {

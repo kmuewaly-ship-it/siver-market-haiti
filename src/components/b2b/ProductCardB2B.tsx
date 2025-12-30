@@ -5,7 +5,6 @@ import { ProductB2BCard, CartItemB2B } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
-import { useCartB2B } from "@/hooks/useCartB2B";
 
 interface ProductCardB2BProps {
   product: ProductB2BCard;
@@ -18,7 +17,6 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
   const [cantidad, setCantidad] = useState(product.moq);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
   const isMobile = useIsMobile();
-  const b2bCart = useCartB2B();
 
   const subtotal = cantidad * product.precio_b2b;
   const isOutOfStock = product.stock_fisico === 0;
