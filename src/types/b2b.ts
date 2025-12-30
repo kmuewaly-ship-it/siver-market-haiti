@@ -8,7 +8,17 @@ export interface ProductVariantInfo {
   label: string;
   precio: number;
   stock: number;
-  option_type?: string; // 'color', 'size', etc.
+  option_type?: string; // 'color', 'size', 'material', etc.
+  parent_product_id?: string; // Which product this variant belongs to
+}
+
+export interface ColorOption {
+  productId: string;
+  label: string;
+  code?: string;
+  image?: string;
+  price: number;
+  stock: number;
 }
 
 export interface ProductB2BCard {
@@ -25,7 +35,9 @@ export interface ProductB2BCard {
   source_product_id?: string; // Reference to products table for variants
   variant_count?: number; // Number of variants
   variant_ids?: string[]; // IDs of all variants
-  variants?: ProductVariantInfo[]; // Detailed variant info for selector
+  variants?: ProductVariantInfo[]; // Size/other variants
+  color_options?: ColorOption[]; // Color options (from grouped products)
+  has_color_variants?: boolean; // Whether this product has multiple colors
 }
 
 export interface CartItemB2B {

@@ -181,7 +181,7 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
             disabled={isOutOfStock}
           >
             <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-            {hasMultipleVariants ? 'Elegir Tallas' : 'Agregar'}
+            {hasMultipleVariants ? 'Elegir Opciones' : 'Agregar'}
           </Button>
         </div>
       </div>
@@ -201,6 +201,9 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
           // Pass variant info for the selector
           variants: product.variants,
           variantIds: product.variant_ids,
+          // Pass color options
+          colorOptions: product.color_options,
+          hasColorVariants: product.has_color_variants,
         }}
         isOpen={isSheetOpen}
         onClose={() => setIsSheetOpen(false)}
