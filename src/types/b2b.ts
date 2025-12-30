@@ -8,6 +8,7 @@ export interface ProductVariantInfo {
   label: string;
   precio: number;
   stock: number;
+  option_type?: string; // 'color', 'size', etc.
 }
 
 export interface ProductB2BCard {
