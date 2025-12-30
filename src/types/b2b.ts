@@ -2,6 +2,27 @@
  * Tipos para el módulo B2B (Mayorista)
  */
 
+// EAV Attribute Combination - stores all variant attributes in one object
+export interface AttributeCombination {
+  color?: string;
+  size?: string;
+  age?: string;
+  [key: string]: string | undefined;
+}
+
+// Product Variant from EAV system (product_variants table)
+export interface ProductVariantEAV {
+  id: string;
+  sku: string;
+  name: string;
+  price: number;
+  stock: number;
+  moq: number;
+  attribute_combination: AttributeCombination;
+  product_id: string;
+  is_active?: boolean;
+}
+
 export interface ProductVariantInfo {
   id: string;
   sku: string;
@@ -10,6 +31,7 @@ export interface ProductVariantInfo {
   stock: number;
   option_type?: string; // 'color', 'size', 'material', etc.
   parent_product_id?: string; // Which product this variant belongs to
+  attribute_combination?: AttributeCombination; // EAV data
 }
 
 export interface VariantOption {
