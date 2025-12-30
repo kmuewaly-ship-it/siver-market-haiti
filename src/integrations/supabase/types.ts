@@ -1115,42 +1115,60 @@ export type Database = {
       orders_b2b: {
         Row: {
           buyer_id: string | null
+          checkout_session_id: string | null
           created_at: string
           currency: string
           id: string
           metadata: Json | null
           notes: string | null
+          payment_confirmed_at: string | null
           payment_method: string | null
+          payment_status: string | null
+          reservation_expires_at: string | null
+          reserved_at: string | null
           seller_id: string
           status: string
+          stock_reserved: boolean | null
           total_amount: number
           total_quantity: number
           updated_at: string
         }
         Insert: {
           buyer_id?: string | null
+          checkout_session_id?: string | null
           created_at?: string
           currency?: string
           id?: string
           metadata?: Json | null
           notes?: string | null
+          payment_confirmed_at?: string | null
           payment_method?: string | null
+          payment_status?: string | null
+          reservation_expires_at?: string | null
+          reserved_at?: string | null
           seller_id: string
           status?: string
+          stock_reserved?: boolean | null
           total_amount?: number
           total_quantity?: number
           updated_at?: string
         }
         Update: {
           buyer_id?: string | null
+          checkout_session_id?: string | null
           created_at?: string
           currency?: string
           id?: string
           metadata?: Json | null
           notes?: string | null
+          payment_confirmed_at?: string | null
           payment_method?: string | null
+          payment_status?: string | null
+          reservation_expires_at?: string | null
+          reserved_at?: string | null
           seller_id?: string
           status?: string
+          stock_reserved?: boolean | null
           total_amount?: number
           total_quantity?: number
           updated_at?: string
@@ -2204,6 +2222,77 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_reservations: {
+        Row: {
+          created_at: string | null
+          id: string
+          order_id: string
+          product_id: string | null
+          quantity: number
+          released_at: string | null
+          reserved_at: string
+          seller_catalog_id: string | null
+          status: string
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          order_id: string
+          product_id?: string | null
+          quantity: number
+          released_at?: string | null
+          reserved_at?: string
+          seller_catalog_id?: string | null
+          status?: string
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          product_id?: string | null
+          quantity?: number
+          released_at?: string | null
+          reserved_at?: string
+          seller_catalog_id?: string | null
+          status?: string
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_b2b"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_followers: {
         Row: {
           created_at: string
@@ -2658,6 +2747,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      fn_expire_pending_orders: { Args: never; Returns: number }
       generate_delivery_code: { Args: never; Returns: string }
       get_trending_products: {
         Args: { days_back?: number; limit_count?: number }
@@ -2742,6 +2832,14 @@ export type Database = {
       approval_status: "pending" | "approved" | "rejected"
       payment_method: "stripe" | "moncash" | "transfer"
       payment_status: "pending" | "verified" | "rejected"
+      payment_status_order:
+        | "draft"
+        | "pending"
+        | "pending_validation"
+        | "paid"
+        | "failed"
+        | "expired"
+        | "cancelled"
       stock_status: "in_stock" | "low_stock" | "out_of_stock"
       verification_status:
         | "unverified"
@@ -2909,6 +3007,15 @@ export const Constants = {
       approval_status: ["pending", "approved", "rejected"],
       payment_method: ["stripe", "moncash", "transfer"],
       payment_status: ["pending", "verified", "rejected"],
+      payment_status_order: [
+        "draft",
+        "pending",
+        "pending_validation",
+        "paid",
+        "failed",
+        "expired",
+        "cancelled",
+      ],
       stock_status: ["in_stock", "low_stock", "out_of_stock"],
       verification_status: [
         "unverified",
