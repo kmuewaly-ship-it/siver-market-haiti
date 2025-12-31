@@ -78,10 +78,12 @@ const ReviewCard = ({
   review,
   currentUserId,
   onDelete,
+  onReply,
 }: {
   review: ProductReview;
   currentUserId?: string;
   onDelete: (reviewId: string) => void;
+  onReply: (reviewId: string, authorName: string) => void;
 }) => {
   const isOwner = currentUserId === review.user_id;
   const displayName = review.user_email ? obfuscateEmail(review.user_email) : review.user_name;
@@ -118,6 +120,13 @@ const ReviewCard = ({
               <ThumbsUp className="h-4 w-4" />
               <span>Útil ({review.helpful_count})</span>
             </button>
+            <button 
+              onClick={() => onReply(review.id, displayName)}
+              className="flex items-center gap-1 text-xs text-gray-600 hover:text-foreground transition-colors"
+            >
+              <MessageSquare className="h-4 w-4" />
+              <span>Responder</span>
+            </button>
             <button className="text-gray-600 hover:text-foreground">
               <span className="text-xl">⋯</span>
             </button>
@@ -141,18 +150,37 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
   const [newComment, setNewComment] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
   const [showAllReviews, setShowAllReviews] = useState(false);
+  const [replyingToId, setReplyingToId] = useState<string | null>(null);
+  const [replyingToName, setReplyingToName] = useState("");
+  const [isReply, setIsReply] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newRating === 0) return;
+    
+    if (isReply) {
+      // Handle reply submission
+      if (!newComment.trim()) return;
+      
+      await addReview.mutateAsync({
+        product_id: productId,
+        rating: 0, // Replies don't have ratings
+        title: undefined,
+        comment: newComment,
+        is_anonymous: isAnonymous,
+        parent_review_id: replyingToId || undefined,
+      });
+    } else {
+      // Handle regular review submission
+      if (newRating === 0) return;
 
-    await addReview.mutateAsync({
-      product_id: productId,
-      rating: newRating,
-      title: newTitle || undefined,
-      comment: newComment || undefined,
-      is_anonymous: isAnonymous,
-    });
+      await addReview.mutateAsync({
+        product_id: productId,
+        rating: newRating,
+        title: newTitle || undefined,
+        comment: newComment || undefined,
+        is_anonymous: isAnonymous,
+      });
+    }
 
     // Reset form
     setShowForm(false);
@@ -160,14 +188,24 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
     setNewTitle("");
     setNewComment("");
     setIsAnonymous(false);
+    setReplyingToId(null);
+    setReplyingToName("");
+    setIsReply(false);
   };
 
   const handleDelete = (reviewId: string) => {
     deleteReview.mutate({ reviewId, productId });
   };
 
+  const handleReply = (reviewId: string, authorName: string) => {
+    setReplyingToId(reviewId);
+    setReplyingToName(authorName);
+    setIsReply(true);
+    setShowForm(true);
+  };
+
   // Check if user already reviewed
-  const userReview = reviews?.find((r) => r.user_id === user?.id);
+  const userReview = reviews?.find((r) => r.user_id === user?.id && !r.parent_review_id);
 
   if (isLoading) {
     return (
@@ -280,69 +318,82 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
       <Dialog open={showForm} onOpenChange={setShowForm}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Escribir reseña</DialogTitle>
+            <DialogTitle>
+              {isReply ? `Responder a ${replyingToName}` : "Escribir reseña"}
+            </DialogTitle>
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Tu calificación *
-              </label>
-              <StarRating
-                rating={newRating}
-                size="lg"
-                interactive
-                onRatingChange={setNewRating}
-              />
-            </div>
+            {!isReply && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Tu calificación *
+                </label>
+                <StarRating
+                  rating={newRating}
+                  size="lg"
+                  interactive
+                  onRatingChange={setNewRating}
+                />
+              </div>
+            )}
+
+            {!isReply && (
+              <div>
+                <label className="text-sm font-medium mb-2 block">
+                  Título (opcional)
+                </label>
+                <Input
+                  value={newTitle}
+                  onChange={(e) => setNewTitle(e.target.value)}
+                  placeholder="Resumen de tu experiencia"
+                  maxLength={100}
+                />
+              </div>
+            )}
 
             <div>
               <label className="text-sm font-medium mb-2 block">
-                Título (opcional)
-              </label>
-              <Input
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="Resumen de tu experiencia"
-                maxLength={100}
-              />
-            </div>
-
-            <div>
-              <label className="text-sm font-medium mb-2 block">
-                Comentario (opcional)
+                {isReply ? "Tu respuesta" : "Comentario (opcional)"}
               </label>
               <Textarea
                 value={newComment}
                 onChange={(e) => setNewComment(e.target.value)}
-                placeholder="Cuéntanos más sobre tu experiencia..."
+                placeholder={isReply ? "Escribe tu respuesta..." : "Cuéntanos más sobre tu experiencia..."}
                 rows={4}
                 maxLength={1000}
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="anonymous"
-                checked={isAnonymous}
-                onCheckedChange={(checked) => setIsAnonymous(!!checked)}
-              />
-              <label htmlFor="anonymous" className="text-sm text-muted-foreground">
-                Publicar como anónimo
-              </label>
-            </div>
+            {!isReply && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="anonymous"
+                  checked={isAnonymous}
+                  onCheckedChange={(checked) => setIsAnonymous(!!checked)}
+                />
+                <label htmlFor="anonymous" className="text-sm text-muted-foreground">
+                  Publicar como anónimo
+                </label>
+              </div>
+            )}
 
             <div className="flex gap-2">
               <Button
                 type="submit"
-                disabled={newRating === 0 || addReview.isPending}
+                disabled={!isReply && newRating === 0 || !newComment.trim() || addReview.isPending}
               >
-                {addReview.isPending ? "Publicando..." : "Publicar reseña"}
+                {addReview.isPending ? (isReply ? "Respondiendo..." : "Publicando...") : (isReply ? "Responder" : "Publicar reseña")}
               </Button>
               <Button
                 type="button"
                 variant="ghost"
-                onClick={() => setShowForm(false)}
+                onClick={() => {
+                  setShowForm(false);
+                  setReplyingToId(null);
+                  setReplyingToName("");
+                  setIsReply(false);
+                }}
               >
                 Cancelar
               </Button>
@@ -370,6 +421,7 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
                 review={review}
                 currentUserId={user?.id}
                 onDelete={handleDelete}
+                onReply={handleReply}
               />
             ))}
           </>
@@ -400,6 +452,7 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
                     key={review.id}
                     review={review}
                     currentUserId={user?.id}
+                    onReply={handleReply}
                     onDelete={handleDelete}
                   />
                 ))
