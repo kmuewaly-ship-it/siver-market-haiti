@@ -7,6 +7,7 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -294,7 +295,7 @@ const CartPage = () => {
             <p className="text-gray-600 font-medium mb-2">Tu carrito está vacío</p>
             <p className="text-xs text-gray-500 mb-4">Explora el catálogo para encontrar productos</p>
             <Button asChild style={{ backgroundColor: '#071d7f' }} className="text-white hover:opacity-90">
-              <Link to="/catalogo">Ir al Catálogo</Link>
+              <Link to="/">Ir al Catálogo</Link>
             </Button>
           </div>
         ) : isMobile ? (
@@ -875,11 +876,8 @@ const CartPage = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar producto</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Deseas eliminar "{itemToRemove?.name}" de tu carrito?
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex gap-3 justify-end">
+          <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => itemToRemove && removeItem(itemToRemove.id)}
@@ -887,7 +885,7 @@ const CartPage = () => {
             >
               Eliminar
             </AlertDialogAction>
-          </div>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </div>

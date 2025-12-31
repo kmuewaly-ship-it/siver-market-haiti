@@ -38,7 +38,6 @@ const ProductPage = lazy(() => import("./pages/ProductPage"));
 const CategoriesPage = lazy(() => import("./pages/CategoriesPage"));
 const CategoryProductsPage = lazy(() => import("./pages/CategoryProductsPage"));
 const StoreProfilePage = lazy(() => import("./pages/StoreProfilePage"));
-const AccountPage = lazy(() => import("./pages/AccountPage"));
 const CartPage = lazy(() => import("./pages/CartPage"));
 const FavoritesPage = lazy(() => import("./pages/FavoritesPage"));
 const SearchResultsPage = lazy(() => import("./pages/SearchResultsPage"));
@@ -104,7 +103,7 @@ const AppContent = () => {
             <Route path="/tienda/:storeId" element={<LazyRoute><StoreProfilePage /></LazyRoute>} />
             <Route path="/producto/:sku" element={<LazyRoute><ProductPage /></LazyRoute>} />
             <Route path="/producto/catalogo/:catalogId" element={<LazyRoute><ProductPage /></LazyRoute>} />
-            <Route path="/cuenta" element={<LazyRoute><AccountPage /></LazyRoute>} />
+            <Route path="/cuenta" element={<LoginPage />} />
             <Route path="/mis-compras" element={<LazyRoute><MyPurchasesPage /></LazyRoute>} />
             <Route path="/carrito" element={<LazyRoute><CartPage /></LazyRoute>} />
             <Route path="/checkout" element={<LazyRoute><CheckoutPage /></LazyRoute>} />

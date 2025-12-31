@@ -7,6 +7,7 @@ import {
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
+  AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
@@ -657,11 +658,8 @@ const SellerCartPage = () => {
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Eliminar producto</AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Deseas eliminar "{itemToRemove?.name}" de tu carrito B2B?
-            </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="flex gap-3 justify-end">
+          <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => itemToRemove && removeItem(itemToRemove.id)}
@@ -669,7 +667,7 @@ const SellerCartPage = () => {
             >
               Eliminar
             </AlertDialogAction>
-          </div>
+          </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </SellerLayout>

@@ -276,78 +276,80 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
         </span>
       </div>
 
-      {/* Add Review Form - shown when user clicks "Escribir reseña" button */}
-      {user && !userReview && showForm && (
-        <Card>
-          <CardContent className="p-4">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Tu calificación *
-                    </label>
-                    <StarRating
-                      rating={newRating}
-                      size="lg"
-                      interactive
-                      onRatingChange={setNewRating}
-                    />
-                  </div>
+      {/* Add Review Modal */}
+      <Dialog open={showForm} onOpenChange={setShowForm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Escribir reseña</DialogTitle>
+          </DialogHeader>
 
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Título (opcional)
-                    </label>
-                    <Input
-                      value={newTitle}
-                      onChange={(e) => setNewTitle(e.target.value)}
-                      placeholder="Resumen de tu experiencia"
-                      maxLength={100}
-                    />
-                  </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Tu calificación *
+              </label>
+              <StarRating
+                rating={newRating}
+                size="lg"
+                interactive
+                onRatingChange={setNewRating}
+              />
+            </div>
 
-                  <div>
-                    <label className="text-sm font-medium mb-2 block">
-                      Comentario (opcional)
-                    </label>
-                    <Textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Cuéntanos más sobre tu experiencia..."
-                      rows={3}
-                      maxLength={1000}
-                    />
-                  </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Título (opcional)
+              </label>
+              <Input
+                value={newTitle}
+                onChange={(e) => setNewTitle(e.target.value)}
+                placeholder="Resumen de tu experiencia"
+                maxLength={100}
+              />
+            </div>
 
-                  <div className="flex items-center gap-2">
-                    <Checkbox
-                      id="anonymous"
-                      checked={isAnonymous}
-                      onCheckedChange={(checked) => setIsAnonymous(!!checked)}
-                    />
-                    <label htmlFor="anonymous" className="text-sm text-muted-foreground">
-                      Publicar como anónimo
-                    </label>
-                  </div>
+            <div>
+              <label className="text-sm font-medium mb-2 block">
+                Comentario (opcional)
+              </label>
+              <Textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Cuéntanos más sobre tu experiencia..."
+                rows={4}
+                maxLength={1000}
+              />
+            </div>
 
-                  <div className="flex gap-2">
-                    <Button
-                      type="submit"
-                      disabled={newRating === 0 || addReview.isPending}
-                    >
-                      {addReview.isPending ? "Publicando..." : "Publicar reseña"}
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      onClick={() => setShowForm(false)}
-                    >
-                      Cancelar
-                    </Button>
-                  </div>
-                </form>
-              </CardContent>
-            </Card>
-      )}
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="anonymous"
+                checked={isAnonymous}
+                onCheckedChange={(checked) => setIsAnonymous(!!checked)}
+              />
+              <label htmlFor="anonymous" className="text-sm text-muted-foreground">
+                Publicar como anónimo
+              </label>
+            </div>
+
+            <div className="flex gap-2">
+              <Button
+                type="submit"
+                disabled={newRating === 0 || addReview.isPending}
+              >
+                {addReview.isPending ? "Publicando..." : "Publicar reseña"}
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowForm(false)}
+              >
+                Cancelar
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {!user && (
         <p className="text-sm text-muted-foreground text-center py-4">
