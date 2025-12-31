@@ -7,7 +7,8 @@ import { useB2CCartItems } from '@/hooks/useB2CCartItems';
 import { useAddresses, Address } from '@/hooks/useAddresses';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useCreateB2COrder, useCompleteB2CCart } from '@/hooks/useB2COrders';
+import { useCreateB2COrder, useCompleteB2CCart, useActiveB2COrder, useConfirmB2CPayment, useCancelB2COrder } from '@/hooks/useB2COrders';
+import { B2CPaymentStateOverlay } from '@/components/checkout/B2CPaymentStateOverlay';
 import { validateB2CCheckout, getFieldError, hasFieldError, CheckoutValidationError } from '@/services/checkoutValidation';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -51,6 +52,9 @@ const CheckoutPage = () => {
   const isMobile = useIsMobile();
   const createOrder = useCreateB2COrder();
   const completeCart = useCompleteB2CCart();
+  const { activeOrder, isCartLocked, refreshActiveOrder } = useActiveB2COrder();
+  const confirmPayment = useConfirmB2CPayment();
+  const cancelOrder = useCancelB2COrder();
 
   // Redirect sellers/admins to B2B checkout
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
@@ -176,6 +180,35 @@ const CheckoutPage = () => {
     );
   }
 
+  // Show payment state overlay if there's an active order in pending state
+  if (activeOrder && (activeOrder.payment_status === 'pending' || activeOrder.payment_status === 'pending_validation' || activeOrder.payment_status === 'paid')) {
+    const handleConfirmPayment = async () => {
+      await confirmPayment.mutateAsync(activeOrder.id);
+      await refreshActiveOrder();
+    };
+
+    const handleCancelOrder = async () => {
+      await cancelOrder.mutateAsync(activeOrder.id);
+      await refreshActiveOrder();
+    };
+
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        {!isMobile && <GlobalHeader />}
+        <main className="flex-1 container mx-auto px-4 py-8">
+          <div className="max-w-2xl mx-auto">
+            <B2CPaymentStateOverlay 
+              order={activeOrder}
+              onConfirmPayment={handleConfirmPayment}
+              onCancelOrder={handleCancelOrder}
+            />
+          </div>
+        </main>
+        {!isMobile && <Footer />}
+      </div>
+    );
+  }
+
   if (orderPlaced) {
     return (
       <div className="min-h-screen bg-background flex flex-col">
@@ -188,9 +221,9 @@ const CheckoutPage = () => {
                   <Check className="w-10 h-10 text-green-600" />
                 </div>
               </div>
-              <h1 className="text-2xl font-bold mb-2">¡Pedido Confirmado!</h1>
+              <h1 className="text-2xl font-bold mb-2">¡Pedido Enviado!</h1>
               <p className="text-muted-foreground mb-4">
-                Tu pedido ha sido recibido exitosamente.
+                Tu pedido ha sido recibido. Completa el pago según las instrucciones.
               </p>
               {orderId && (
                 <div className="bg-muted p-4 rounded-lg mb-6">
