@@ -15,31 +15,52 @@ import FeaturedProductsCarousel from "@/components/b2b/FeaturedProductsCarousel"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 // Content component removed - logic moved to SellerAcquisicionLotesContentWithFilters
+const normalizeCategoryId = (value: unknown): string | null => {
+  if (!value) return null;
+  if (typeof value !== 'string') return null;
+
+  const v = value.trim().toLowerCase();
+  if (!v || v === 'todo' || v === 'all' || v === 'null' || v === 'undefined') return null;
+
+  // If it's not a UUID, treat it as "no category" to avoid accidental empty results
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  return uuidRegex.test(value) ? value : null;
+};
+
 const SellerAcquisicionLotes = () => {
   const location = useLocation();
-  
-  // Initialize filters with clean defaults - don't persist stale filters from previous sessions
+
   const [filters, setFiltersState] = useState<B2BFilters>({
     searchQuery: "",
-    category: location.state?.selectedCategory || null,
+    category: normalizeCategoryId(location.state?.selectedCategory),
     stockStatus: "all",
     sortBy: "newest"
   });
 
   useEffect(() => {
+    // Only update filters from navigation state when the value actually changes.
+    // This prevents wiping the already-loaded product list due to unnecessary state updates.
     if (location.state?.selectedCategory !== undefined) {
-      setFiltersState(prev => ({
-        ...prev,
-        category: location.state.selectedCategory
-      }));
+      const nextCategory = normalizeCategoryId(location.state.selectedCategory);
+      setFiltersState(prev => {
+        if (prev.category === nextCategory) return prev;
+        return {
+          ...prev,
+          category: nextCategory,
+        };
+      });
     }
   }, [location.state]);
 
   const handleCategorySelect = (categoryId: string | null) => {
-    setFiltersState(prev => ({
-      ...prev,
-      category: categoryId
-    }));
+    const nextCategory = normalizeCategoryId(categoryId);
+    setFiltersState(prev => {
+      if (prev.category === nextCategory) return prev;
+      return {
+        ...prev,
+        category: nextCategory,
+      };
+    });
   };
 
   const handleSearch = (query: string) => {
