@@ -22,7 +22,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const { items, isLoading } = useB2CCartItems();
+  const { items, isLoading, refetch } = useB2CCartItems();
   const isMobile = useIsMobile();
   const { user, role } = useAuth();
   const [isNegotiating, setIsNegotiating] = useState(false);
@@ -54,6 +54,8 @@ const CartPage = () => {
         .eq('id', itemId);
 
       if (error) throw error;
+      await refetch(false);
+
       toast.success('Producto eliminado del carrito');
       setShowRemoveItemDialog(false);
       setItemToRemove(null);
@@ -85,6 +87,7 @@ const CartPage = () => {
         .eq('id', itemId);
 
       if (error) throw error;
+      await refetch(false);
       toast.success('Cantidad actualizada');
     } catch (error) {
       console.error('Error updating quantity:', error);
@@ -105,27 +108,29 @@ const CartPage = () => {
         return;
       }
 
-      // First, get the user's open cart ID
+      // Use the latest open cart (legacy data may contain multiple open carts)
       const { data: cartData, error: cartError } = await supabase
         .from('b2c_carts')
         .select('id')
         .eq('user_id', user.id)
         .eq('status', 'open')
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (cartError || !cartData?.id) {
-        toast.error('No se encontró el carrito');
+        toast.error('No se encontró un carrito abierto');
         return;
       }
 
-      // Then delete all items in that cart
       const { error: deleteError } = await supabase
         .from('b2c_cart_items')
         .delete()
         .eq('cart_id', cartData.id);
 
       if (deleteError) throw deleteError;
-      
+
+      await refetch(false);
       toast.success('Carrito vaciado');
       setShowClearCartDialog(false);
     } catch (error) {

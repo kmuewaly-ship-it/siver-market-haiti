@@ -41,12 +41,31 @@ export const useB2CCartItems = () => {
 
       console.log('Loading cart items for user:', user.id);
 
-      // Query directly from b2c_cart_items with JOIN to b2c_carts
+      // Get latest open cart (legacy data may contain multiple open carts)
+      const { data: openCart, error: cartError } = await supabase
+        .from('b2c_carts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cartError) {
+        console.error('Error fetching open cart:', cartError);
+        throw cartError;
+      }
+
+      if (!openCart?.id) {
+        console.log('Cart items loaded: 0 items');
+        setItems([]);
+        return;
+      }
+
       const { data: cartItems, error: itemsError } = await supabase
         .from('b2c_cart_items')
-        .select('*, cart_id!inner(id, user_id, status)')
-        .eq('cart_id.user_id', user.id)
-        .eq('cart_id.status', 'open')
+        .select('*')
+        .eq('cart_id', openCart.id)
         .order('created_at', { ascending: false });
 
       if (itemsError) {
