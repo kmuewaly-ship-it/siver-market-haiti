@@ -125,7 +125,6 @@ export const useCreateB2COrder = () => {
         cantidad: item.cantidad,
         precio_unitario: item.precio_unitario,
         subtotal: item.subtotal,
-        seller_catalog_id: item.seller_catalog_id || null,
       }));
 
       const { error: itemsError } = await supabase
