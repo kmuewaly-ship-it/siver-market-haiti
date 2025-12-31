@@ -3,11 +3,13 @@ import { SellerLayout } from '@/components/seller/SellerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useOrders, OrderStatus, Order } from '@/hooks/useOrders';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useOrders, OrderStatus, Order, PaymentStatus } from '@/hooks/useOrders';
 import { useAuth } from '@/hooks/useAuth';
 import { 
   Package, 
@@ -20,7 +22,13 @@ import {
   Eye,
   DollarSign,
   ShoppingCart,
-  AlertCircle
+  AlertCircle,
+  CreditCard,
+  Smartphone,
+  Banknote,
+  Check,
+  X,
+  User
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -33,21 +41,73 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; icon: Re
   cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
 };
 
+const paymentStatusConfig: Record<string, { label: string; color: string; icon: React.ElementType }> = {
+  pending: { label: 'Procesando', color: 'bg-blue-500/20 text-blue-400 border-blue-500/30', icon: Clock },
+  pending_validation: { label: 'Por Validar', color: 'bg-orange-500/20 text-orange-400 border-orange-500/30', icon: AlertCircle },
+  paid: { label: 'Pagado', color: 'bg-green-500/20 text-green-400 border-green-500/30', icon: CheckCircle },
+  failed: { label: 'Fallido', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
+  expired: { label: 'Expirado', color: 'bg-gray-500/20 text-gray-400 border-gray-500/30', icon: Clock },
+};
+
+const paymentMethodConfig: Record<string, { label: string; icon: React.ElementType }> = {
+  moncash: { label: 'MonCash', icon: Smartphone },
+  natcash: { label: 'NatCash', icon: Smartphone },
+  transfer: { label: 'Transferencia', icon: Banknote },
+  cash: { label: 'Efectivo', icon: DollarSign },
+  stripe: { label: 'Tarjeta', icon: CreditCard },
+};
+
 const SellerPedidosPage = () => {
   const { user } = useAuth();
-  const { useSellerOrders, useOrderStats, cancelOrder } = useOrders();
+  const { 
+    useSellerB2CSales, 
+    useB2CSalesStats, 
+    cancelOrder, 
+    confirmManualPayment, 
+    rejectManualPayment 
+  } = useOrders();
   
-  const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [confirmDialogOpen, setConfirmDialogOpen] = useState(false);
+  const [rejectDialogOpen, setRejectDialogOpen] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [paymentNotes, setPaymentNotes] = useState('');
 
-  const { data: orders, isLoading } = useSellerOrders({ status: statusFilter });
-  const { data: stats } = useOrderStats(user?.id);
+  const { data: orders, isLoading } = useSellerB2CSales({ paymentStatus: paymentStatusFilter });
+  const { data: stats } = useB2CSalesStats();
 
   const filteredOrders = orders?.filter(order => {
     if (!searchTerm) return true;
     return order.id.toLowerCase().includes(searchTerm.toLowerCase());
   });
+
+  const pendingValidationOrders = orders?.filter(o => o.payment_status === 'pending_validation') || [];
+
+  const handleConfirmPayment = async () => {
+    if (selectedOrder) {
+      await confirmManualPayment.mutateAsync({ 
+        orderId: selectedOrder.id, 
+        paymentNotes 
+      });
+      setConfirmDialogOpen(false);
+      setSelectedOrder(null);
+      setPaymentNotes('');
+    }
+  };
+
+  const handleRejectPayment = async () => {
+    if (selectedOrder) {
+      await rejectManualPayment.mutateAsync({ 
+        orderId: selectedOrder.id, 
+        rejectionReason 
+      });
+      setRejectDialogOpen(false);
+      setSelectedOrder(null);
+      setRejectionReason('');
+    }
+  };
 
   const handleCancelOrder = async (orderId: string) => {
     if (confirm('¿Estás seguro de cancelar este pedido?')) {
@@ -67,15 +127,53 @@ const SellerPedidosPage = () => {
     );
   };
 
+  const getPaymentStatusBadge = (status: string | null | undefined) => {
+    if (!status) return null;
+    const config = paymentStatusConfig[status];
+    if (!config) return null;
+    const Icon = config.icon;
+    return (
+      <Badge className={`${config.color} gap-1`}>
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getPaymentMethodBadge = (method: string | null) => {
+    if (!method) return null;
+    const config = paymentMethodConfig[method];
+    if (!config) return <Badge variant="outline">{method}</Badge>;
+    const Icon = config.icon;
+    return (
+      <Badge variant="outline" className="gap-1">
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    );
+  };
+
+  const getBuyerInfo = (order: Order) => {
+    const metadata = order.metadata as Record<string, any> | null;
+    const shippingAddress = metadata?.shipping_address;
+    return {
+      name: shippingAddress?.full_name || order.buyer_profile?.full_name || 'Cliente',
+      phone: shippingAddress?.phone || '',
+      address: shippingAddress ? `${shippingAddress.street_address}, ${shippingAddress.city}` : '',
+    };
+  };
+
   return (
     <SellerLayout>
       <div className="p-6 space-y-6">
         {/* Header */}
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Mis Ventas</h1>
-          <p className="text-muted-foreground">Gestiona las ventas de tu tienda B2C</p>
+          <h1 className="text-2xl font-bold text-foreground">Mis Ventas B2C</h1>
+          <p className="text-muted-foreground">Gestiona las ventas de tu tienda y confirma pagos</p>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-xs font-medium text-muted-foreground">Total</CardTitle>
@@ -86,23 +184,13 @@ const SellerPedidosPage = () => {
             </CardContent>
           </Card>
           
-          <Card className="bg-card border-border">
+          <Card className="bg-card border-border border-orange-500/30">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Borradores</CardTitle>
-              <Clock className="h-4 w-4 text-gray-500" />
+              <CardTitle className="text-xs font-medium text-orange-500">Por Validar</CardTitle>
+              <AlertCircle className="h-4 w-4 text-orange-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-bold text-gray-500">{stats?.draft || 0}</div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Pend. Pago</CardTitle>
-              <AlertCircle className="h-4 w-4 text-yellow-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-yellow-500">{stats?.placed || 0}</div>
+              <div className="text-xl font-bold text-orange-500">{stats?.pending_validation || 0}</div>
             </CardContent>
           </Card>
 
@@ -128,14 +216,43 @@ const SellerPedidosPage = () => {
 
           <Card className="bg-card border-border">
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Total Pagado</CardTitle>
+              <CardTitle className="text-xs font-medium text-muted-foreground">Cancelados</CardTitle>
+              <XCircle className="h-4 w-4 text-red-500" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-red-500">{stats?.cancelled || 0}</div>
+            </CardContent>
+          </Card>
+
+          <Card className="bg-card border-border">
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-xs font-medium text-muted-foreground">Ingresos</CardTitle>
               <DollarSign className="h-4 w-4 text-green-500" />
             </CardHeader>
             <CardContent>
-              <div className="text-xl font-bold text-green-500">${stats?.paidAmount?.toFixed(2) || '0.00'}</div>
+              <div className="text-xl font-bold text-green-500">${stats?.totalRevenue?.toFixed(2) || '0.00'}</div>
             </CardContent>
           </Card>
         </div>
+
+        {/* Pending Validation Alert */}
+        {pendingValidationOrders.length > 0 && (
+          <Card className="bg-orange-500/10 border-orange-500/30">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-orange-500" />
+                <div>
+                  <p className="font-medium text-orange-500">
+                    {pendingValidationOrders.length} pedido(s) pendiente(s) de validación de pago
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    Revisa y confirma los pagos de MonCash, NatCash, Transferencia o Efectivo
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <Card className="bg-card border-border">
@@ -150,17 +267,20 @@ const SellerPedidosPage = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
               </div>
-              <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as OrderStatus | 'all')}>
+              <Select 
+                value={paymentStatusFilter} 
+                onValueChange={(v) => setPaymentStatusFilter(v as PaymentStatus | 'all')}
+              >
                 <SelectTrigger className="w-full sm:w-[200px]">
-                  <SelectValue placeholder="Filtrar por estado" />
+                  <SelectValue placeholder="Filtrar por estado de pago" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="all">Todos los estados</SelectItem>
-                  <SelectItem value="draft">Borrador</SelectItem>
-                  <SelectItem value="placed">Pendiente de Pago</SelectItem>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value="pending_validation">Por Validar</SelectItem>
+                  <SelectItem value="pending">Procesando</SelectItem>
                   <SelectItem value="paid">Pagado</SelectItem>
-                  <SelectItem value="shipped">Enviado</SelectItem>
-                  <SelectItem value="cancelled">Cancelado</SelectItem>
+                  <SelectItem value="failed">Fallido</SelectItem>
+                  <SelectItem value="expired">Expirado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -175,56 +295,98 @@ const SellerPedidosPage = () => {
                 <TableHeader>
                   <TableRow className="border-border">
                     <TableHead className="text-muted-foreground">ID Pedido</TableHead>
+                    <TableHead className="text-muted-foreground">Cliente</TableHead>
                     <TableHead className="text-muted-foreground">Fecha</TableHead>
-                    <TableHead className="text-muted-foreground text-center">Productos</TableHead>
+                    <TableHead className="text-muted-foreground">Método</TableHead>
                     <TableHead className="text-muted-foreground text-right">Total</TableHead>
-                    <TableHead className="text-muted-foreground text-center">Estado</TableHead>
+                    <TableHead className="text-muted-foreground text-center">Estado Pago</TableHead>
                     <TableHead className="text-muted-foreground text-right">Acciones</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {isLoading ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10">
+                      <TableCell colSpan={7} className="text-center py-10">
                         <Loader2 className="h-6 w-6 animate-spin mx-auto text-primary" />
                       </TableCell>
                     </TableRow>
                   ) : filteredOrders?.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center py-10">
+                      <TableCell colSpan={7} className="text-center py-10">
                         <ShoppingCart className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">No tienes pedidos aún</p>
+                        <p className="text-muted-foreground">No tienes ventas aún</p>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    filteredOrders?.map((order) => (
-                      <TableRow key={order.id} className="border-border hover:bg-muted/50">
-                        <TableCell className="font-mono text-sm text-foreground">
-                          {order.id.substring(0, 8)}...
-                        </TableCell>
-                        <TableCell className="text-muted-foreground">
-                          {format(new Date(order.created_at), "dd MMM yyyy", { locale: es })}
-                        </TableCell>
-                        <TableCell className="text-center text-foreground">
-                          {order.total_quantity}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold text-foreground">
-                          ${Number(order.total_amount).toFixed(2)}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {getStatusBadge(order.status as OrderStatus)}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => setSelectedOrder(order)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
+                    filteredOrders?.map((order) => {
+                      const buyer = getBuyerInfo(order);
+                      return (
+                        <TableRow 
+                          key={order.id} 
+                          className={`border-border hover:bg-muted/50 ${
+                            order.payment_status === 'pending_validation' ? 'bg-orange-500/5' : ''
+                          }`}
+                        >
+                          <TableCell className="font-mono text-sm text-foreground">
+                            {order.id.substring(0, 8)}...
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <User className="h-4 w-4 text-muted-foreground" />
+                              <span className="text-sm">{buyer.name}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-muted-foreground">
+                            {format(new Date(order.created_at), "dd MMM yyyy HH:mm", { locale: es })}
+                          </TableCell>
+                          <TableCell>
+                            {getPaymentMethodBadge(order.payment_method)}
+                          </TableCell>
+                          <TableCell className="text-right font-semibold text-foreground">
+                            ${Number(order.total_amount).toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            {getPaymentStatusBadge(order.payment_status)}
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex items-center justify-end gap-2">
+                              {order.payment_status === 'pending_validation' && (
+                                <>
+                                  <Button
+                                    variant="default"
+                                    size="sm"
+                                    className="bg-green-600 hover:bg-green-700"
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setConfirmDialogOpen(true);
+                                    }}
+                                  >
+                                    <Check className="h-4 w-4" />
+                                  </Button>
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedOrder(order);
+                                      setRejectDialogOpen(true);
+                                    }}
+                                  >
+                                    <X className="h-4 w-4" />
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setSelectedOrder(order)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
@@ -234,7 +396,7 @@ const SellerPedidosPage = () => {
       </div>
 
       {/* Order Detail Dialog */}
-      <Dialog open={!!selectedOrder} onOpenChange={(open) => !open && setSelectedOrder(null)}>
+      <Dialog open={!!selectedOrder && !confirmDialogOpen && !rejectDialogOpen} onOpenChange={(open) => !open && setSelectedOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -253,7 +415,17 @@ const SellerPedidosPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Estado</p>
-                  {getStatusBadge(selectedOrder.status as OrderStatus)}
+                  <div className="flex gap-2 mt-1">
+                    {getStatusBadge(selectedOrder.status as OrderStatus)}
+                    {getPaymentStatusBadge(selectedOrder.payment_status)}
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Cliente</p>
+                  <p className="text-sm font-medium">{getBuyerInfo(selectedOrder).name}</p>
+                  {getBuyerInfo(selectedOrder).phone && (
+                    <p className="text-xs text-muted-foreground">{getBuyerInfo(selectedOrder).phone}</p>
+                  )}
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Fecha</p>
@@ -261,9 +433,23 @@ const SellerPedidosPage = () => {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Método de Pago</p>
-                  <p className="text-sm capitalize">{selectedOrder.payment_method || 'No especificado'}</p>
+                  {getPaymentMethodBadge(selectedOrder.payment_method)}
                 </div>
+                {getBuyerInfo(selectedOrder).address && (
+                  <div>
+                    <p className="text-sm text-muted-foreground">Dirección</p>
+                    <p className="text-sm">{getBuyerInfo(selectedOrder).address}</p>
+                  </div>
+                )}
               </div>
+
+              {/* Payment Reference */}
+              {(selectedOrder.metadata as Record<string, any>)?.payment_reference && (
+                <div className="p-3 bg-muted rounded-lg">
+                  <p className="text-sm text-muted-foreground">Referencia de pago del cliente:</p>
+                  <p className="font-mono text-sm">{(selectedOrder.metadata as Record<string, any>).payment_reference}</p>
+                </div>
+              )}
 
               {/* Order Items */}
               <div>
@@ -282,9 +468,8 @@ const SellerPedidosPage = () => {
                       {selectedOrder.order_items_b2b?.map((item) => (
                         <TableRow key={item.id}>
                           <TableCell>
-                            <div>
-                              <p className="font-medium">{item.nombre}</p>
-                            </div>
+                            <p className="font-medium">{item.nombre}</p>
+                            <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
                           </TableCell>
                           <TableCell className="text-center">{item.cantidad}</TableCell>
                           <TableCell className="text-right">${Number(item.precio_unitario).toFixed(2)}</TableCell>
@@ -302,29 +487,158 @@ const SellerPedidosPage = () => {
                 <span className="text-xl font-bold">${Number(selectedOrder.total_amount).toFixed(2)} {selectedOrder.currency}</span>
               </div>
 
-              {/* Notes */}
-              {selectedOrder.notes && (
-                <div>
-                  <h4 className="font-medium mb-2">Notas</h4>
-                  <p className="text-sm text-muted-foreground bg-muted p-3 rounded-lg">{selectedOrder.notes}</p>
-                </div>
-              )}
-
               {/* Actions */}
-              {(selectedOrder.status === 'draft' || selectedOrder.status === 'placed') && (
-                <div className="flex justify-end gap-2">
+              <div className="flex justify-end gap-2">
+                {selectedOrder.payment_status === 'pending_validation' && (
+                  <>
+                    <Button
+                      variant="default"
+                      className="bg-green-600 hover:bg-green-700"
+                      onClick={() => setConfirmDialogOpen(true)}
+                    >
+                      <Check className="h-4 w-4 mr-2" />
+                      Confirmar Pago
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={() => setRejectDialogOpen(true)}
+                    >
+                      <X className="h-4 w-4 mr-2" />
+                      Rechazar Pago
+                    </Button>
+                  </>
+                )}
+                {(selectedOrder.status === 'draft' || selectedOrder.status === 'placed') && (
                   <Button
-                    variant="destructive"
+                    variant="outline"
                     onClick={() => handleCancelOrder(selectedOrder.id)}
                     disabled={cancelOrder.isPending}
                   >
                     {cancelOrder.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
                     Cancelar Pedido
                   </Button>
-                </div>
-              )}
+                )}
+              </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Confirm Payment Dialog */}
+      <Dialog open={confirmDialogOpen} onOpenChange={setConfirmDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="h-5 w-5" />
+              Confirmar Pago
+            </DialogTitle>
+            <DialogDescription>
+              ¿Has verificado que el pago fue recibido correctamente?
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="p-4 bg-muted rounded-lg">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-muted-foreground">Monto:</span>
+                  <span className="font-bold text-lg">${Number(selectedOrder.total_amount).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between items-center mt-2">
+                  <span className="text-sm text-muted-foreground">Método:</span>
+                  {getPaymentMethodBadge(selectedOrder.payment_method)}
+                </div>
+                {(selectedOrder.metadata as Record<string, any>)?.payment_reference && (
+                  <div className="flex justify-between items-center mt-2">
+                    <span className="text-sm text-muted-foreground">Referencia:</span>
+                    <span className="font-mono text-sm">{(selectedOrder.metadata as Record<string, any>).payment_reference}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Notas (opcional)</label>
+                <Textarea
+                  placeholder="Ej: Verificado en MonCash, transacción #12345"
+                  value={paymentNotes}
+                  onChange={(e) => setPaymentNotes(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              className="bg-green-600 hover:bg-green-700"
+              onClick={handleConfirmPayment}
+              disabled={confirmManualPayment.isPending}
+            >
+              {confirmManualPayment.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Check className="h-4 w-4 mr-2" />
+              )}
+              Confirmar Pago
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Reject Payment Dialog */}
+      <Dialog open={rejectDialogOpen} onOpenChange={setRejectDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-destructive">
+              <XCircle className="h-5 w-5" />
+              Rechazar Pago
+            </DialogTitle>
+            <DialogDescription>
+              El pedido será cancelado y el stock se liberará.
+            </DialogDescription>
+          </DialogHeader>
+          
+          {selectedOrder && (
+            <div className="space-y-4">
+              <div className="p-4 bg-destructive/10 rounded-lg border border-destructive/20">
+                <p className="text-sm text-destructive">
+                  Esta acción cancelará el pedido #{selectedOrder.id.substring(0, 8)} 
+                  por ${Number(selectedOrder.total_amount).toFixed(2)}
+                </p>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium">Motivo del rechazo</label>
+                <Textarea
+                  placeholder="Ej: No se recibió el pago, monto incorrecto, etc."
+                  value={rejectionReason}
+                  onChange={(e) => setRejectionReason(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setRejectDialogOpen(false)}>
+              Cancelar
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={handleRejectPayment}
+              disabled={rejectManualPayment.isPending}
+            >
+              {rejectManualPayment.isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <X className="h-4 w-4 mr-2" />
+              )}
+              Rechazar Pago
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </SellerLayout>
