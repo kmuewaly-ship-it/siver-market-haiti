@@ -890,7 +890,7 @@ const SellerCheckout = () => {
                     <Info className="h-4 w-4 text-purple-600" />
                     <AlertDescription className="text-purple-700 dark:text-purple-300">
                       <span className="font-semibold">¿Quieres pagar con crédito?</span>{' '}
-                      <Link to="/seller/kyc" className="underline">Verifica tu identidad</Link> para acceder al Crédito Siver.
+                      <Link to="/seller/cuenta" className="underline">Verifica tu identidad</Link> para acceder al Crédito Siver.
                     </AlertDescription>
                   </Alert>
                 )}

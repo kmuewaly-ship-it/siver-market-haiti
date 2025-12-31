@@ -25,6 +25,7 @@ import { useSellerStatuses } from "@/hooks/useSellerStatuses";
 import { SellerStatusViewer } from "@/components/seller/SellerStatusViewer";
 import { useAdminBanners } from "@/hooks/useAdminBanners";
 import { SellerQuotesHistory } from "@/components/seller/SellerQuotesHistory";
+import { KYCUploadForm } from "@/components/seller/KYCUploadForm";
 import { useBuyerOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from "@/hooks/useBuyerOrders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
@@ -224,7 +225,7 @@ const SellerAccountPage = () => {
             {/* Navigation Bar - FIXED */}
             <div className={`fixed z-50 bg-white border-b-2 border-gray-200 shadow-lg left-0 right-0 md:left-64 ${isMobile ? 'top-24 w-full' : 'top-[150px]'}`}>
               <div className="px-2 md:px-3">
-                <TabsList className="grid w-full grid-cols-5 gap-0 bg-transparent rounded-none p-0 h-auto border-b-0 mb-0">
+                <TabsList className="grid w-full grid-cols-6 gap-0 bg-transparent rounded-none p-0 h-auto border-b-0 mb-0">
                   <TabsTrigger 
                     value="informacion" 
                     className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
@@ -232,6 +233,14 @@ const SellerAccountPage = () => {
                     <User className="h-3 w-3 md:h-4 md:w-4" />
                     <span className="hidden sm:inline">Información</span>
                     <span className="sm:hidden">Info</span>
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="kyc" 
+                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
+                  >
+                    <Shield className="h-3 w-3 md:h-4 md:w-4" />
+                    <span className="hidden sm:inline">Seguridad</span>
+                    <span className="sm:hidden">KYC</span>
                   </TabsTrigger>
                   <TabsTrigger 
                     value="compras" 
@@ -408,6 +417,11 @@ const SellerAccountPage = () => {
                     </CardContent>
                   </Card>
                 </div>
+              </TabsContent>
+
+              {/* KYC / Seguridad Tab */}
+              <TabsContent value="kyc" className="space-y-6 pt-8">
+                <KYCUploadForm />
               </TabsContent>
 
               {/* Mis Compras Tab */}

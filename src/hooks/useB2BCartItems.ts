@@ -9,6 +9,7 @@ export interface B2BCartItem {
   sku: string;
   name: string;
   precioB2B: number;
+  precioVenta?: number; // PVP for profit analysis
   cantidad: number;
   subtotal: number;
   image: string | null;
@@ -41,7 +42,7 @@ export const useB2BCartItems = () => {
       // Query directly from b2b_cart_items with JOIN to b2b_carts
       const { data: cartItems, error: itemsError } = await supabase
         .from('b2b_cart_items')
-        .select('*, cart_id!inner(id, buyer_user_id, status)')
+        .select('*, cart_id!inner(id, buyer_user_id, status), products:product_id(precio_sugerido_venta)')
         .eq('cart_id.buyer_user_id', user.id)
         .eq('cart_id.status', 'open')
         .order('created_at', { ascending: false });
@@ -53,16 +54,25 @@ export const useB2BCartItems = () => {
 
       console.log('B2B Cart items loaded:', cartItems?.length || 0, 'items');
 
-      const formattedItems: B2BCartItem[] = (cartItems || []).map(item => ({
-        id: item.id,
-        productId: item.product_id,
-        sku: item.sku,
-        name: item.nombre,
-        precioB2B: typeof item.unit_price === 'string' ? parseFloat(item.unit_price) : item.unit_price,
-        cantidad: item.quantity,
-        subtotal: typeof item.total_price === 'string' ? parseFloat(item.total_price) : item.total_price,
-        image: null, // B2B table doesn't have image field, can be added later
-      }));
+      const formattedItems: B2BCartItem[] = (cartItems || []).map(item => {
+        // Extract precio_sugerido_venta from joined product
+        let precioVenta = 0;
+        if (item.products && typeof item.products === 'object') {
+          precioVenta = (item.products as any).precio_sugerido_venta || 0;
+        }
+
+        return {
+          id: item.id,
+          productId: item.product_id,
+          sku: item.sku,
+          name: item.nombre,
+          precioB2B: typeof item.unit_price === 'string' ? parseFloat(item.unit_price) : item.unit_price,
+          precioVenta: precioVenta,
+          cantidad: item.quantity,
+          subtotal: typeof item.total_price === 'string' ? parseFloat(item.total_price) : item.total_price,
+          image: null, // B2B table doesn't have image field, can be added later
+        };
+      });
 
       setItems(formattedItems);
     } catch (err) {

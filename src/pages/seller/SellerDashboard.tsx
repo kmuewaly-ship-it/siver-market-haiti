@@ -80,7 +80,7 @@ const SellerDashboard = () => {
                     Completa tu verificación para acceder a todas las funcionalidades y maximizar tu crédito.
                   </p>
                   <Button asChild size="sm" className="bg-orange-600 hover:bg-orange-700">
-                    <Link to="/seller/kyc">
+                    <Link to="/seller/cuenta">
                       Completar Verificación
                       <ArrowRight className="h-4 w-4 ml-2" />
                     </Link>
@@ -285,7 +285,7 @@ const SellerDashboard = () => {
                       variant="outline"
                       className="w-full justify-start border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
                     >
-                      <Link to="/seller/kyc">
+                      <Link to="/seller/cuenta">
                         <User className="h-4 w-4 mr-2" />
                         KYC & Créditos
                       </Link>

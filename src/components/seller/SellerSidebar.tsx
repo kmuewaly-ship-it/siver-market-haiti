@@ -54,8 +54,8 @@ export function SellerSidebar() {
     url: "/seller/wallet",
     icon: Wallet
   }, {
-    title: "Créditos y KYC",
-    url: "/seller/kyc",
+    title: "Créditos",
+    url: "/seller/credit",
     icon: Shield
   }, {
     title: "Mi Cuenta",

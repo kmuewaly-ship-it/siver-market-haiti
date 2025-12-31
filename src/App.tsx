@@ -76,7 +76,7 @@ const SellerFavoritesPage = lazy(() => import("./pages/seller/SellerFavoritesPag
 const SellerInventarioB2C = lazy(() => import("./pages/seller/SellerInventarioB2C"));
 const SellerPedidosPage = lazy(() => import("./pages/seller/SellerPedidosPage"));
 const SellerMisComprasPage = lazy(() => import("./pages/seller/SellerMisComprasPage"));
-const SellerKYCPage = lazy(() => import("./pages/seller/SellerKYCPage"));
+const SellerCreditPage = lazy(() => import("./pages/seller/SellerCreditPage"));
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -272,10 +272,10 @@ const AppContent = () => {
               } 
             />
             <Route 
-              path="/seller/kyc" 
+              path="/seller/credit" 
               element={
                 <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
-                  <LazyRoute><SellerKYCPage /></LazyRoute>
+                  <LazyRoute><SellerCreditPage /></LazyRoute>
                 </ProtectedRoute>
               } 
             />
