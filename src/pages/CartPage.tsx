@@ -105,16 +105,27 @@ const CartPage = () => {
         return;
       }
 
-      const { error } = await supabase
+      // First, get the user's open cart ID
+      const { data: cartData, error: cartError } = await supabase
+        .from('b2c_carts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'open')
+        .single();
+
+      if (cartError || !cartData?.id) {
+        toast.error('No se encontró el carrito');
+        return;
+      }
+
+      // Then delete all items in that cart
+      const { error: deleteError } = await supabase
         .from('b2c_cart_items')
         .delete()
-        .eq('cart_id', (await supabase
-          .from('b2c_carts')
-          .select('id')
-          .eq('user_id', user.id)
-          .single()).data?.id);
+        .eq('cart_id', cartData.id);
 
-      if (error) throw error;
+      if (deleteError) throw deleteError;
+      
       toast.success('Carrito vaciado');
       setShowClearCartDialog(false);
     } catch (error) {
