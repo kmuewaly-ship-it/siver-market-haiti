@@ -313,7 +313,6 @@ export const useOrders = () => {
       
       if (error) throw error;
       if (!data) throw new Error('Pedido no encontrado');
-      if (error) throw error;
       return data;
     },
     onSuccess: () => {
