@@ -97,6 +97,7 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
   const [hasMore, setHasMore] = useState(true);
   const itemsPerPage = 24;
   const loadMoreRef = useRef<HTMLDivElement>(null);
+  const didMountRef = useRef(false);
   const [whatsappNumber, setWhatsappNumber] = useState("50369596772");
 
   // Fetch products from database
@@ -121,8 +122,12 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
     }
   }, [productsData, currentPage]);
 
-  // Reset when filters change
+  // Reset when filters change (skip first render to avoid flashing "no products" while refetching cached data)
   useEffect(() => {
+    if (!didMountRef.current) {
+      didMountRef.current = true;
+      return;
+    }
     setCurrentPage(0);
     setAllProducts([]);
     setHasMore(true);
@@ -260,7 +265,7 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
                 Reintentar
               </Button>
             </div>
-          ) : productsLoading && allProducts.length === 0 ? (
+          ) : (productsLoading || (isFetching && allProducts.length === 0)) ? (
             <div className="flex items-center justify-center py-12">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
