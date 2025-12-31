@@ -17,33 +17,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 // Content component removed - logic moved to SellerAcquisicionLotesContentWithFilters
 const SellerAcquisicionLotes = () => {
   const location = useLocation();
-  // Force full page reload when entering the B2B catalog route via SPA navigation
-  // but avoid an infinite reload loop by skipping when the navigation was already a browser reload
-  useEffect(() => {
-    try {
-      const navEntries = (performance && (performance as any).getEntriesByType) ? (performance as any).getEntriesByType('navigation') : null;
-      const navType = navEntries && navEntries.length ? navEntries[0].type : ((performance as any).navigation ? ((performance as any).navigation.type === 1 ? 'reload' : 'navigate') : 'navigate');
-      if (navType !== 'reload') {
-        window.location.reload();
-      }
-    } catch (err) {
-      // Fallback: if anything fails, do not break navigation
-      // console.warn('Navigation reload check failed', err);
-    }
-  }, []);
-  const [filters, setFiltersState] = useState<B2BFilters>(() => {
-    try {
-      const saved = sessionStorage.getItem('b2b_filters');
-      if (saved) return JSON.parse(saved) as B2BFilters;
-    } catch (err) {
-      // ignore
-    }
-    return {
-      searchQuery: "",
-      category: location.state?.selectedCategory || null,
-      stockStatus: "all",
-      sortBy: "newest"
-    };
+  
+  // Initialize filters with clean defaults - don't persist stale filters from previous sessions
+  const [filters, setFiltersState] = useState<B2BFilters>({
+    searchQuery: "",
+    category: location.state?.selectedCategory || null,
+    stockStatus: "all",
+    sortBy: "newest"
   });
 
   useEffect(() => {
@@ -54,26 +34,6 @@ const SellerAcquisicionLotes = () => {
       }));
     }
   }, [location.state]);
-
-  // Persist filters during the B2B session so we can clear them on exit
-  useEffect(() => {
-    try {
-      sessionStorage.setItem('b2b_filters', JSON.stringify(filters));
-    } catch (err) {
-      // ignore
-    }
-  }, [filters]);
-
-  // Clear filters when leaving the page (component unmount)
-  useEffect(() => {
-    return () => {
-      try {
-        sessionStorage.removeItem('b2b_filters');
-      } catch (err) {
-        // ignore
-      }
-    };
-  }, []);
 
   const handleCategorySelect = (categoryId: string | null) => {
     setFiltersState(prev => ({

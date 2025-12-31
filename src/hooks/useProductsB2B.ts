@@ -54,13 +54,14 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
   return useQuery({
     queryKey: ["products-b2b-eav", filters, page, limit],
     staleTime: 1000 * 60 * 5, // 5 minutes cache
+    refetchOnMount: true, // Always refetch when component mounts
     queryFn: async () => {
-      // Query only parent products (migrated EAV structure)
+      // Query parent products OR products without is_parent flag (backwards compatibility)
       let query = supabase
         .from("products")
         .select("*", { count: "exact" })
         .eq("is_active", true)
-        .eq("is_parent", true);
+        .or("is_parent.eq.true,is_parent.is.null");
 
       // Filter by category
       if (filters.category) {
