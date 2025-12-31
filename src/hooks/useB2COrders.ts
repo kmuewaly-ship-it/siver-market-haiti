@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
@@ -97,7 +98,12 @@ export const useCreateB2COrder = () => {
         return acc;
       }, {} as Record<string, any>);
 
-      // Create order
+      // Determine payment_status based on payment method (like B2B)
+      const paymentStatus = params.payment_method === 'stripe' 
+        ? 'pending' 
+        : 'pending_validation';
+
+      // Create order with proper payment state machine
       const { data: order, error: orderError } = await supabase
         .from('orders_b2b')
         .insert({
@@ -106,7 +112,8 @@ export const useCreateB2COrder = () => {
           total_amount: params.total_amount,
           total_quantity: params.total_quantity,
           payment_method: params.payment_method,
-          status: params.payment_method === 'stripe' ? 'paid' : 'placed',
+          payment_status: paymentStatus,
+          status: 'placed',
           currency: 'USD',
           notes: params.notes || null,
           metadata: orderMetadata,
@@ -161,6 +168,17 @@ export const useCompleteB2CCart = () => {
 
       console.log('Marking cart as completed:', cartId);
 
+      // First, delete all items from the cart to ensure it's empty
+      const { error: deleteItemsError } = await supabase
+        .from('b2c_cart_items')
+        .delete()
+        .eq('cart_id', cartId);
+
+      if (deleteItemsError) {
+        console.error('Error deleting cart items:', deleteItemsError);
+      }
+
+      // Then update cart status to completed
       const { error } = await supabase
         .from('b2c_carts')
         .update({ status: 'completed' })
@@ -169,25 +187,131 @@ export const useCompleteB2CCart = () => {
 
       if (error) throw error;
       
-      console.log('Cart marked as completed successfully');
-      
-      // Wait a bit for DB to sync
-      await new Promise(resolve => setTimeout(resolve, 500));
+      console.log('Cart marked as completed and items deleted successfully');
       
       return { cartId };
     },
-    onSuccess: (data) => {
+    onSuccess: () => {
       console.log('Cart completion success, invalidating queries');
       // Clear all cart-related queries immediately
       queryClient.setQueryData(['b2c-cart-items', user?.id], []);
-      // Invalidate cart queries to force refetch
+      queryClient.setQueryData(['b2c-cart-items'], []);
+      // Invalidate and refetch
       queryClient.invalidateQueries({ queryKey: ['b2c-cart-items'] });
       queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
-      // Force immediate refetch
-      queryClient.refetchQueries({ queryKey: ['b2c-cart-items'], type: 'active' });
     },
     onError: (error: Error) => {
       console.error('Error completing cart:', error);
+    },
+  });
+};
+
+// Hook to get active B2C order for payment state
+export const useActiveB2COrder = () => {
+  const { user } = useAuth();
+  const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchActiveOrder = useCallback(async () => {
+    if (!user?.id) {
+      setActiveOrder(null);
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('orders_b2b')
+        .select('*')
+        .eq('buyer_id', user.id)
+        .in('payment_status', ['pending', 'pending_validation'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error) throw error;
+
+      setActiveOrder(data ? {
+        id: data.id,
+        payment_status: data.payment_status,
+        status: data.status,
+        total_amount: Number(data.total_amount),
+        total_quantity: data.total_quantity,
+        payment_method: data.payment_method,
+        metadata: data.metadata,
+        created_at: data.created_at,
+      } : null);
+    } catch (error) {
+      console.error('Error fetching active B2C order:', error);
+      setActiveOrder(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    fetchActiveOrder();
+  }, [fetchActiveOrder]);
+
+  const isCartLocked = activeOrder?.payment_status === 'pending' || 
+                       activeOrder?.payment_status === 'pending_validation';
+
+  return { activeOrder, isLoading, isCartLocked, refreshActiveOrder: fetchActiveOrder };
+};
+
+// Hook to confirm B2C payment
+export const useConfirmB2CPayment = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase
+        .from('orders_b2b')
+        .update({ 
+          payment_status: 'paid',
+          status: 'paid',
+          payment_confirmed_at: new Date().toISOString(),
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      return { orderId };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+      toast.success('¡Pago confirmado!');
+    },
+    onError: (error: Error) => {
+      console.error('Error confirming payment:', error);
+      toast.error('Error al confirmar el pago');
+    },
+  });
+};
+
+// Hook to cancel B2C order
+export const useCancelB2COrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (orderId: string) => {
+      const { error } = await supabase
+        .from('orders_b2b')
+        .update({ 
+          payment_status: 'cancelled',
+          status: 'cancelled',
+        })
+        .eq('id', orderId);
+
+      if (error) throw error;
+      return { orderId };
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+      toast.info('Pedido cancelado');
+    },
+    onError: (error: Error) => {
+      console.error('Error cancelling order:', error);
+      toast.error('Error al cancelar el pedido');
     },
   });
 };

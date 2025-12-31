@@ -13,6 +13,8 @@ import {
 import { ShoppingCart, Trash2, Package, MessageCircle } from "lucide-react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useB2CCartItems } from "@/hooks/useB2CCartItems";
+import { useActiveB2COrder } from "@/hooks/useB2COrders";
+import { B2CCartLockBanner } from "@/components/checkout/B2CCartLockBanner";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -23,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 const CartPage = () => {
   const navigate = useNavigate();
   const { items, isLoading, refetch } = useB2CCartItems();
+  const { isCartLocked } = useActiveB2COrder();
   const isMobile = useIsMobile();
   const { user, role } = useAuth();
   const [isNegotiating, setIsNegotiating] = useState(false);
@@ -240,6 +243,8 @@ const CartPage = () => {
       )}
 
       <main className={`flex-1 container mx-auto px-4 ${isMobile ? 'pb-40' : 'pb-20'}`}>
+        {/* Cart Lock Banner for pending payments */}
+        <B2CCartLockBanner />
         {items.length === 0 ? (
           <div className="text-center py-12">
             <ShoppingCart className="w-16 h-16 text-gray-300 mx-auto mb-4" />
