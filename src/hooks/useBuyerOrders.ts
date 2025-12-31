@@ -119,10 +119,15 @@ export const useCancelBuyerOrder = () => {
       reason: string;
       requestRefund?: boolean;
     }) => {
-      // First get the current order to check status and get metadata
+      if (!user?.id) throw new Error('Usuario no autenticado');
+
+      // First get the current order to check status, get metadata and items
       const { data: currentOrder, error: fetchError } = await supabase
         .from('orders_b2b')
-        .select('status, metadata, total_amount')
+        .select(`
+          status, metadata, total_amount, buyer_id,
+          order_items_b2b (*)
+        `)
         .eq('id', orderId)
         .eq('buyer_id', user?.id)
         .single();
@@ -134,8 +139,75 @@ export const useCancelBuyerOrder = () => {
         throw new Error('Este pedido no puede ser cancelado en su estado actual');
       }
 
-      const existingMetadata = (currentOrder.metadata && typeof currentOrder.metadata === 'object') 
-        ? currentOrder.metadata as Record<string, any>
+      // Restore items to cart
+      const orderItems = currentOrder.order_items_b2b || [];
+      const metadata = currentOrder.metadata as Record<string, any> | null;
+      
+      if (orderItems.length > 0) {
+        // Get or create cart
+        let cartId: string;
+        const { data: existingCart } = await supabase
+          .from('b2c_carts')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingCart?.id) {
+          cartId = existingCart.id;
+        } else {
+          const { data: newCart, error: cartCreateError } = await supabase
+            .from('b2c_carts')
+            .insert({ user_id: user.id, status: 'open' })
+            .select('id')
+            .single();
+
+          if (cartCreateError) throw cartCreateError;
+          cartId = newCart.id;
+        }
+
+        // Restore items
+        const itemsByStore = metadata?.items_by_store || {};
+        const cartItems = orderItems.map((item: any) => {
+          let storeId: string | null = null;
+          let storeName: string | null = null;
+          let image: string | null = null;
+
+          Object.entries(itemsByStore).forEach(([sId, storeData]: [string, any]) => {
+            const foundItem = storeData?.items?.find((i: any) => i.sku === item.sku);
+            if (foundItem) {
+              storeId = sId !== 'unknown' ? sId : null;
+              storeName = storeData.store_name;
+              image = foundItem.image;
+            }
+          });
+
+          return {
+            cart_id: cartId,
+            sku: item.sku,
+            nombre: item.nombre,
+            quantity: item.cantidad,
+            unit_price: item.precio_unitario,
+            total_price: item.subtotal,
+            store_id: storeId,
+            store_name: storeName,
+            image: image,
+          };
+        });
+
+        const { error: insertError } = await supabase
+          .from('b2c_cart_items')
+          .insert(cartItems);
+
+        if (insertError) {
+          console.error('Error restoring cart items:', insertError);
+        }
+      }
+
+      const existingMetadata = (metadata && typeof metadata === 'object') 
+        ? metadata as Record<string, any>
         : {};
 
       const newMetadata = {
@@ -143,6 +215,7 @@ export const useCancelBuyerOrder = () => {
         cancellation_reason: reason,
         cancelled_at: new Date().toISOString(),
         cancelled_by: 'buyer' as const,
+        items_restored_to_cart: orderItems.length > 0,
         refund_status: requestRefund && currentOrder.status === 'paid' ? 'requested' as RefundStatus : 'none' as RefundStatus,
         refund_amount: requestRefund ? currentOrder.total_amount : undefined,
         refund_requested_at: requestRefund ? new Date().toISOString() : undefined,
@@ -152,6 +225,7 @@ export const useCancelBuyerOrder = () => {
         .from('orders_b2b')
         .update({ 
           status: 'cancelled',
+          payment_status: 'cancelled',
           metadata: newMetadata,
           updated_at: new Date().toISOString() 
         })
@@ -161,16 +235,19 @@ export const useCancelBuyerOrder = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return { ...data, itemsRestored: orderItems.length };
     },
-    onSuccess: (_, variables) => {
+    onSuccess: (data, variables) => {
       queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
       queryClient.invalidateQueries({ queryKey: ['buyer-order'] });
+      queryClient.invalidateQueries({ queryKey: ['b2c-cart-items'] });
       toast({ 
         title: 'Pedido cancelado',
-        description: variables.requestRefund 
-          ? 'Tu solicitud de reembolso ha sido enviada' 
-          : 'El pedido ha sido cancelado exitosamente'
+        description: data.itemsRestored > 0 
+          ? `${data.itemsRestored} productos restaurados al carrito. ${variables.requestRefund ? 'Tu solicitud de reembolso ha sido enviada.' : ''}`
+          : variables.requestRefund 
+            ? 'Tu solicitud de reembolso ha sido enviada' 
+            : 'El pedido ha sido cancelado exitosamente'
       });
     },
     onError: (error: Error) => {

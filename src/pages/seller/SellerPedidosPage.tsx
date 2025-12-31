@@ -62,7 +62,7 @@ const SellerPedidosPage = () => {
   const { 
     useSellerB2CSales, 
     useB2CSalesStats, 
-    cancelOrder, 
+    cancelOrderWithRestore, 
     confirmManualPayment, 
     rejectManualPayment 
   } = useOrders();
@@ -110,8 +110,8 @@ const SellerPedidosPage = () => {
   };
 
   const handleCancelOrder = async (orderId: string) => {
-    if (confirm('¿Estás seguro de cancelar este pedido?')) {
-      await cancelOrder.mutateAsync(orderId);
+    if (confirm('¿Estás seguro de cancelar este pedido? Los productos se restaurarán al carrito del cliente.')) {
+      await cancelOrderWithRestore.mutateAsync({ orderId, restoreToCart: true });
       setSelectedOrder(null);
     }
   };
@@ -512,9 +512,9 @@ const SellerPedidosPage = () => {
                   <Button
                     variant="outline"
                     onClick={() => handleCancelOrder(selectedOrder.id)}
-                    disabled={cancelOrder.isPending}
+                    disabled={cancelOrderWithRestore.isPending}
                   >
-                    {cancelOrder.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
+                    {cancelOrderWithRestore.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <XCircle className="h-4 w-4 mr-2" />}
                     Cancelar Pedido
                   </Button>
                 )}

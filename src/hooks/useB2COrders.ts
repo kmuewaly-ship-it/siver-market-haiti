@@ -288,26 +288,129 @@ export const useConfirmB2CPayment = () => {
   });
 };
 
-// Hook to cancel B2C order
+// Hook to cancel B2C order and restore items to cart
 export const useCancelB2COrder = () => {
+  const { user } = useAuth();
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async (orderId: string) => {
-      const { error } = await supabase
+      if (!user?.id) throw new Error('Usuario no autenticado');
+
+      // 1. Get order with items before cancelling
+      const { data: order, error: orderError } = await supabase
+        .from('orders_b2b')
+        .select(`
+          *,
+          order_items_b2b (*)
+        `)
+        .eq('id', orderId)
+        .eq('buyer_id', user.id)
+        .maybeSingle();
+
+      if (orderError) throw orderError;
+      if (!order) throw new Error('Pedido no encontrado');
+
+      // 2. Get or create an open cart for the user
+      let cartId: string;
+      const { data: existingCart, error: cartFetchError } = await supabase
+        .from('b2c_carts')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('status', 'open')
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (cartFetchError) throw cartFetchError;
+
+      if (existingCart?.id) {
+        cartId = existingCart.id;
+      } else {
+        // Create new cart
+        const { data: newCart, error: cartCreateError } = await supabase
+          .from('b2c_carts')
+          .insert({ user_id: user.id, status: 'open' })
+          .select('id')
+          .single();
+
+        if (cartCreateError) throw cartCreateError;
+        cartId = newCart.id;
+      }
+
+      // 3. Restore order items to cart
+      const orderItems = order.order_items_b2b || [];
+      const metadata = order.metadata as Record<string, any> | null;
+      const itemsByStore = metadata?.items_by_store || {};
+
+      if (orderItems.length > 0) {
+        const cartItems = orderItems.map((item: any) => {
+          // Try to find store info from metadata
+          let storeId: string | null = null;
+          let storeName: string | null = null;
+          let storeWhatsapp: string | null = null;
+          let image: string | null = null;
+
+          // Search in itemsByStore for matching item
+          Object.entries(itemsByStore).forEach(([sId, storeData]: [string, any]) => {
+            const foundItem = storeData?.items?.find((i: any) => i.sku === item.sku);
+            if (foundItem) {
+              storeId = sId !== 'unknown' ? sId : null;
+              storeName = storeData.store_name;
+              image = foundItem.image;
+            }
+          });
+
+          return {
+            cart_id: cartId,
+            sku: item.sku,
+            nombre: item.nombre,
+            quantity: item.cantidad,
+            unit_price: item.precio_unitario,
+            total_price: item.subtotal,
+            store_id: storeId,
+            store_name: storeName,
+            store_whatsapp: storeWhatsapp,
+            image: image,
+            seller_catalog_id: null, // Will need to be fetched if needed
+          };
+        });
+
+        const { error: insertError } = await supabase
+          .from('b2c_cart_items')
+          .insert(cartItems);
+
+        if (insertError) {
+          console.error('Error restoring cart items:', insertError);
+          // Don't throw - we still want to cancel the order
+        }
+      }
+
+      // 4. Cancel the order
+      const { error: cancelError } = await supabase
         .from('orders_b2b')
         .update({ 
           payment_status: 'cancelled',
           status: 'cancelled',
+          metadata: {
+            ...metadata,
+            cancelled_at: new Date().toISOString(),
+            cancelled_by: 'buyer',
+            items_restored_to_cart: true,
+          }
         })
-        .eq('id', orderId);
+        .eq('id', orderId)
+        .eq('buyer_id', user.id);
 
-      if (error) throw error;
-      return { orderId };
+      if (cancelError) throw cancelError;
+      return { orderId, itemsRestored: orderItems.length };
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
-      toast.info('Pedido cancelado');
+      queryClient.invalidateQueries({ queryKey: ['b2c-cart-items'] });
+      toast.info(data.itemsRestored > 0 
+        ? `Pedido cancelado. ${data.itemsRestored} productos restaurados al carrito.`
+        : 'Pedido cancelado');
     },
     onError: (error: Error) => {
       console.error('Error cancelling order:', error);

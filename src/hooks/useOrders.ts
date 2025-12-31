@@ -373,6 +373,125 @@ export const useOrders = () => {
     },
   });
 
+  // Cancel order and restore items to cart (for sellers/admins)
+  const cancelOrderWithRestore = useMutation({
+    mutationFn: async ({ orderId, restoreToCart = true }: { orderId: string; restoreToCart?: boolean }) => {
+      // 1. Get order with items
+      const { data: order, error: orderError } = await supabase
+        .from('orders_b2b')
+        .select(`
+          *,
+          order_items_b2b (*)
+        `)
+        .eq('id', orderId)
+        .maybeSingle();
+
+      if (orderError) throw orderError;
+      if (!order) throw new Error('Pedido no encontrado');
+
+      const buyerId = order.buyer_id;
+      const metadata = order.metadata as Record<string, any> | null;
+      const orderItems = order.order_items_b2b || [];
+
+      // 2. If should restore and there's a buyer, restore items to their cart
+      if (restoreToCart && buyerId && orderItems.length > 0) {
+        // Get or create cart for buyer
+        let cartId: string;
+        const { data: existingCart } = await supabase
+          .from('b2c_carts')
+          .select('id')
+          .eq('user_id', buyerId)
+          .eq('status', 'open')
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (existingCart?.id) {
+          cartId = existingCart.id;
+        } else {
+          const { data: newCart, error: cartCreateError } = await supabase
+            .from('b2c_carts')
+            .insert({ user_id: buyerId, status: 'open' })
+            .select('id')
+            .single();
+
+          if (cartCreateError) throw cartCreateError;
+          cartId = newCart.id;
+        }
+
+        // Restore items
+        const itemsByStore = metadata?.items_by_store || {};
+        const cartItems = orderItems.map((item: any) => {
+          let storeId: string | null = null;
+          let storeName: string | null = null;
+          let image: string | null = null;
+
+          Object.entries(itemsByStore).forEach(([sId, storeData]: [string, any]) => {
+            const foundItem = storeData?.items?.find((i: any) => i.sku === item.sku);
+            if (foundItem) {
+              storeId = sId !== 'unknown' ? sId : null;
+              storeName = storeData.store_name;
+              image = foundItem.image;
+            }
+          });
+
+          return {
+            cart_id: cartId,
+            sku: item.sku,
+            nombre: item.nombre,
+            quantity: item.cantidad,
+            unit_price: item.precio_unitario,
+            total_price: item.subtotal,
+            store_id: storeId,
+            store_name: storeName,
+            image: image,
+          };
+        });
+
+        await supabase.from('b2c_cart_items').insert(cartItems);
+      }
+
+      // 3. Cancel order
+      const cancelledBy = user?.id === order.seller_id ? 'seller' : (user?.id === buyerId ? 'buyer' : 'admin');
+      const { data, error } = await supabase
+        .from('orders_b2b')
+        .update({ 
+          payment_status: 'cancelled',
+          status: 'cancelled',
+          updated_at: new Date().toISOString(),
+          metadata: {
+            ...metadata,
+            cancelled_at: new Date().toISOString(),
+            cancelled_by: cancelledBy,
+            items_restored_to_cart: restoreToCart && buyerId && orderItems.length > 0,
+          }
+        })
+        .eq('id', orderId)
+        .select()
+        .maybeSingle();
+      
+      if (error) throw error;
+      return { ...data, itemsRestored: restoreToCart ? orderItems.length : 0 };
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-b2c-sales'] });
+      queryClient.invalidateQueries({ queryKey: ['all-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['b2c-cart-items'] });
+      toast({ 
+        title: 'Pedido cancelado', 
+        description: data.itemsRestored > 0 
+          ? `${data.itemsRestored} productos restaurados al carrito del cliente.`
+          : 'El pedido ha sido cancelado.'
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al cancelar pedido', description: error.message, variant: 'destructive' });
+    },
+  });
+
   // Get order stats
   const useOrderStats = (sellerId?: string) => {
     return useQuery({
@@ -448,6 +567,7 @@ export const useOrders = () => {
     updateOrderStatus,
     updateOrderTracking,
     cancelOrder,
+    cancelOrderWithRestore,
     confirmManualPayment,
     rejectManualPayment,
   };
