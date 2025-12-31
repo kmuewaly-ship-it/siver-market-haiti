@@ -23,12 +23,19 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent } from "@/components/ui/card";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   Drawer,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from "@/components/ui/drawer";
-import { ChevronRight, ChevronLeft, ShoppingCart, Heart, Store as StoreIcon, Package, TrendingUp, Calculator, Shield, Truck, RotateCcw, Award, MessageCircle, Zap, Info, Star, X, ArrowLeft, Search, Share2, MoreVertical } from "lucide-react";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { ChevronRight, ChevronLeft, ShoppingCart, Heart, Store as StoreIcon, Package, TrendingUp, Calculator, Shield, Truck, RotateCcw, Award, MessageCircle, Zap, Info, Star, X, ArrowLeft, Search, Share2, MoreVertical, ZoomIn } from "lucide-react";
 
 // Hook to fetch product from both seller_catalog and products table by SKU or catalog ID
 const useProductBySku = (sku: string | undefined, catalogId: string | undefined) => {
@@ -231,6 +238,8 @@ const ProductPage = () => {
   // Title collapse/expand
   const [titleExpanded, setTitleExpanded] = useState(false);
   const [showTitleToggle, setShowTitleToggle] = useState(false);
+  // Image zoom
+  const [zoomOpen, setZoomOpen] = useState(false);
 
   // Determine if title is long enough to show toggle
   useEffect(() => {
@@ -663,32 +672,7 @@ const ProductPage = () => {
       )}
 
       {/* Sticky Nav Tabs: reemplaza la barra de categorías */}
-      {!isMobile && showStickyNav && <div className="sticky top-0 z-40 bg-white border-b py-2 shadow-sm animate-fade-in">
-          <div role="tablist" aria-label="Product sections" className="max-w-3xl mx-auto w-full px-2 py-1 flex items-center justify-center">
-            <div className="w-auto rounded-md border border-[#071d7f] bg-white px-2 py-1 flex items-center justify-center gap-1">
-              <button id="tab-desc" role="tab" aria-selected={activeTab === 'desc'} aria-controls="section-desc" tabIndex={activeTab === 'desc' ? 0 : -1} onClick={() => {
-            setActiveTab('desc');
-            scrollToSection(descRef);
-          }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'desc' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
-                Descripción
-              </button>
-
-              <button id="tab-reviews" role="tab" aria-selected={activeTab === 'reviews'} aria-controls="section-reviews" tabIndex={activeTab === 'reviews' ? 0 : -1} onClick={() => {
-            setActiveTab('reviews');
-            scrollToSection(reviewsRef);
-          }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'reviews' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
-                Valoraciones
-              </button>
-
-              <button id="tab-recs" role="tab" aria-selected={activeTab === 'recs'} aria-controls="section-recs" tabIndex={activeTab === 'recs' ? 0 : -1} onClick={() => {
-            setActiveTab('recs');
-            scrollToSection(recsRef);
-          }} onKeyDown={handleTabKeyDown} className={`px-2 py-0.5 text-xs font-semibold ${activeTab === 'recs' ? 'bg-[#071d7f] text-white rounded-full shadow-sm' : 'bg-white border border-blue-100 text-[#071d7f] rounded-md'}`}>
-                Recomendados
-              </button>
-            </div>
-          </div>
-        </div>}
+      {/* REMOVED: Desktop sticky nav replaced with Accordion component */}
 
       <main className={`container mx-auto ${isMobile ? 'px-0 pb-12' : 'px-4 pb-12'} py-4`}>
         {/* Breadcrumb / Retorno Button - Desktop */}
@@ -702,10 +686,13 @@ const ProductPage = () => {
           </button>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <div className={`${isMobile ? 'grid grid-cols-1 gap-8 mb-8' : 'grid grid-cols-2 gap-8 mb-8'}`}>
           {/* Image Gallery */}
-          <div ref={imageRef} className={`space-y-4 ${isMobile ? '' : ''}`}>
-            <div className={`relative bg-white overflow-hidden shadow-sm border-gray-100 ${isMobile ? 'w-full aspect-[4/5] rounded-none border-y' : 'rounded-2xl aspect-square border'}`}>
+          <div ref={imageRef} className={`space-y-4 ${isMobile ? '' : 'sticky top-0 h-fit'}`}>
+            <div 
+              onClick={() => !isMobile && setZoomOpen(true)}
+              className={`relative bg-white overflow-hidden shadow-sm border-gray-100 cursor-zoom-in ${isMobile ? 'w-full aspect-[4/5] rounded-none border-y' : 'rounded-2xl aspect-square border'}`}
+            >
               {images.length > 0 ? <img src={images[selectedImage]} alt={product.nombre} className={`w-full h-full ${isMobile ? 'object-cover' : 'object-contain p-4'}`} /> : <div className="w-full h-full flex items-center justify-center bg-gray-50">
                   <Package className="h-20 w-20 text-gray-300" />
                 </div>}
@@ -739,16 +726,51 @@ const ProductPage = () => {
               </button>
             </div>
 
-            {/* Thumbnails */}
-            {images.length > 1 && <div className="flex gap-3 overflow-x-auto pb-2 px-1">
+            {/* Thumbnails for Desktop */}
+            {!isMobile && images.length > 1 && <div className="flex gap-3 overflow-x-auto pb-2 px-1">
                 {images.map((image, index) => <button key={index} onClick={() => setSelectedImage(index)} className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${selectedImage === index ? "border-blue-600 ring-2 ring-blue-100" : "border-transparent bg-white"}`}>
                     <img src={image} alt="" className="w-full h-full object-cover" />
                   </button>)}
               </div>}
+
+            {/* Color Variants Grid for Mobile */}
+            {isMobile && images.length > 0 && (
+              <div className="px-4 py-4 bg-white border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Colores disponibles</h4>
+                <div className="flex flex-wrap gap-3 justify-start">
+                  {images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`relative overflow-hidden rounded-full border-2 transition-all w-14 h-14 hover:border-gray-400 flex-shrink-0 ${
+                        selectedImage === index
+                          ? 'border-blue-600 ring-2 ring-blue-100'
+                          : 'border-gray-300 hover:border-gray-400'
+                      }`}
+                      title={`Color ${index + 1}`}
+                    >
+                      <img 
+                        src={image} 
+                        alt={`Color ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {selectedImage === index && (
+                        <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                          <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">✓</span>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
 
           {/* Product Info */}
-          <div className={`space-y-3 ${isMobile ? 'px-4' : ''}`}> 
+          <div className={`space-y-3 ${isMobile ? 'px-4' : 'overflow-y-auto max-h-[calc(100vh-200px)] pr-4'}`}> 
             <div>
               {/* Badges */}
               <div className="flex flex-wrap gap-2 mb-3">
@@ -837,6 +859,40 @@ const ProductPage = () => {
                 </div>}
             </div>
 
+            {/* Color Variants List for Desktop */}
+            {!isMobile && images.length > 0 && (
+              <div className="mt-4 pt-4 border-t border-gray-200">
+                <h4 className="text-sm font-semibold text-gray-900 mb-3">Variantes de color</h4>
+                <div className="flex flex-wrap gap-3">
+                  {images.map((image, index) => (
+                    <button
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`relative overflow-hidden rounded-full border-2 transition-all w-14 h-14 hover:border-gray-400 flex-shrink-0 ${
+                        selectedImage === index
+                          ? 'border-blue-600 ring-2 ring-blue-100'
+                          : 'border-gray-300'
+                      }`}
+                      title={`Color ${index + 1}`}
+                    >
+                      <img 
+                        src={image} 
+                        alt={`Color ${index + 1}`}
+                        className="w-full h-full object-cover"
+                      />
+                      {selectedImage === index && (
+                        <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
+                          <div className="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center">
+                            <span className="text-white text-xs font-bold">✓</span>
+                          </div>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
               {/* Variant Selector - Uses database variants */}
               <div className="mt-3" ref={buySection}>
                 {/* Open ProductBottomSheet on mobile, VariantDrawer on desktop */}
@@ -900,17 +956,32 @@ const ProductPage = () => {
                 </Button>
               </div>
             ) : (
-              <div id="section-desc" ref={descRef} className="scroll-mt-20">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Descripción</h3>
-                <div 
-                  className="border-2 rounded-lg p-4 bg-white"
-                  style={{ borderColor: '#94111f' }}
-                >
-                  <p className="text-sm text-gray-700 whitespace-pre-line prose prose-sm max-w-none text-gray-600">
-                    {product?.descripcion}
-                  </p>
-                </div>
-              </div>
+              <Accordion type="single" collapsible defaultValue="descripcion" className="w-full mt-10">
+                <AccordionItem value="descripcion" className="border border-gray-200 rounded-lg overflow-hidden">
+                  <AccordionTrigger className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 hover:bg-gray-100 text-left font-semibold text-gray-900 flex items-center justify-between">
+                    <span>Descripción</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 py-4 bg-white border-t border-gray-200">
+                    <div 
+                      className="border-2 rounded-lg p-4 bg-white"
+                      style={{ borderColor: '#071d7f' }}
+                    >
+                      <p className="text-sm text-gray-700 whitespace-pre-line prose prose-sm max-w-none text-gray-600">
+                        {product?.descripcion}
+                      </p>
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+
+                <AccordionItem value="valoraciones" className="border border-gray-200 rounded-lg overflow-hidden mt-3">
+                  <AccordionTrigger className="px-6 py-4 bg-gradient-to-r from-gray-50 to-gray-100 hover:bg-gray-100 text-left font-semibold text-gray-900 flex items-center justify-between">
+                    <span>Valoraciones</span>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 py-4 bg-white border-t border-gray-200">
+                    <ProductReviews productId={product?.source_product?.id || product?.id} productName={product?.nombre} />
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
             )}
 
             {/* Description Drawer for Mobile */}
@@ -931,7 +1002,7 @@ const ProductPage = () => {
                   <div className="flex-1 overflow-y-auto px-4 pb-6">
                     <div 
                       className="border-2 rounded-lg p-4 bg-white"
-                      style={{ borderColor: '#94111f' }}
+                      style={{ borderColor: '#071d7f' }}
                     >
                       <p className="text-sm text-gray-700 whitespace-pre-line">
                         {product?.descripcion}
@@ -942,18 +1013,14 @@ const ProductPage = () => {
               </DrawerContent>
             </Drawer>
 
-            {/* Valoraciones - Using ProductReviews component */}
-            <div id="section-reviews" ref={reviewsRef} className="mt-10 scroll-mt-20">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Valoraciones</h3>
-              <ProductReviews productId={product.source_product?.id || product.id} productName={product.nombre} />
-            </div>
 
-            {/* Recomendados */}
-            <div id="section-recs" ref={recsRef} className="mt-10 scroll-mt-20">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">Recomendados</h3>
-              {/* Aquí iría el componente de recomendados o placeholder */}
-              <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-400">Sin productos recomendados.</div>
-            </div>
+            {/* Valoraciones - Using ProductReviews component */}
+            {isMobile && (
+              <div id="section-reviews" ref={reviewsRef} className="mt-10 scroll-mt-20">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Valoraciones</h3>
+                <ProductReviews productId={product.source_product?.id || product.id} productName={product.nombre} />
+              </div>
+            )}
 
             {/* Trust Badges */}
             <div className="grid grid-cols-2 gap-3 pt-4 border-t border-gray-100">
@@ -996,6 +1063,12 @@ const ProductPage = () => {
                 </Link>)}
             </div>
           </div>}
+
+        {/* Recomendados - Full Width */}
+        <div id="section-recs" ref={recsRef} className="mt-12 pt-8 border-t border-gray-200 scroll-mt-20">
+          <h3 className="text-2xl font-bold text-gray-900 mb-6">Recomendados</h3>
+          <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-400">Sin productos recomendados.</div>
+        </div>
       </main>
 
       {/* Variant Drawer portal */}
@@ -1035,6 +1108,51 @@ const ProductPage = () => {
           onClose={() => setIsBottomSheetOpen(false)}
         />
       )}
+
+      {/* Image Zoom Modal */}
+      <Dialog open={zoomOpen} onOpenChange={setZoomOpen}>
+        <DialogContent className="max-w-4xl max-h-[90vh] p-0 bg-white">
+          <div className="relative w-full h-full flex flex-col">
+            <button 
+              onClick={() => setZoomOpen(false)}
+              className="absolute top-4 right-4 z-10 bg-white rounded-full p-2 shadow-lg hover:bg-gray-100"
+            >
+              <X className="w-6 h-6" />
+            </button>
+            
+            <div className="flex-1 flex items-center justify-center bg-gray-50 p-4 rounded-lg m-4">
+              {images.length > 0 ? (
+                <img 
+                  src={images[selectedImage]} 
+                  alt={product?.nombre} 
+                  className="max-w-full max-h-[70vh] object-contain"
+                />
+              ) : (
+                <Package className="w-24 h-24 text-gray-300" />
+              )}
+            </div>
+
+            {/* Thumbnail Navigation */}
+            {images.length > 1 && (
+              <div className="flex gap-3 overflow-x-auto pb-4 px-4 justify-center">
+                {images.map((image, index) => (
+                  <button 
+                    key={index}
+                    onClick={() => setSelectedImage(index)}
+                    className={`flex-shrink-0 w-20 h-20 rounded-lg overflow-hidden border-2 transition-all ${
+                      selectedImage === index 
+                        ? 'border-blue-600 ring-2 ring-blue-100' 
+                        : 'border-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <img src={image} alt="" className="w-full h-full object-cover" />
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {!isMobile && <Footer />}
     </div>;

@@ -55,25 +55,41 @@ const ProductCarousel = ({
 
   if (isLoading) {
     return (
-      <section className="w-full">
+      <section className="w-full px-0 md:px-0">
         {/* Box Container */}
-        <div className="bg-[#fff3f3] border-2 border-gray-300 shadow-sm">
-          {/* Header */}
-          <div className="bg-gray-100 px-4 py-1 border-b border-gray-200">
-            <h2 className="text-sm font-bold text-foreground">
-              {title}
-            </h2>
+        <div className="bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden">
+          {/* Header / Section Separator */}
+          <div className="hidden md:block bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-base font-bold text-foreground truncate">
+                  {title}
+                </h2>
+              </div>
+            </div>
           </div>
+
+          {/* Mobile Header */}
+          <div className="md:hidden bg-gradient-to-r from-gray-50 to-gray-100 px-3 py-3 border-b border-gray-200">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-sm font-bold text-foreground truncate">
+                  {title}
+                </h2>
+              </div>
+            </div>
+          </div>
+
           {/* Content */}
-          <div className="p-4">
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+          <div className="p-2 md:p-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3">
               {Array.from({ length: 5 }).map((_, i) => (
                 <div key={i} className="bg-card rounded-lg overflow-hidden">
                   <Skeleton className="aspect-[3/4] w-full" />
-                  <div className="p-3 space-y-2">
-                    <Skeleton className="h-4 w-full" />
-                    <Skeleton className="h-4 w-2/3" />
-                    <Skeleton className="h-8 w-full" />
+                  <div className="p-2 md:p-3 space-y-1 md:space-y-2">
+                    <Skeleton className="h-3 md:h-4 w-full" />
+                    <Skeleton className="h-3 md:h-4 w-2/3" />
+                    <Skeleton className="h-6 md:h-8 w-full" />
                   </div>
                 </div>
               ))}
@@ -89,30 +105,58 @@ const ProductCarousel = ({
   }
 
   return (
-    <section className="w-full">
-      {/* Box Container */}
-      <div className="bg-[#fff3f3] border-2 border-gray-300 shadow-sm">
-        {/* Header */}
-        <div className="bg-gray-100 px-4 py-0 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold text-foreground">
-              {title}
-            </h2>
-            <a href={linkTo} className="inline-flex items-center justify-center w-6 h-6 border-2 border-[#94111f] rounded hover:bg-[#94111f]/10 transition">
-              <ChevronRight className="w-3 h-3 text-[#94111f]" />
-            </a>
+    <section className="w-full px-0 md:px-0">
+      {/* Box Container - Unified on Desktop */}
+      <div className="bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden">
+        {/* Desktop Header - Integrated */}
+        <div className="hidden md:block bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-base font-bold text-foreground truncate">
+                {title}
+              </h2>
+            </div>
+            {linkTo && linkTo !== "/" && (
+              <a 
+                href={linkTo} 
+                className="text-[#071d7f] hover:text-[#094bb8] text-sm font-medium flex items-center gap-1 whitespace-nowrap flex-shrink-0"
+              >
+                Ver todo
+                <ChevronRight className="w-4 h-4" />
+              </a>
+            )}
           </div>
         </div>
 
-        {/* Carousel Container */}
-        <div className="relative p-2">
+        {/* Mobile Header */}
+        <div className="md:hidden bg-gradient-to-r from-gray-50 to-gray-100 px-3 py-3 border-b border-gray-200">
+          <div className="flex items-center justify-between gap-3">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-sm font-bold text-foreground truncate">
+                {title}
+              </h2>
+            </div>
+            {linkTo && linkTo !== "/" && (
+              <a 
+                href={linkTo} 
+                className="text-[#071d7f] hover:text-[#094bb8] text-xs font-medium flex items-center gap-1 whitespace-nowrap flex-shrink-0"
+              >
+                Ver todo
+                <ChevronRight className="w-3 h-3" />
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Carousel Container - Integrated with header */}
+        <div className="relative p-2 md:p-4 bg-white">
           {/* Left Arrow */}
           {currentIndex > 0 && (
             <button
               onClick={() => scroll("left")}
-              className="absolute -left-2 top-1/2 transform -translate-y-1/2 z-10 bg-muted hover:bg-muted/80 p-2 rounded-full transition"
+              className="absolute -left-3 md:-left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 hover:bg-gray-50 p-1.5 md:p-2 rounded-full transition shadow-sm"
             >
-              <ChevronLeft className="w-5 h-5 text-foreground" />
+              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
             </button>
           )}
 
@@ -127,9 +171,9 @@ const ProductCarousel = ({
           {currentIndex < products.length - itemsPerView && (
             <button
               onClick={() => scroll("right")}
-              className="absolute -right-2 top-1/2 transform -translate-y-1/2 z-10 bg-muted hover:bg-muted/80 p-2 rounded-full transition"
+              className="absolute -right-3 md:-right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 hover:bg-gray-50 p-1.5 md:p-2 rounded-full transition shadow-sm"
             >
-              <ChevronRight className="w-5 h-5 text-foreground" />
+              <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
             </button>
           )}
         </div>

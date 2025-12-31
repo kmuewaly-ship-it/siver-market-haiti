@@ -8,7 +8,9 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Star, ThumbsUp, Trash2, User, MessageSquare, ChevronRight } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Star, ThumbsUp, Trash2, User, MessageSquare, ChevronRight, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -138,6 +140,7 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
   const [newTitle, setNewTitle] = useState("");
   const [newComment, setNewComment] = useState("");
   const [isAnonymous, setIsAnonymous] = useState(false);
+  const [showAllReviews, setShowAllReviews] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -177,10 +180,35 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
 
   return (
     <div className="space-y-6 bg-gray-50 rounded-lg p-4">
-      {/* Header con Ver todo */}
-      <div className="flex items-center justify-between">
-        <h3 className="text-xl font-bold text-gray-900">Comentarios ({stats.totalReviews}+)</h3>
-        <button className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1">
+      {/* Header con Ver todo y Escribir reseña */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
+        <div className="flex items-center gap-4 flex-wrap">
+          <h3 className="text-xl font-bold text-gray-900">Comentarios</h3>
+          <div className="flex items-center gap-2">
+            <div className="flex gap-0.5">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className={`w-4 h-4 ${i < Math.round(stats.averageRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`} />
+              ))}
+            </div>
+            <span className="text-sm text-gray-600">({stats.totalReviews}+)</span>
+          </div>
+          {user && !userReview && (
+            <Button
+              onClick={() => setShowForm(true)}
+              variant="outline"
+              size="sm"
+              className="text-xs"
+            >
+              <MessageSquare className="h-3 w-3 mr-1" />
+              Escribir reseña
+            </Button>
+          )}
+        </div>
+        
+        <button 
+          onClick={() => setShowAllReviews(true)}
+          className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-1 transition-colors"
+        >
           Ver todo <ChevronRight className="w-4 h-4" />
         </button>
       </div>
@@ -248,21 +276,10 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
         </span>
       </div>
 
-      {/* Add Review Button / Form */}
-      {user && !userReview && (
-        <div>
-          {!showForm ? (
-            <Button
-              variant="outline"
-              onClick={() => setShowForm(true)}
-              className="w-full md:w-auto"
-            >
-              <MessageSquare className="h-4 w-4 mr-2" />
-              Escribir una reseña
-            </Button>
-          ) : (
-            <Card>
-              <CardContent className="p-4">
+      {/* Add Review Form - shown when user clicks "Escribir reseña" button */}
+      {user && !userReview && showForm && (
+        <Card>
+          <CardContent className="p-4">
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div>
                     <label className="text-sm font-medium mb-2 block">
@@ -330,8 +347,6 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
                 </form>
               </CardContent>
             </Card>
-          )}
-        </div>
       )}
 
       {!user && (
@@ -365,6 +380,39 @@ const ProductReviews = ({ productId, productName }: ProductReviewsProps) => {
           </div>
         )}
       </div>
+
+      {/* Modal de Todos los Comentarios */}
+      <Dialog open={showAllReviews} onOpenChange={setShowAllReviews}>
+        <DialogContent className="max-w-2xl max-h-[80vh] flex flex-col">
+          <DialogHeader className="flex items-center justify-between">
+            <DialogTitle className="text-2xl font-bold">
+              Todos los comentarios ({reviews?.length || 0})
+            </DialogTitle>
+          </DialogHeader>
+
+          <ScrollArea className="flex-1 pr-4">
+            <div className="space-y-4">
+              {reviews && reviews.length > 0 ? (
+                reviews.map((review) => (
+                  <ReviewCard
+                    key={review.id}
+                    review={review}
+                    currentUserId={user?.id}
+                    onDelete={handleDelete}
+                  />
+                ))
+              ) : (
+                <div className="text-center py-12">
+                  <MessageSquare className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                  <p className="text-gray-500">
+                    Aún no hay reseñas para este producto
+                  </p>
+                </div>
+              )}
+            </div>
+          </ScrollArea>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
