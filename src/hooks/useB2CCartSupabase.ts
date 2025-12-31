@@ -45,26 +45,34 @@ export const useB2CCartSupabase = () => {
     try {
       console.log('Fetching or creating cart for user:', userId);
       
-      // Try to get existing cart
-      const { data: existingCart, error: fetchError } = await supabase
+      // Try to get latest open cart (legacy data may contain multiple open carts)
+      const { data: existingCarts, error: fetchError } = await supabase
         .from('b2c_carts')
         .select('*')
         .eq('user_id', userId)
         .eq('status', 'open')
-        .single();
+        .order('created_at', { ascending: false })
+        .limit(1);
+
+      if (fetchError) {
+        console.error('Error fetching cart:', fetchError);
+        throw fetchError;
+      }
 
       let cartId: string;
 
-      if (fetchError && fetchError.code === 'PGRST116') {
+      if (!existingCarts || existingCarts.length === 0) {
         // No cart exists, create one
         console.log('No existing cart found, creating new one');
-        
+
         const { data: newCart, error: createError } = await supabase
           .from('b2c_carts')
-          .insert([{
-            user_id: userId,
-            status: 'open',
-          }])
+          .insert([
+            {
+              user_id: userId,
+              status: 'open',
+            },
+          ])
           .select()
           .single();
 
@@ -75,12 +83,9 @@ export const useB2CCartSupabase = () => {
 
         console.log('Cart created successfully:', newCart);
         cartId = newCart.id;
-      } else if (fetchError) {
-        console.error('Error fetching cart:', fetchError);
-        throw fetchError;
       } else {
-        console.log('Existing cart found:', existingCart);
-        cartId = existingCart.id;
+        console.log('Existing cart found:', existingCarts[0]);
+        cartId = existingCarts[0].id;
       }
 
       // Fetch cart items
