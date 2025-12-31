@@ -129,16 +129,15 @@ const SellerCheckout = () => {
 
       if (orderError) throw orderError;
 
-      // Create order items
+      // Create order items (only include columns that exist in order_items_b2b table)
       const orderItems = items.map(item => ({
         order_id: order.id,
-        product_id: item.productId,
+        product_id: item.productId || null,
         sku: item.sku,
         nombre: item.name,
         cantidad: item.cantidad,
         precio_unitario: item.precioB2B,
         subtotal: item.subtotal,
-        seller_catalog_id: null, // B2B items are from products table, not seller_catalog
       }));
 
       const { error: itemsError } = await supabase
