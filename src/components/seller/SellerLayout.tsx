@@ -25,19 +25,6 @@ export function SellerLayout({
 }: SellerLayoutProps) {
   const isMobile = useIsMobile();
 
-  // Force full reload when entering any seller area to ensure fresh state
-  useEffect(() => {
-    try {
-      const navEntries = (performance && (performance as any).getEntriesByType) ? (performance as any).getEntriesByType('navigation') : null;
-      const navType = navEntries && navEntries.length ? navEntries[0].type : ((performance as any).navigation ? ((performance as any).navigation.type === 1 ? 'reload' : 'navigate') : 'navigate');
-      if (navType !== 'reload') {
-        window.location.reload();
-      }
-    } catch (err) {
-      // silently ignore
-    }
-  }, []);
-
   return (
     <SidebarProvider>
       <div className="flex w-full min-h-screen">
