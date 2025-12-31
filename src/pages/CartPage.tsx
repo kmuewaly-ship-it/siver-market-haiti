@@ -10,7 +10,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ShoppingCart, Trash2, Package, MessageCircle } from "lucide-react";
+import { ShoppingCart, Trash2, Package, MessageCircle, CreditCard, Banknote, Wallet, DollarSign } from "lucide-react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { useB2CCartItems } from "@/hooks/useB2CCartItems";
 import { useActiveB2COrder } from "@/hooks/useB2COrders";
@@ -153,6 +153,49 @@ const CartPage = () => {
     return grouped;
   }, [items]);
 
+  // Get unique payment methods from all stores
+  const paymentMethods = useMemo(() => {
+    const methods = new Set<string>();
+    
+    items.forEach(item => {
+      if (item.storeMetadata?.paymentMethods && Array.isArray(item.storeMetadata.paymentMethods)) {
+        item.storeMetadata.paymentMethods.forEach(method => {
+          methods.add(method);
+        });
+      }
+    });
+
+    // Default payment methods if none are defined - Always include Tarjetas, Transferencia, MonCash, NatCash
+    if (methods.size === 0) {
+      return ['Tarjetas', 'Transferencia', 'MonCash', 'NatCash'];
+    }
+
+    return Array.from(methods);
+  }, [items]);
+
+  // Map payment method names to display info
+  const getPaymentMethodDisplay = (method: string) => {
+    const methodMap: Record<string, { label: string; color: string; abbr: string; icon?: any }> = {
+      'visa': { label: 'Tarjetas', color: '#1435CB', abbr: 'Tarjetas', icon: 'card' },
+      'mastercard': { label: 'Tarjetas', color: '#1435CB', abbr: 'Tarjetas', icon: 'card' },
+      'amex': { label: 'Tarjetas', color: '#1435CB', abbr: 'Tarjetas', icon: 'card' },
+      'American Express': { label: 'Tarjetas', color: '#1435CB', abbr: 'Tarjetas', icon: 'card' },
+      'tarjeta': { label: 'Tarjetas', color: '#1435CB', abbr: 'Tarjetas', icon: 'card' },
+      'tarjetas': { label: 'Tarjetas', color: '#1435CB', abbr: 'Tarjetas', icon: 'card' },
+      'transferencia': { label: 'Transferencia', color: '#071d7f', abbr: 'Transferencia', icon: 'bank' },
+      'transferencia bancaria': { label: 'Transferencia', color: '#071d7f', abbr: 'Transferencia', icon: 'bank' },
+      'moncash': { label: 'MonCash', color: '#94111f', abbr: 'MonCash', icon: 'wallet' },
+      'natcash': { label: 'NatCash', color: '#1e40af', abbr: 'NatCash', icon: 'wallet' },
+      'efectivo': { label: 'Efectivo', color: '#8B7355', abbr: 'Efectivo', icon: 'dollar' },
+      'tarjeta de credito': { label: 'Tarjetas', color: '#1435CB', abbr: 'Tarjetas', icon: 'card' },
+      'paypal': { label: 'PayPal', color: '#003087', abbr: 'PayPal', icon: 'wallet' },
+      'bitcoin': { label: 'Bitcoin', color: '#F7931A', abbr: 'BTC', icon: 'wallet' },
+    };
+
+    const lowerMethod = method.toLowerCase();
+    return methodMap[lowerMethod] || { label: method, color: '#6B7280', abbr: method, icon: 'wallet' };
+  };
+
   const handleNegotiate = (storeItems: typeof items) => {
     const storeName = storeItems[0]?.storeName || 'Vendedor';
     const storeWhatsapp = storeItems[0]?.storeWhatsapp;
@@ -204,8 +247,8 @@ const CartPage = () => {
     <div className="min-h-screen bg-background flex flex-col">
       {!isMobile && <GlobalHeader />}
       
-      {/* Fixed Cart Header - Top */}
-      {items.length > 0 && (
+      {/* Fixed Cart Header - Only Mobile */}
+      {items.length > 0 && isMobile && (
         <div className="sticky top-0 z-40 bg-white shadow-md border-b border-gray-200">
           <div className="container mx-auto px-4 py-2">
             {/* Header */}
@@ -242,7 +285,7 @@ const CartPage = () => {
         </div>
       )}
 
-      <main className={`flex-1 container mx-auto px-4 ${isMobile ? 'pb-40' : 'pb-20'}`}>
+      <main className={`flex-1 ${isMobile ? 'container mx-auto px-4 pb-40' : 'max-w-7xl mx-auto px-4 py-6'}`}>
         {/* Cart Lock Banner for pending payments */}
         <B2CCartLockBanner />
         {items.length === 0 ? (
@@ -254,7 +297,8 @@ const CartPage = () => {
               <Link to="/catalogo">Ir al Catálogo</Link>
             </Button>
           </div>
-        ) : (
+        ) : isMobile ? (
+          // ========== LAYOUT MOBILE (sin cambios) ==========
           <>
             {/* Items Grouped by Store */}
             {Array.from(itemsByStore.entries()).map(([storeId, storeItems]) => {
@@ -324,6 +368,11 @@ const CartPage = () => {
                               </button>
                             </div>
                             
+                            {/* Variant and Quantity Info */}
+                            <div className="mt-1 text-xs text-gray-600">
+                              Cantidad: {item.quantity}
+                            </div>
+                            
                             {/* Price */}
                             <div className="mt-2 flex items-center gap-2">
                               <span className="text-sm font-bold" style={{ color: '#29892a' }}>
@@ -382,22 +431,395 @@ const CartPage = () => {
               );
             })}
           </>
+        ) : (
+          // ========== LAYOUT PC (DOS COLUMNAS) ==========
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 pb-20">
+            {/* COLUMNA IZQUIERDA - Items */}
+            <div className="lg:col-span-2">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+                {/* Items Header */}
+                <div className="bg-gray-50 border-b border-gray-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <ShoppingCart className="w-5 h-5" />
+                      <h2 className="font-bold text-lg text-gray-900">Mi Carrito</h2>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-700 text-sm rounded-full font-semibold">
+                        {items.length} productos
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleClearCart}
+                      className="text-red-600 hover:text-red-700 text-sm font-medium flex items-center gap-1.5 transition"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      Vaciar
+                    </button>
+                  </div>
+                </div>
+
+                {/* Store Items Container */}
+                <div className="divide-y divide-gray-200">
+                  {Array.from(itemsByStore.entries()).map(([storeId, storeItems]) => {
+                    const storeName = storeItems[0]?.storeName || 'Tienda';
+                    const storeWhatsapp = storeItems[0]?.storeWhatsapp;
+
+                    return (
+                      <div key={storeId} className="p-4">
+                        {/* Store Header */}
+                        <div className="flex items-center justify-between mb-4 pb-3 border-b border-gray-100">
+                          <div className="flex items-center gap-2">
+                            <Package className="w-4 h-4 text-gray-600" />
+                            <h3 className="font-semibold text-gray-900">{storeName}</h3>
+                          </div>
+                          {storeWhatsapp && (
+                            <button
+                              onClick={() => handleNegotiate(storeItems)}
+                              className="p-1.5 hover:bg-green-100 rounded transition"
+                              title={`Contactar a ${storeName}`}
+                            >
+                              <MessageCircle className="w-4 h-4" style={{ color: '#29892a' }} />
+                            </button>
+                          )}
+                        </div>
+
+                        {/* Store Items Grid */}
+                        <div className="space-y-4">
+                          {storeItems.map((item) => (
+                            <div
+                              key={item.id}
+                              className="flex gap-4 pb-4 border-b border-gray-100 last:border-b-0 last:pb-0 group hover:bg-gray-50 p-2 rounded transition"
+                            >
+                              {/* Checkbox */}
+                              <div className="flex items-center pt-1">
+                                <input
+                                  type="checkbox"
+                                  defaultChecked
+                                  className="w-5 h-5 rounded border-gray-300 text-blue-600 cursor-pointer"
+                                />
+                              </div>
+
+                              {/* Product Image */}
+                              <div 
+                                onClick={() => navigate(`/producto/${item.sku}`)}
+                                className="flex-shrink-0 rounded-lg bg-gray-100 overflow-hidden cursor-pointer hover:shadow-md transition w-24 h-24"
+                              >
+                                {item.image ? (
+                                  <img 
+                                    src={item.image} 
+                                    alt={item.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Package className="h-5 w-5 text-muted-foreground/50" />
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Product Info */}
+                              <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-start gap-2 mb-2">
+                                  <p 
+                                    onClick={() => navigate(`/producto/${item.sku}`)}
+                                    className="font-medium text-gray-900 line-clamp-2 cursor-pointer hover:text-blue-600 transition"
+                                  >
+                                    {item.name}
+                                  </p>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleRemoveItem(item.id, item.name);
+                                    }}
+                                    className="text-gray-400 hover:text-red-600 transition flex-shrink-0 p-1 hover:bg-red-50 rounded"
+                                    title="Eliminar del carrito"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                </div>
+
+                                {/* Variant and Quantity Info */}
+                                <div className="mt-1 text-xs text-gray-600">
+                                  Cantidad: {item.quantity}
+                                </div>
+
+                                {/* Price and Controls Row */}
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <span className="text-lg font-bold" style={{ color: '#29892a' }}>
+                                      ${item.price.toFixed(2)}
+                                    </span>
+                                    <span className="text-sm text-gray-500">
+                                      x{item.quantity}
+                                    </span>
+                                  </div>
+                                  <span className="text-lg font-bold" style={{ color: '#071d7f' }}>
+                                    ${(item.price * item.quantity).toFixed(2)}
+                                  </span>
+                                </div>
+
+                                {/* Quantity Controls */}
+                                <div className="flex items-center gap-3 mt-3">
+                                  <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateQuantity(item.id, Math.max(1, item.quantity - 1));
+                                      }}
+                                      className="p-1 hover:bg-gray-200 rounded text-xs font-medium transition"
+                                    >
+                                      −
+                                    </button>
+                                    <span className="w-6 text-center text-xs font-semibold">
+                                      {item.quantity}
+                                    </span>
+                                    <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        updateQuantity(item.id, item.quantity + 1);
+                                      }}
+                                      className="p-1 hover:bg-gray-200 rounded text-xs font-medium transition"
+                                    >
+                                      +
+                                    </button>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* COLUMNA DERECHA - Order Summary */}
+            <div className="lg:col-span-1">
+              <div className="bg-white rounded-lg border border-gray-200 overflow-hidden sticky top-24">
+                {/* Summary Header */}
+                <div className="bg-gray-50 border-b border-gray-200 p-4">
+                  <h2 className="font-bold text-lg text-gray-900">Resumen del Pedido</h2>
+                  <p className="text-xs text-gray-600 mt-1">Procesa descuentos y asientos luego confirmar precio final</p>
+                </div>
+
+                {/* Product Images Carousel */}
+                <div className="p-4 border-b border-gray-200 bg-gray-50">
+                  <div className="flex gap-2 overflow-x-auto pb-2">
+                    {items.slice(0, 5).map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex-shrink-0 w-16 h-16 rounded-lg bg-white border border-gray-200 overflow-hidden relative group"
+                      >
+                        {item.image ? (
+                          <img 
+                            src={item.image} 
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Package className="h-4 w-4 text-muted-foreground/50" />
+                          </div>
+                        )}
+                        <div className="absolute top-1 right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
+                          {item.quantity}
+                        </div>
+                      </div>
+                    ))}
+                    {items.length > 5 && (
+                      <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center font-bold text-gray-700 border border-gray-300">
+                        +{items.length - 5}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Pricing Details */}
+                <div className="p-4 space-y-3 border-b border-gray-200">
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Precio Retail:</span>
+                    <span className="font-semibold text-gray-900">${totalPrice.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Promociones:</span>
+                    <span className="font-semibold text-red-600">—</span>
+                  </div>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-gray-600">Cupón:</span>
+                    <span className="font-semibold text-blue-600">—</span>
+                  </div>
+                </div>
+
+                {/* Total Price */}
+                <div className="p-4 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
+                  <div className="flex justify-between items-center">
+                    <span className="text-gray-700 font-medium">Precio Estimado:</span>
+                    <span className="text-2xl font-bold" style={{ color: '#071d7f' }}>
+                      ${totalPrice.toFixed(2)}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-2">Se confirma el precio final en confirmar pedido</p>
+                </div>
+
+                {/* Checkout Button and Support */}
+                <div className="p-4 flex gap-3 justify-center">
+                  <button
+                    onClick={handleWhatsAppSupport}
+                    className="px-6 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 bg-transparent border border-gray-300"
+                    style={{ color: '#29892a' }}
+                    title="Contactar por WhatsApp"
+                  >
+                    <MessageCircle className="w-5 h-5" style={{ color: '#29892a' }} />
+                    Soporte
+                  </button>
+                  <Link
+                    to="/checkout"
+                    className="px-6 py-3 rounded-lg font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
+                    style={{ backgroundColor: '#071d7f' }}
+                  >
+                    <ShoppingCart className="w-5 h-5" />
+                    Comprar ({totalQuantity})
+                  </Link>
+                </div>
+
+                {/* Payment Methods */}
+                <div className="p-3 bg-gray-50 border-t border-gray-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-2">Aceptamos:</p>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {/* Credit Cards Section - Show individual card types */}
+                    {paymentMethods.includes('Tarjetas') && (
+                      <>
+                        {/* VISA */}
+                        <div 
+                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          title="VISA"
+                        >
+                          <img src="/visa.png" alt="VISA" className="h-5 w-auto" />
+                        </div>
+
+                        {/* MASTERCARD */}
+                        <div 
+                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          title="Mastercard"
+                        >
+                          <img src="/mastercard.png" alt="Mastercard" className="h-5 w-auto" />
+                        </div>
+
+                        {/* AMEX */}
+                        <div 
+                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          title="American Express"
+                        >
+                          <img src="/american express.png" alt="American Express" className="h-5 w-auto" />
+                        </div>
+
+                        {/* APPLE PAY */}
+                        <div 
+                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          title="Apple Pay"
+                        >
+                          <img src="/apple pay.png" alt="Apple Pay" className="h-5 w-auto" />
+                        </div>
+
+                        {/* GOOGLE PAY */}
+                        <div 
+                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          title="Google Pay"
+                        >
+                          <img src="/google pay.png" alt="Google Pay" className="h-5 w-auto" />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Other Payment Methods */}
+                    {paymentMethods.map((method) => {
+                      if (method === 'Tarjetas') return null; // Skip tarjetas as we handle it above
+                      
+                      const display = getPaymentMethodDisplay(method);
+                      
+                      let customContent = null;
+                      if (method === 'Transferencia' || method.toLowerCase() === 'transferencia') {
+                        customContent = (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <Banknote className="w-4 h-4" style={{ color: '#071d7f' }} />
+                            <span className="text-[8px] font-bold" style={{ color: '#071d7f' }}>BANCO</span>
+                          </div>
+                        );
+                      } else if (method === 'MonCash' || method.toLowerCase() === 'moncash') {
+                        customContent = (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <div className="w-4 h-4 rounded flex items-center justify-center" style={{ backgroundColor: '#94111f' }}>
+                              <span className="text-[5px] font-bold text-white">MC</span>
+                            </div>
+                            <span className="text-[8px] font-bold text-center" style={{ color: '#94111f' }}>MonCash</span>
+                          </div>
+                        );
+                      } else if (method === 'NatCash' || method.toLowerCase() === 'natcash') {
+                        customContent = (
+                          <div className="flex flex-col items-center gap-0.5">
+                            <div className="w-4 h-4 rounded flex items-center justify-center" style={{ backgroundColor: '#1e40af' }}>
+                              <span className="text-[5px] font-bold text-white">NC</span>
+                            </div>
+                            <span className="text-[8px] font-bold text-center" style={{ color: '#1e40af' }}>NatCash</span>
+                          </div>
+                        );
+                      } else {
+                        const renderIcon = () => {
+                          switch(display.icon) {
+                            case 'bank':
+                              return <Banknote className="w-4 h-4 mb-0.5" />;
+                            case 'wallet':
+                              return <Wallet className="w-4 h-4 mb-0.5" />;
+                            case 'dollar':
+                              return <DollarSign className="w-4 h-4 mb-0.5" />;
+                            default:
+                              return null;
+                          }
+                        };
+                        customContent = (
+                          <div className="flex flex-col items-center">
+                            <div style={{ color: display.color }}>
+                              {renderIcon()}
+                            </div>
+                            <span className="text-[8px] font-bold text-center" style={{ color: display.color }}>
+                              {display.abbr}
+                            </span>
+                          </div>
+                        );
+                      }
+                      
+                      return (
+                        <div 
+                          key={method}
+                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          title={display.label}
+                        >
+                          {customContent}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         )}
       </main>
 
-      {/* Botones Fijos - Comprar y Vaciar */}
-      {items.length > 0 && (
-        <div className={`fixed left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 ${isMobile ? 'bottom-10' : 'bottom-4'} z-40 flex justify-center`}>
+      {/* Botones Fijos - Solo Mobile */}
+      {items.length > 0 && isMobile && (
+        <div className="fixed left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 bottom-10 z-40 flex justify-center">
           <div className="rounded-lg p-2 border border-gray-300 shadow-md w-full" style={{ backgroundColor: '#efefef' }}>
             <div className="flex gap-2 justify-between">
               {/* Botón WhatsApp Soporte */}
               <button
                 onClick={handleWhatsAppSupport}
-                className="px-3 py-2 rounded-lg font-semibold text-sm transition hover:bg-green-200 border border-gray-300 flex items-center justify-center gap-1.5"
+                className="px-3 py-2 rounded-lg font-semibold text-sm transition border border-gray-300 flex items-center justify-center gap-1.5 bg-transparent"
                 style={{ color: '#29892a' }}
                 title="Contactar por WhatsApp"
               >
-                <MessageCircle className="w-4 h-4" />
+                <MessageCircle className="w-4 h-4" style={{ color: '#29892a' }} />
                 Soporte
               </button>
 

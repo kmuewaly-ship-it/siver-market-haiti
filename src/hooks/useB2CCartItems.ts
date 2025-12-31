@@ -15,6 +15,10 @@ export interface B2CCartItem {
   storeId: string | null;
   storeName: string | null;
   storeWhatsapp: string | null;
+  storeMetadata?: {
+    paymentMethods?: string[];
+    [key: string]: any;
+  } | null;
 }
 
 export const useB2CCartItems = () => {
@@ -64,7 +68,10 @@ export const useB2CCartItems = () => {
 
       const { data: cartItems, error: itemsError } = await supabase
         .from('b2c_cart_items')
-        .select('*')
+        .select(`
+          *,
+          store:store_id(metadata)
+        `)
         .eq('cart_id', openCart.id)
         .order('created_at', { ascending: false });
 
@@ -87,6 +94,7 @@ export const useB2CCartItems = () => {
         storeId: item.store_id,
         storeName: item.store_name,
         storeWhatsapp: item.store_whatsapp,
+        storeMetadata: item.store ? item.store[0]?.metadata : null,
       }));
 
       setItems(formattedItems);

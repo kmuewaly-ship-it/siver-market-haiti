@@ -142,6 +142,53 @@ const Footer = () => {
           </div>
         </div>
 
+        {/* Payment Methods */}
+        <div className="border-t border-gray-800 py-6">
+          <p className="text-sm font-semibold text-white mb-4">Métodos de Pago Aceptados:</p>
+          <div className="grid grid-cols-5 gap-4 md:gap-6 max-w-2xl">
+            {/* Credit Cards */}
+            <div className="flex flex-col items-center gap-2">
+              <img src="/visa.png" alt="VISA" className="h-6 w-auto" />
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <img src="/mastercard.png" alt="Mastercard" className="h-6 w-auto" />
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <img src="/american express.png" alt="American Express" className="h-6 w-auto" />
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <img src="/apple pay.png" alt="Apple Pay" className="h-6 w-auto" />
+            </div>
+            <div className="flex flex-col items-center gap-2">
+              <img src="/google pay.png" alt="Google Pay" className="h-6 w-auto" />
+            </div>
+
+            {/* Bank Transfer */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="flex items-center justify-center w-8 h-8 rounded border border-gray-400">
+                <span className="text-xs font-bold text-gray-400">BANCO</span>
+              </div>
+              <span className="text-xs text-gray-400">Transferencia</span>
+            </div>
+
+            {/* MonCash */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: '#94111f' }}>
+                <span className="text-[9px] font-bold text-white">MC</span>
+              </div>
+              <span className="text-xs font-bold" style={{ color: '#94111f' }}>MonCash</span>
+            </div>
+
+            {/* NatCash */}
+            <div className="flex flex-col items-center gap-2">
+              <div className="w-8 h-8 rounded flex items-center justify-center" style={{ backgroundColor: '#1e40af' }}>
+                <span className="text-[9px] font-bold text-white">NC</span>
+              </div>
+              <span className="text-xs font-bold" style={{ color: '#1e40af' }}>NatCash</span>
+            </div>
+          </div>
+        </div>
+
         {/* Bottom Footer */}
         <div className="border-t border-gray-800 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-400">
           <p>&copy; 2024 SIVER Market. Todos los derechos reservados.</p>
