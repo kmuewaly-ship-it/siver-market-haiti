@@ -290,7 +290,7 @@ export const useOrders = () => {
         .from('orders_b2b')
         .select('metadata')
         .eq('id', orderId)
-        .single();
+        .maybeSingle();
       
       const existingMetadata = (currentOrder?.metadata as Record<string, any>) || {};
       
@@ -309,7 +309,10 @@ export const useOrders = () => {
         })
         .eq('id', orderId)
         .select()
-        .single();
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!data) throw new Error('Pedido no encontrado');
       if (error) throw error;
       return data;
     },
@@ -334,7 +337,7 @@ export const useOrders = () => {
         .from('orders_b2b')
         .select('metadata')
         .eq('id', orderId)
-        .single();
+        .maybeSingle();
       
       const existingMetadata = (currentOrder?.metadata as Record<string, any>) || {};
       
@@ -352,8 +355,10 @@ export const useOrders = () => {
         })
         .eq('id', orderId)
         .select()
-        .single();
+        .maybeSingle();
+      
       if (error) throw error;
+      if (!data) throw new Error('Pedido no encontrado');
       return data;
     },
     onSuccess: () => {
