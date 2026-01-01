@@ -517,10 +517,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "b2c_cart_items_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "b2c_cart_items_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2c_cart_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
             referencedColumns: ["id"]
           },
         ]
@@ -854,6 +868,13 @@ export type Database = {
             columns: ["seller_catalog_id"]
             isOneToOne: false
             referencedRelation: "seller_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2000,6 +2021,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "seller_catalog_seller_store_id_fkey"
+            columns: ["seller_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "seller_catalog_source_order_id_fkey"
             columns: ["source_order_id"]
             isOneToOne: false
@@ -2139,6 +2167,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_statuses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2295,6 +2330,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_reservations_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog_public"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "stock_reservations_variant_id_fkey"
             columns: ["variant_id"]
             isOneToOne: false
@@ -2328,6 +2370,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_followers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2369,6 +2418,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "store_reviews_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
             referencedColumns: ["id"]
           },
         ]
@@ -2754,7 +2810,143 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      seller_catalog_public: {
+        Row: {
+          descripcion: string | null
+          id: string | null
+          images: Json | null
+          imported_at: string | null
+          is_active: boolean | null
+          nombre: string | null
+          precio_venta: number | null
+          seller_store_id: string | null
+          sku: string | null
+          stock: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          descripcion?: string | null
+          id?: string | null
+          images?: Json | null
+          imported_at?: string | null
+          is_active?: boolean | null
+          nombre?: string | null
+          precio_venta?: number | null
+          seller_store_id?: string | null
+          sku?: string | null
+          stock?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          descripcion?: string | null
+          id?: string | null
+          images?: Json | null
+          imported_at?: string | null
+          is_active?: boolean | null
+          nombre?: string | null
+          precio_venta?: number | null
+          seller_store_id?: string | null
+          sku?: string | null
+          stock?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_catalog_seller_store_id_fkey"
+            columns: ["seller_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_catalog_seller_store_id_fkey"
+            columns: ["seller_store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      stores_public: {
+        Row: {
+          allow_comments: boolean | null
+          banner: string | null
+          city: string | null
+          country: string | null
+          created_at: string | null
+          description: string | null
+          facebook: string | null
+          id: string | null
+          instagram: string | null
+          is_accepting_orders: boolean | null
+          is_active: boolean | null
+          logo: string | null
+          name: string | null
+          owner_user_id: string | null
+          return_policy: string | null
+          shipping_policy: string | null
+          show_stock: boolean | null
+          slug: string | null
+          tiktok: string | null
+          updated_at: string | null
+          whatsapp: string | null
+        }
+        Insert: {
+          allow_comments?: boolean | null
+          banner?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          description?: string | null
+          facebook?: string | null
+          id?: string | null
+          instagram?: string | null
+          is_accepting_orders?: boolean | null
+          is_active?: boolean | null
+          logo?: string | null
+          name?: string | null
+          owner_user_id?: string | null
+          return_policy?: string | null
+          shipping_policy?: string | null
+          show_stock?: boolean | null
+          slug?: string | null
+          tiktok?: string | null
+          updated_at?: string | null
+          whatsapp?: string | null
+        }
+        Update: {
+          allow_comments?: boolean | null
+          banner?: string | null
+          city?: string | null
+          country?: string | null
+          created_at?: string | null
+          description?: string | null
+          facebook?: string | null
+          id?: string | null
+          instagram?: string | null
+          is_accepting_orders?: boolean | null
+          is_active?: boolean | null
+          logo?: string | null
+          name?: string | null
+          owner_user_id?: string | null
+          return_policy?: string | null
+          shipping_policy?: string | null
+          show_stock?: boolean | null
+          slug?: string | null
+          tiktok?: string | null
+          updated_at?: string | null
+          whatsapp?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stores_owner_user_id_fkey"
+            columns: ["owner_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       fn_expire_pending_orders: { Args: never; Returns: number }
