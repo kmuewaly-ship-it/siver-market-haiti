@@ -15,6 +15,7 @@ export interface ProductReview {
   images: string[];
   created_at: string;
   updated_at: string;
+  parent_review_id: string | null;
   // Joined data
   user_name?: string;
   user_avatar?: string;
@@ -109,6 +110,7 @@ export const useAddReview = () => {
       title?: string;
       comment?: string;
       is_anonymous?: boolean;
+      parent_review_id?: string;
     }) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error("Debes iniciar sesión para dejar una reseña");
@@ -118,10 +120,11 @@ export const useAddReview = () => {
         .insert({
           product_id: review.product_id,
           user_id: user.id,
-          rating: review.rating,
+          rating: review.rating || null,
           title: review.title || null,
           comment: review.comment || null,
           is_anonymous: review.is_anonymous || false,
+          parent_review_id: review.parent_review_id || null,
         })
         .select()
         .single();

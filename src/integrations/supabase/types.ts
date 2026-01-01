@@ -1525,8 +1525,9 @@ export type Database = {
           images: Json | null
           is_anonymous: boolean | null
           is_verified_purchase: boolean | null
+          parent_review_id: string | null
           product_id: string
-          rating: number
+          rating: number | null
           title: string | null
           updated_at: string
           user_id: string
@@ -1539,8 +1540,9 @@ export type Database = {
           images?: Json | null
           is_anonymous?: boolean | null
           is_verified_purchase?: boolean | null
+          parent_review_id?: string | null
           product_id: string
-          rating: number
+          rating?: number | null
           title?: string | null
           updated_at?: string
           user_id: string
@@ -1553,13 +1555,21 @@ export type Database = {
           images?: Json | null
           is_anonymous?: boolean | null
           is_verified_purchase?: boolean | null
+          parent_review_id?: string | null
           product_id?: string
-          rating?: number
+          rating?: number | null
           title?: string | null
           updated_at?: string
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "product_reviews_parent_review_id_fkey"
+            columns: ["parent_review_id"]
+            isOneToOne: false
+            referencedRelation: "product_reviews"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "product_reviews_product_id_fkey"
             columns: ["product_id"]
