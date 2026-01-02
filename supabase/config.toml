@@ -1,7 +1,1 @@
-project_id = "foseflhlhqmlnneohkji"
-
-[functions.normalize-products]
-verify_jwt = true
-
-[functions.expire-pending-orders]
-verify_jwt = false
+project_id = "tciosfzcxmtldeosawxq"
