@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import { useDiscountCodes, CreateDiscountCodeParams } from '@/hooks/useDiscountCodes';
-import { useStore } from '@/hooks/useStore';
+import { useStoreByOwner } from '@/hooks/useStore';
+import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -35,7 +36,8 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 const SellerDiscountCodes = () => {
-  const storeQuery = useStore();
+  const { user } = useAuth();
+  const storeQuery = useStoreByOwner(user?.id);
   const store = storeQuery.data;
   const storeLoading = storeQuery.isLoading;
   const { discountCodes, isLoading, createDiscountCode, updateDiscountCode, toggleDiscountCode, deleteDiscountCode } = useDiscountCodes(store?.id);

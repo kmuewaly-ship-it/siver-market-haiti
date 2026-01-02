@@ -10,16 +10,17 @@ export interface CustomerDiscount {
   discount_type: 'percentage' | 'fixed_amount';
   discount_value: number;
   reason: string | null;
-  valid_from: string;
+  valid_from: string | null;
   valid_until: string | null;
   is_active: boolean;
   created_by: string;
   store_id: string | null;
   created_at: string;
   updated_at: string;
-  // Joined data
-  customer_email?: string;
-  customer_name?: string;
+  customer_profile?: {
+    full_name: string | null;
+    email: string | null;
+  };
 }
 
 export interface CreateCustomerDiscountParams {
@@ -33,8 +34,8 @@ export interface CreateCustomerDiscountParams {
 }
 
 export const useCustomerDiscounts = (storeId?: string | null) => {
-  const { user, roles } = useAuth();
-  const isAdmin = roles.includes(UserRole.ADMIN);
+  const { user, role } = useAuth();
+  const isAdmin = role === UserRole.ADMIN;
   const [customerDiscounts, setCustomerDiscounts] = useState<CustomerDiscount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
