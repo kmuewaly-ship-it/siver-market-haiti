@@ -743,7 +743,8 @@ const CartPage = () => {
                       if (method === 'Transferencia' || method.toLowerCase() === 'transferencia') {
                         customContent = (
                           <div className="flex flex-col items-center gap-0.5">
-                            <Banknote className="w-4 h-4" style={{ color: '#071d7f' }} />
+                            <div className="w-4 h-4 rounded flex items-center justify-center" style={{ backgroundColor: '#071d7f', border: '1px solid rgba(255, 255, 255, 0.3)' }}>
+                            </div>
                             <span className="text-[8px] font-bold" style={{ color: '#071d7f' }}>BANCO</span>
                           </div>
                         );

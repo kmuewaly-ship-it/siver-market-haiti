@@ -165,10 +165,9 @@ const Footer = () => {
 
             {/* Bank Transfer */}
             <div className="flex flex-col items-center gap-2">
-              <div className="flex items-center justify-center w-8 h-8 rounded border border-gray-400">
-                <span className="text-xs font-bold text-gray-400">BANCO</span>
+              <div className="flex items-center justify-center px-2 py-1 rounded" style={{ backgroundColor: 'white' }}>
+                <span className="text-[9px] font-bold" style={{ color: '#071d7f' }}>Transferencia</span>
               </div>
-              <span className="text-xs text-gray-400">Transferencia</span>
             </div>
 
             {/* MonCash */}
