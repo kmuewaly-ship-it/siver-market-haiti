@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import { useCustomerDiscounts, CreateCustomerDiscountParams } from '@/hooks/useCustomerDiscounts';
-import { useStore } from '@/hooks/useStore';
+import { useStoreByOwner } from '@/hooks/useStore';
+import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -43,7 +44,8 @@ interface UserProfile {
 }
 
 const SellerCustomerDiscounts = () => {
-  const storeQuery = useStore();
+  const { user } = useAuth();
+  const storeQuery = useStoreByOwner(user?.id);
   const store = storeQuery.data;
   const storeLoading = storeQuery.isLoading;
   const { customerDiscounts, isLoading, createCustomerDiscount, updateCustomerDiscount, toggleCustomerDiscount, deleteCustomerDiscount } = useCustomerDiscounts(store?.id);
@@ -135,8 +137,8 @@ const SellerCustomerDiscounts = () => {
     setEditingId(discount.id);
     setSelectedUser({
       id: discount.customer_user_id,
-      email: discount.customer_email || '',
-      full_name: discount.customer_name || null,
+      email: discount.customer_profile?.email || '',
+      full_name: discount.customer_profile?.full_name || null,
     });
     setFormData({
       discount_type: discount.discount_type,
@@ -367,8 +369,8 @@ const SellerCustomerDiscounts = () => {
                     <TableRow key={discount.id}>
                       <TableCell>
                         <div>
-                          <span className="font-medium">{discount.customer_name || 'Sin nombre'}</span>
-                          <p className="text-xs text-muted-foreground">{discount.customer_email}</p>
+                          <span className="font-medium">{discount.customer_profile?.full_name || 'Sin nombre'}</span>
+                          <p className="text-xs text-muted-foreground">{discount.customer_profile?.email}</p>
                         </div>
                       </TableCell>
                       <TableCell>

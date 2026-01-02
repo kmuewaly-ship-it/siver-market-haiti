@@ -41,8 +41,8 @@ export interface CreateDiscountCodeParams {
 }
 
 export const useDiscountCodes = (storeId?: string | null) => {
-  const { user, roles } = useAuth();
-  const isAdmin = roles.includes(UserRole.ADMIN);
+  const { user, role } = useAuth();
+  const isAdmin = role === UserRole.ADMIN;
   const [discountCodes, setDiscountCodes] = useState<DiscountCode[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
