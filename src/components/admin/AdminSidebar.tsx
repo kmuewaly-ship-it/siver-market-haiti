@@ -15,7 +15,9 @@ import {
   ClipboardList,
   Calculator,
   MessageSquare,
-  RefreshCw
+  RefreshCw,
+  Ticket,
+  UserCheck
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -56,6 +58,11 @@ const mainNavItems = [
 const settingsItems = [
   { title: "Puntos de Retiro", url: "/admin/pickup-points", icon: MapPin },
   { title: "Comisiones", url: "/admin/commissions", icon: Settings },
+];
+
+const discountItems = [
+  { title: "Códigos de Descuento", url: "/admin/codigos-descuento", icon: Ticket },
+  { title: "Descuentos por Usuario", url: "/admin/descuentos-usuarios", icon: UserCheck },
 ];
 
 export function AdminSidebar() {
@@ -102,6 +109,30 @@ export function AdminSidebar() {
                     <NavLink 
                       to={item.url} 
                       end={item.url === "/admin"}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {!isCollapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className={isCollapsed ? "sr-only" : ""}>
+            Descuentos
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {discountItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink 
+                      to={item.url}
                       className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >

@@ -61,6 +61,8 @@ const AdminCotizaciones = lazy(() => import("./pages/admin/AdminCotizaciones"));
 const AdminReembolsos = lazy(() => import("./pages/admin/AdminReembolsos"));
 const AdminCommissionPage = lazy(() => import("./pages/admin/AdminCommissionPage"));
 const AdminPickupPointsPage = lazy(() => import("./pages/admin/AdminPickupPointsPage"));
+const AdminDiscountCodes = lazy(() => import("./pages/admin/AdminDiscountCodes"));
+const AdminUserDiscounts = lazy(() => import("./pages/admin/AdminUserDiscounts"));
 
 // Lazy loaded - Seller Pages
 const SellerAcquisicionLotes = lazy(() => import("./pages/seller/SellerAcquisicionLotes"));
@@ -76,6 +78,8 @@ const SellerInventarioB2C = lazy(() => import("./pages/seller/SellerInventarioB2
 const SellerPedidosPage = lazy(() => import("./pages/seller/SellerPedidosPage"));
 const SellerMisComprasPage = lazy(() => import("./pages/seller/SellerMisComprasPage"));
 const SellerCreditPage = lazy(() => import("./pages/seller/SellerCreditPage"));
+const SellerDiscountCodes = lazy(() => import("./pages/seller/SellerDiscountCodes"));
+const SellerCustomerDiscounts = lazy(() => import("./pages/seller/SellerCustomerDiscounts"));
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -235,6 +239,22 @@ const AppContent = () => {
                 </ProtectedRoute>
               } 
             />
+            <Route 
+              path="/admin/codigos-descuento" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
+                  <LazyRoute><AdminDiscountCodes /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/descuentos-usuarios" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
+                  <LazyRoute><AdminUserDiscounts /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
             <Route path="/admin" element={<AdminLogin />} />
             
             {/* ========== SELLER ROUTES (B2B) ========== */}
@@ -339,6 +359,22 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
                   <LazyRoute><SellerFavoritesPage /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/seller/codigos-descuento" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
+                  <LazyRoute><SellerDiscountCodes /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/seller/descuentos-clientes" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
+                  <LazyRoute><SellerCustomerDiscounts /></LazyRoute>
                 </ProtectedRoute>
               } 
             />
