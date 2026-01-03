@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useGroupedVariants, ProductVariant, AttributeCombination } from "@/hooks/useProductVariants";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, Package, Image as ImageIcon } from "lucide-react";
+import { Minus, Plus, Package, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VariantSelection {
@@ -33,7 +33,7 @@ const ATTRIBUTE_CONFIG: Record<string, { displayName: string; order: number }> =
   material: { displayName: 'Material', order: 7 },
 };
 
-// Color hex mapping
+// Color hex mapping (fallback when no image available)
 const COLOR_HEX_MAP: Record<string, string> = {
   rojo: '#EF4444', red: '#EF4444',
   azul: '#3B82F6', blue: '#3B82F6',
@@ -45,10 +45,14 @@ const COLOR_HEX_MAP: Record<string, string> = {
   rosa: '#EC4899', pink: '#EC4899',
   morado: '#A855F7', purple: '#A855F7',
   gris: '#6B7280', gray: '#6B7280', grey: '#6B7280',
-  cafe: '#92400E', marron: '#92400E', brown: '#92400E',
+  cafe: '#92400E', marron: '#92400E', brown: '#92400E', coffee: '#6F4E37',
   beige: '#D4B896',
   coral: '#FF7F50',
   turquesa: '#40E0D0', turquoise: '#40E0D0',
+  navy: '#000080', khaki: '#C3B091',
+  olive: '#808000', burgundy: '#800020',
+  cream: '#FFFDD0', mint: '#98FB98',
+  lavender: '#E6E6FA', peach: '#FFCBA4',
 };
 
 const getColorHex = (colorName: string): string | null => {
@@ -76,7 +80,7 @@ const VariantSelector = ({
     onVariantImageChangeRef.current = onVariantImageChange;
   }, [onSelectionChange, onVariantImageChange]);
 
-  // Extract attribute options from EAV data
+  // Extract attribute options from EAV data with images
   const attributeOptions = useMemo(() => {
     if (!variants || variants.length === 0) return {};
     
@@ -103,6 +107,25 @@ const VariantSelector = ({
     return Object.fromEntries(
       Object.entries(options).map(([key, set]) => [key, Array.from(set)])
     );
+  }, [variants]);
+
+  // Build color-to-image map from variants
+  const colorImageMap = useMemo(() => {
+    if (!variants || variants.length === 0) return {};
+    
+    const map: Record<string, string> = {};
+    
+    variants.forEach(v => {
+      const combo = v.attribute_combination;
+      if (combo && typeof combo === 'object') {
+        const colorValue = combo.color || combo.Color;
+        if (colorValue && v.images?.[0] && !map[colorValue]) {
+          map[colorValue] = v.images[0];
+        }
+      }
+    });
+    
+    return map;
   }, [variants]);
 
   // Check if we have EAV attributes
@@ -161,13 +184,19 @@ const VariantSelector = ({
     });
   }, [variants, selectedAttributes]);
 
-  // Update image when matching variant changes
+  // Update image when matching variant changes OR when color is selected
   useEffect(() => {
-    if (onVariantImageChangeRef.current && matchingVariant) {
-      const variantImage = matchingVariant.images?.[0] || null;
-      onVariantImageChangeRef.current(variantImage || baseImage || null);
+    if (onVariantImageChangeRef.current) {
+      // Priority: matching variant image > selected color image > base image
+      if (matchingVariant?.images?.[0]) {
+        onVariantImageChangeRef.current(matchingVariant.images[0]);
+      } else if (selectedAttributes.color && colorImageMap[selectedAttributes.color]) {
+        onVariantImageChangeRef.current(colorImageMap[selectedAttributes.color]);
+      } else if (baseImage) {
+        onVariantImageChangeRef.current(baseImage);
+      }
     }
-  }, [matchingVariant, baseImage]);
+  }, [matchingVariant, selectedAttributes.color, colorImageMap, baseImage]);
 
   // Calculate totals
   const totalQty = Object.values(selections).reduce((sum, qty) => sum + qty, 0);
@@ -249,16 +278,22 @@ const VariantSelector = ({
 
           return (
             <div key={attrType} className="p-3 bg-muted/30 rounded-lg border border-border/50">
-              <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wide">
+              <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
                 {displayName}
+                {selectedValue && (
+                  <Badge variant="secondary" className="text-[10px] font-normal capitalize">
+                    {selectedValue}
+                  </Badge>
+                )}
               </h4>
               <div className={cn(
                 "flex flex-wrap gap-2",
-                isColor && "gap-1.5"
+                isColor && "gap-2"
               )}>
                 {availableOptions.map(option => {
                   const isSelected = selectedValue === option;
                   const colorHex = isColor ? getColorHex(option) : null;
+                  const colorImage = isColor ? colorImageMap[option] : null;
                   
                   // Get stock for this option
                   const optionStock = variants?.reduce((sum, v) => {
@@ -279,20 +314,75 @@ const VariantSelector = ({
                   
                   const isOutOfStock = optionStock === 0;
 
-                  if (isColor && colorHex) {
+                  // Color selector with IMAGE THUMBNAIL
+                  if (isColor) {
+                    // Show image thumbnail if available, otherwise show color swatch
+                    if (colorImage) {
+                      return (
+                        <button
+                          key={option}
+                          onClick={() => !isOutOfStock && handleAttributeSelect(attrType, option)}
+                          disabled={isOutOfStock}
+                          className={cn(
+                            "relative w-12 h-12 rounded-lg border-2 transition-all overflow-hidden group",
+                            isSelected 
+                              ? "border-primary ring-2 ring-primary/30 scale-105" 
+                              : "border-border hover:border-primary/50",
+                            isOutOfStock && "opacity-40 cursor-not-allowed"
+                          )}
+                          title={`${option}${isOutOfStock ? ' (Agotado)' : ''}`}
+                        >
+                          <img 
+                            src={colorImage} 
+                            alt={option}
+                            className="w-full h-full object-cover"
+                          />
+                          {/* Selection indicator */}
+                          {isSelected && (
+                            <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                              <Check className="h-4 w-4 text-primary drop-shadow-md" />
+                            </div>
+                          )}
+                          {/* Out of stock overlay */}
+                          {isOutOfStock && (
+                            <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                              <div className="w-8 h-0.5 bg-destructive rotate-45 rounded" />
+                            </div>
+                          )}
+                          {/* Color name tooltip on hover */}
+                          <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity p-1">
+                            <span className="text-[8px] text-white font-medium truncate block text-center capitalize">
+                              {option}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    }
+                    
+                    // Fallback to color swatch
                     return (
                       <button
                         key={option}
                         onClick={() => !isOutOfStock && handleAttributeSelect(attrType, option)}
                         disabled={isOutOfStock}
                         className={cn(
-                          "w-8 h-8 rounded-full border-2 transition-all relative",
-                          isSelected ? "border-primary ring-2 ring-primary/30 scale-110" : "border-border hover:border-primary/50",
+                          "w-10 h-10 rounded-lg border-2 transition-all relative flex items-center justify-center",
+                          isSelected 
+                            ? "border-primary ring-2 ring-primary/30 scale-105" 
+                            : "border-border hover:border-primary/50",
                           isOutOfStock && "opacity-40 cursor-not-allowed"
                         )}
-                        style={{ backgroundColor: colorHex }}
+                        style={{ backgroundColor: colorHex || '#E5E7EB' }}
                         title={`${option}${isOutOfStock ? ' (Agotado)' : ''}`}
                       >
+                        {isSelected && (
+                          <Check className={cn(
+                            "h-4 w-4 drop-shadow-md",
+                            colorHex && (colorHex === '#F9FAFB' || colorHex === '#FFFDD0') 
+                              ? "text-gray-800" 
+                              : "text-white"
+                          )} />
+                        )}
                         {isOutOfStock && (
                           <div className="absolute inset-0 flex items-center justify-center">
                             <div className="w-6 h-0.5 bg-destructive rotate-45 rounded" />
@@ -302,6 +392,7 @@ const VariantSelector = ({
                     );
                   }
 
+                  // Non-color attributes (size, etc.)
                   return (
                     <Button
                       key={option}
@@ -310,7 +401,8 @@ const VariantSelector = ({
                       onClick={() => !isOutOfStock && handleAttributeSelect(attrType, option)}
                       disabled={isOutOfStock}
                       className={cn(
-                        "h-8 px-3 text-xs",
+                        "h-9 px-4 text-sm font-medium",
+                        isSelected && "ring-2 ring-primary/30",
                         isOutOfStock && "opacity-50 line-through"
                       )}
                     >
@@ -323,63 +415,73 @@ const VariantSelector = ({
           );
         })}
 
-        {/* Show matching variant with quantity control */}
+        {/* Show matching variant with quantity control and consolidated info */}
         {matchingVariant && (
-          <div className="p-3 bg-primary/5 rounded-lg border border-primary/20">
-            <div className="flex items-center gap-3">
+          <div className="p-4 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="flex items-center gap-4">
               {/* Variant image thumbnail */}
               {matchingVariant.images?.[0] && (
                 <img 
                   src={matchingVariant.images[0]} 
                   alt={matchingVariant.name}
-                  className="w-12 h-12 object-cover rounded-lg border border-border"
+                  className="w-16 h-16 object-cover rounded-lg border-2 border-primary/30 shadow-sm"
                 />
               )}
               
               <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-medium text-foreground truncate">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-sm font-semibold text-foreground">
                     {Object.values(selectedAttributes).join(' / ')}
                   </span>
                   {matchingVariant.stock === 0 && (
                     <Badge variant="secondary" className="text-xs">Agotado</Badge>
                   )}
+                  {matchingVariant.stock > 0 && matchingVariant.stock <= 5 && (
+                    <Badge variant="outline" className="text-xs text-orange-600 border-orange-300">
+                      ¡Últimas {matchingVariant.stock}!
+                    </Badge>
+                  )}
                   {isB2B && matchingVariant.moq > 1 && (
-                    <Badge variant="outline" className="text-xs">Min:{matchingVariant.moq}</Badge>
+                    <Badge variant="outline" className="text-xs">Min: {matchingVariant.moq}</Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-2 mt-0.5">
-                  <span className="text-sm font-bold text-primary">
+                <div className="flex items-center gap-3 mt-1">
+                  <span className="text-lg font-bold text-primary">
                     ${(matchingVariant.price ?? basePrice).toFixed(2)}
                   </span>
+                  {matchingVariant.precio_promocional && matchingVariant.precio_promocional < (matchingVariant.price ?? basePrice) && (
+                    <span className="text-sm text-muted-foreground line-through">
+                      ${(matchingVariant.price ?? basePrice).toFixed(2)}
+                    </span>
+                  )}
                   <span className="text-xs text-muted-foreground">
-                    · {matchingVariant.stock} disp.
+                    · {matchingVariant.stock} disponibles
                   </span>
                 </div>
               </div>
 
               {/* Quantity controls */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-2">
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   onClick={() => updateQuantity(matchingVariant.id, -1, matchingVariant)}
                   disabled={(selections[matchingVariant.id] || 0) === 0 || matchingVariant.stock === 0}
                 >
-                  <Minus className="h-3 w-3" />
+                  <Minus className="h-4 w-4" />
                 </Button>
-                <div className="w-10 text-center text-sm font-semibold">
+                <div className="w-12 text-center text-lg font-bold">
                   {selections[matchingVariant.id] || 0}
                 </div>
                 <Button
                   variant="outline"
                   size="icon"
-                  className="h-8 w-8"
+                  className="h-9 w-9"
                   onClick={() => updateQuantity(matchingVariant.id, 1, matchingVariant)}
                   disabled={matchingVariant.stock === 0 || (selections[matchingVariant.id] || 0) >= matchingVariant.stock}
                 >
-                  <Plus className="h-3 w-3" />
+                  <Plus className="h-4 w-4" />
                 </Button>
               </div>
             </div>
@@ -394,7 +496,7 @@ const VariantSelector = ({
                 <Package className="h-4 w-4 text-primary" />
                 <span className="font-medium">{totalQty} unidades</span>
               </div>
-              <div className="text-lg font-bold text-primary">
+              <div className="text-xl font-bold text-primary">
                 ${totalPrice.toFixed(2)}
               </div>
             </div>

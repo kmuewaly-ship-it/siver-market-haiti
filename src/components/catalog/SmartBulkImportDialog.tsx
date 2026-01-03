@@ -14,13 +14,14 @@ import { usePriceEngine } from '@/hooks/usePriceEngine';
 import { 
   groupProductsByParent, 
   importGroupedProducts,
+  checkExistingSkus,
   type GroupedProduct,
   type RawImportRow,
 } from '@/hooks/useSmartProductGrouper';
 import { 
   Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, 
   Loader2, Calculator, Layers, Palette, Ruler, Zap, Package,
-  ArrowRight, ChevronRight
+  ArrowRight, ChevronRight, AlertTriangle
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
@@ -83,6 +84,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const [defaultSupplierId, setDefaultSupplierId] = useState<string>('');
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, message: '' });
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
+  const [duplicateSkus, setDuplicateSkus] = useState<string[]>([]);
+  const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
 
   const downloadTemplate = () => {
     const csvContent = [
@@ -168,7 +171,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     setMapping(autoMapping);
   };
 
-  const processGrouping = () => {
+  const processGrouping = async () => {
     // Convert raw data to rows with headers
     const rows: RawImportRow[] = rawData.map(row => {
       const obj: RawImportRow = {};
@@ -180,6 +183,30 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
 
     const mappingRecord: Record<string, string> = { ...mapping };
     const { groups, detectedAttributeColumns: attrs } = groupProductsByParent(rows, headers, mappingRecord);
+    
+    // Check for duplicate SKUs in database
+    setIsCheckingDuplicates(true);
+    try {
+      const baseSkus = groups.map(g => g.baseSku);
+      const existingCheck = await checkExistingSkus(baseSkus);
+      
+      // Mark groups that already exist and collect duplicate SKUs
+      const duplicates: string[] = [];
+      groups.forEach(group => {
+        const check = existingCheck[group.baseSku];
+        if (check?.exists) {
+          group.existsInDb = true;
+          group.existingProductId = check.productId;
+          duplicates.push(group.baseSku);
+        }
+      });
+      
+      setDuplicateSkus(duplicates);
+    } catch (err) {
+      console.error('Error checking duplicates:', err);
+    }
+    setIsCheckingDuplicates(false);
+    
     setGroupedProducts(groups);
     setDetectedAttributeColumns(attrs);
     setStep('grouping');
@@ -230,9 +257,17 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     setDefaultSupplierId('');
     setImportProgress({ current: 0, total: 0, message: '' });
     setImportResult(null);
+    setDuplicateSkus([]);
+    setIsCheckingDuplicates(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
+  };
+
+  // Remove duplicate products from import list
+  const removeDuplicates = () => {
+    setGroupedProducts(prev => prev.filter(g => !g.existsInDb));
+    setDuplicateSkus([]);
   };
 
   const getAttributeIcon = (type: string) => {
@@ -459,6 +494,48 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                         {col}
                       </Badge>
                     ))}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Duplicate SKU Warning */}
+              {duplicateSkus.length > 0 && (
+                <Card className="bg-orange-50 border-orange-200 dark:bg-orange-950/20 dark:border-orange-800">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2 text-orange-700 dark:text-orange-400">
+                      <AlertTriangle className="h-4 w-4" />
+                      {duplicateSkus.length} SKU(s) ya existen en la base de datos
+                    </CardTitle>
+                    <CardDescription className="text-xs text-orange-600 dark:text-orange-500">
+                      Los siguientes productos ya están registrados. Puedes ignorarlos o continuar para actualizar.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    <div className="flex flex-wrap gap-1.5">
+                      {duplicateSkus.slice(0, 10).map(sku => (
+                        <Badge key={sku} variant="outline" className="text-xs text-orange-700 border-orange-300 dark:text-orange-400">
+                          {sku}
+                        </Badge>
+                      ))}
+                      {duplicateSkus.length > 10 && (
+                        <Badge variant="outline" className="text-xs text-orange-700 border-orange-300">
+                          +{duplicateSkus.length - 10} más
+                        </Badge>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={removeDuplicates}
+                        className="text-xs"
+                      >
+                        Ignorar duplicados
+                      </Button>
+                      <p className="text-[10px] text-muted-foreground self-center">
+                        o continúa para intentar importar (puede fallar si el SKU ya existe)
+                      </p>
+                    </div>
                   </CardContent>
                 </Card>
               )}
