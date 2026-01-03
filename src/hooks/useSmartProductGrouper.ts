@@ -12,6 +12,8 @@ export interface DetectedAttribute {
   renderType: 'swatches' | 'chips' | 'dropdown' | 'buttons';
   categoryHint: string;
   uniqueValues: Set<string>;
+  // Maps color value to image URL for thumbnail display
+  colorImageMap?: Record<string, string>;
 }
 
 export interface GroupedProduct {
@@ -23,6 +25,9 @@ export interface GroupedProduct {
   description?: string;
   variants: VariantRow[];
   detectedAttributes: DetectedAttribute[];
+  // Flag to indicate if this SKU already exists in DB
+  existsInDb?: boolean;
+  existingProductId?: string;
 }
 
 export interface VariantRow {
@@ -45,7 +50,7 @@ const STANDARD_COLUMNS = [
   'costo', 'cost', 'precio', 'price', 'costo_base', 'costo base',
   'moq', 'minimo', 'min', 'cantidad_minima', 'moq_cantidad_minima',
   'stock', 'cantidad', 'qty', 'stock_fisico', 'inventory',
-  'imagen', 'image', 'foto', 'url_imagen', 'url imagen', 'picture',
+  'imagen', 'image', 'foto', 'url_imagen', 'url imagen', 'picture', 'images',
   'categoria', 'category', 'cat',
   'proveedor', 'supplier', 'vendor',
   'url', 'link', 'url_proveedor', 'url_origen', 'source_url',
@@ -59,9 +64,21 @@ const isAttributeColumn = (header: string): boolean => {
   return !STANDARD_COLUMNS.some(std => lower.includes(std) || std.includes(lower));
 };
 
-// Extract base SKU for grouping (remove variant suffixes)
+/**
+ * Extract base SKU for grouping - OPTIMIZED for common patterns
+ * Now extracts root before first hyphen for SKUs like: 325681024-Coffee-M
+ */
 const extractBaseSku = (sku: string): string => {
-  // Common patterns: SKU-RED-M, SKU_001_L, SKU.Blue.XL
+  if (!sku) return '';
+  
+  // First, try to extract the numeric root before the first hyphen
+  // This handles patterns like: 325681024-Coffee-M, 325681024-Red-L
+  const hyphenMatch = sku.match(/^([A-Za-z0-9]+)-/);
+  if (hyphenMatch && hyphenMatch[1]) {
+    return hyphenMatch[1];
+  }
+  
+  // Fallback patterns for other SKU formats
   const patterns = [
     /-[A-Z]{1,3}(-[A-Z0-9]+)*$/i,  // SKU-RED-M
     /_[A-Z]{1,3}(_[A-Z0-9]+)*$/i,  // SKU_RED_M
@@ -76,15 +93,28 @@ const extractBaseSku = (sku: string): string => {
   return base || sku;
 };
 
-// Extract parent name by removing variant info
+/**
+ * Clean parent name by removing variant info like "- Red, M" or "- Coffee, L"
+ */
 const extractParentName = (name: string): string => {
+  if (!name) return '';
+  
   // Remove common variant patterns from name
   const patterns = [
-    /\s*[-–]\s*(small|medium|large|xl|xxl|s|m|l|xs|xxxl)\s*$/i,
-    /\s*[-–]\s*(red|blue|green|black|white|pink|yellow|purple|orange|brown|grey|gray)\s*$/i,
+    // "Product Name - Red, M" -> "Product Name"
+    /\s*[-–]\s*[A-Za-z]+\s*,\s*[A-Z0-9]+\s*$/i,
+    // "Product Name, Red M" -> "Product Name"
+    /,\s*[A-Za-z]+\s+[A-Z0-9]+\s*$/i,
+    // Size suffixes
+    /\s*[-–]\s*(small|medium|large|xl|xxl|s|m|l|xs|xxxl|3xl|4xl|5xl)\s*$/i,
+    // Color suffixes
+    /\s*[-–]\s*(red|blue|green|black|white|pink|yellow|purple|orange|brown|grey|gray|coffee|beige|navy|khaki)\s*$/i,
+    // Technical specs
     /\s*[-–]\s*\d+\s*(w|watts?|v|volts?|mah?)\s*$/i,
-    /\s*\(.*\)\s*$/,  // Remove parenthetical info
-    /\s*,\s*[A-Z]{1,3}\s*$/,  // Remove ", XL" suffix
+    // Parenthetical info
+    /\s*\(.*\)\s*$/,
+    // ", XL" suffix
+    /\s*,\s*[A-Z]{1,4}\s*$/,
   ];
 
   let cleanName = name;
@@ -94,7 +124,42 @@ const extractParentName = (name: string): string => {
   return cleanName.trim() || name;
 };
 
-// Main grouping function
+/**
+ * Check if a SKU root already exists in the database
+ */
+export const checkExistingSkus = async (baseSkus: string[]): Promise<Record<string, { exists: boolean; productId?: string }>> => {
+  const result: Record<string, { exists: boolean; productId?: string }> = {};
+  
+  if (baseSkus.length === 0) return result;
+  
+  // Query for existing products with these base SKUs
+  const { data, error } = await supabase
+    .from('products')
+    .select('id, sku_interno')
+    .in('sku_interno', baseSkus);
+  
+  if (error) {
+    console.error('Error checking existing SKUs:', error);
+    return result;
+  }
+  
+  // Initialize all as not existing
+  baseSkus.forEach(sku => {
+    result[sku] = { exists: false };
+  });
+  
+  // Mark those that exist
+  data?.forEach(product => {
+    result[product.sku_interno] = { 
+      exists: true, 
+      productId: product.id 
+    };
+  });
+  
+  return result;
+};
+
+// Main grouping function - ENHANCED with color-image mapping
 export const groupProductsByParent = (
   rows: RawImportRow[],
   headers: string[],
@@ -120,6 +185,7 @@ export const groupProductsByParent = (
       renderType: render,
       categoryHint,
       uniqueValues: new Set<string>(),
+      colorImageMap: type === 'color' ? {} : undefined,
     };
   });
 
@@ -129,14 +195,15 @@ export const groupProductsByParent = (
   rows.forEach(row => {
     const sku = row[columnMapping.sku_interno] || '';
     const name = row[columnMapping.nombre] || '';
+    const imageUrl = row[columnMapping.url_imagen] || '';
     const parentId = row['parent_id'] || row['Parent_ID'] || row['parent'] || '';
     
-    // Determine group key
+    // Determine group key - use the optimized SKU extraction
     let groupKey: string;
     if (parentId) {
       groupKey = parentId;
     } else {
-      // Try to extract base SKU or use clean name
+      // Extract base SKU (root before first hyphen)
       const baseSku = extractBaseSku(sku);
       const parentName = extractParentName(name);
       groupKey = baseSku || parentName;
@@ -165,6 +232,14 @@ export const groupProductsByParent = (
       if (val) {
         attributeValues[col] = val;
         detectedAttrs[col].uniqueValues.add(val);
+        
+        // Map color value to image URL for thumbnail display
+        if (detectedAttrs[col].type === 'color' && imageUrl && detectedAttrs[col].colorImageMap) {
+          // Only set if not already mapped (first image for this color wins)
+          if (!detectedAttrs[col].colorImageMap![val]) {
+            detectedAttrs[col].colorImageMap![val] = imageUrl;
+          }
+        }
       }
     });
 
@@ -180,7 +255,7 @@ export const groupProductsByParent = (
       costBase: parseFloat(costStr.replace(/[^0-9.-]/g, '')) || 0,
       stock: parseInt(stockStr.replace(/[^0-9]/g, ''), 10) || 0,
       moq: parseInt(moqStr.replace(/[^0-9]/g, ''), 10) || 1,
-      imageUrl: row[columnMapping.url_imagen] || '',
+      imageUrl: imageUrl || '',
       sourceUrl: row[columnMapping.url_origen] || '',
       attributeValues,
     };
@@ -195,7 +270,16 @@ export const groupProductsByParent = (
         // Only include if this group has values for this attribute
         return group.variants.some(v => v.attributeValues[col]);
       })
-      .map(col => detectedAttrs[col]);
+      .map(col => ({
+        ...detectedAttrs[col],
+        // Filter colorImageMap to only include colors in this group
+        colorImageMap: detectedAttrs[col].colorImageMap 
+          ? Object.fromEntries(
+              Object.entries(detectedAttrs[col].colorImageMap || {})
+                .filter(([color]) => group.variants.some(v => v.attributeValues[col] === color))
+            )
+          : undefined,
+      }));
   });
 
   return {
@@ -228,6 +312,9 @@ export const importGroupedProducts = async (
       const totalStock = group.variants.reduce((sum, v) => sum + v.stock, 0);
       const minCost = Math.min(...group.variants.map(v => v.costBase));
       const b2bPrice = priceCalculator(minCost);
+      
+      // Collect all unique images from variants for gallery
+      const allImages = [...new Set(group.variants.map(v => v.imageUrl).filter(Boolean))];
 
       const { data: product, error: productError } = await supabase
         .from('products')
@@ -242,7 +329,9 @@ export const importGroupedProducts = async (
           moq: representativeVariant.moq,
           stock_fisico: totalStock,
           imagen_principal: representativeVariant.imageUrl || null,
+          galeria_imagenes: allImages.length > 0 ? allImages : null,
           url_origen: representativeVariant.sourceUrl || null,
+          is_parent: true,
         })
         .select()
         .single();
@@ -305,6 +394,8 @@ export const importGroupedProducts = async (
             optionCache[attrId][value] = existingOpt.id;
           } else {
             const colorHex = detectedAttr.type === 'color' ? parseColorToHex(value) : undefined;
+            // Get the image URL for this color from the colorImageMap
+            const imageUrl = detectedAttr.colorImageMap?.[value] || undefined;
             
             const { data: newOpt, error: optError } = await supabase
               .from('attribute_options')
@@ -313,6 +404,7 @@ export const importGroupedProducts = async (
                 value: valueSlug,
                 display_value: value,
                 color_hex: colorHex,
+                image_url: imageUrl, // Store the variant image for color options
               })
               .select()
               .single();
@@ -323,7 +415,7 @@ export const importGroupedProducts = async (
         }
       }
 
-      // 3. Create variants
+      // 3. Create variants with proper image mapping
       for (const variant of group.variants) {
         const variantPrice = priceCalculator(variant.costBase);
         const priceAdjustment = variantPrice - b2bPrice;
