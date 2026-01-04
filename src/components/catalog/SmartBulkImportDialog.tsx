@@ -44,6 +44,11 @@ interface ColumnMapping {
   url_origen: string;
 }
 
+interface VariantColumnConfig {
+  column: string;
+  displayName: string;
+}
+
 const DEFAULT_MAPPING: ColumnMapping = {
   sku_interno: 'SKU_Interno',
   nombre: 'Nombre',
@@ -86,6 +91,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [duplicateSkus, setDuplicateSkus] = useState<string[]>([]);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
+  const [selectedVariantColumns, setSelectedVariantColumns] = useState<VariantColumnConfig[]>([]);
 
   const downloadTemplate = () => {
     const csvContent = [
@@ -182,7 +188,16 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     });
 
     const mappingRecord: Record<string, string> = { ...mapping };
-    const { groups, detectedAttributeColumns: attrs } = groupProductsByParent(rows, headers, mappingRecord);
+    
+    // Use manually selected variant columns instead of auto-detection
+    const manualVariantColumns = selectedVariantColumns.map(vc => vc.column);
+    
+    const { groups, detectedAttributeColumns: attrs } = groupProductsByParent(
+      rows, 
+      headers, 
+      mappingRecord,
+      manualVariantColumns.length > 0 ? manualVariantColumns : undefined
+    );
     
     // Check for duplicate SKUs in database
     setIsCheckingDuplicates(true);
@@ -259,6 +274,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     setImportResult(null);
     setDuplicateSkus([]);
     setIsCheckingDuplicates(false);
+    setSelectedVariantColumns([]);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -408,22 +424,100 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                 ))}
               </div>
 
-              <Card className="bg-accent/30">
+              <Card className="bg-primary/5 border-primary/20">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm">Columnas detectadas como atributos</CardTitle>
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <Layers className="h-4 w-4" />
+                    Seleccionar Columnas de Variantes
+                  </CardTitle>
                   <CardDescription className="text-xs">
-                    Las columnas no mapeadas arriba se tratarán como atributos de variante
+                    Seleccione manualmente las columnas que contienen atributos de variante (ej: Color, Talla, Voltaje)
                   </CardDescription>
                 </CardHeader>
-                <CardContent>
-                  <div className="flex flex-wrap gap-2">
-                    {headers.filter(h => !Object.values(mapping).includes(h)).map(col => (
-                      <Badge key={col} variant="outline" className="gap-1">
-                        {getAttributeIcon(col)}
-                        {col}
-                      </Badge>
-                    ))}
+                <CardContent className="space-y-3">
+                  {/* Available columns to add as variant */}
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Agregar columna de variante:</Label>
+                    <div className="flex gap-2">
+                      <Select
+                        value=""
+                        onValueChange={(col) => {
+                          if (col && !selectedVariantColumns.find(vc => vc.column === col)) {
+                            setSelectedVariantColumns(prev => [...prev, { column: col, displayName: col }]);
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="h-9">
+                          <SelectValue placeholder="Seleccionar columna..." />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {headers
+                            .filter(h => !Object.values(mapping).includes(h))
+                            .filter(h => !selectedVariantColumns.find(vc => vc.column === h))
+                            .map((header) => (
+                              <SelectItem key={header} value={header}>
+                                <span className="flex items-center gap-2">
+                                  {getAttributeIcon(header)}
+                                  {header}
+                                </span>
+                              </SelectItem>
+                            ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
                   </div>
+
+                  {/* Selected variant columns */}
+                  {selectedVariantColumns.length > 0 ? (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Columnas de variante seleccionadas:</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {selectedVariantColumns.map((vc, index) => (
+                          <Badge 
+                            key={vc.column} 
+                            className="gap-1 pr-1 cursor-pointer hover:bg-destructive/20"
+                            onClick={() => {
+                              setSelectedVariantColumns(prev => prev.filter((_, i) => i !== index));
+                            }}
+                          >
+                            {getAttributeIcon(vc.column)}
+                            {vc.displayName}
+                            <span className="ml-1 text-muted-foreground hover:text-destructive">×</span>
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground italic">
+                      No hay columnas de variante seleccionadas. Si no selecciona ninguna, se detectarán automáticamente las columnas no mapeadas.
+                    </p>
+                  )}
+
+                  {/* Show remaining unmapped columns */}
+                  {headers.filter(h => !Object.values(mapping).includes(h) && !selectedVariantColumns.find(vc => vc.column === h)).length > 0 && (
+                    <div className="pt-2 border-t">
+                      <Label className="text-xs text-muted-foreground">Columnas disponibles sin mapear:</Label>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {headers
+                          .filter(h => !Object.values(mapping).includes(h))
+                          .filter(h => !selectedVariantColumns.find(vc => vc.column === h))
+                          .map(col => (
+                            <Badge 
+                              key={col} 
+                              variant="outline" 
+                              className="gap-1 cursor-pointer hover:bg-primary/10 text-xs"
+                              onClick={() => {
+                                setSelectedVariantColumns(prev => [...prev, { column: col, displayName: col }]);
+                              }}
+                            >
+                              {getAttributeIcon(col)}
+                              {col}
+                              <span className="text-primary">+</span>
+                            </Badge>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
 

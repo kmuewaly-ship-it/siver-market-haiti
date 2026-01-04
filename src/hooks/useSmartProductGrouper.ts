@@ -163,16 +163,19 @@ export const checkExistingSkus = async (baseSkus: string[]): Promise<Record<stri
 export const groupProductsByParent = (
   rows: RawImportRow[],
   headers: string[],
-  columnMapping: Record<string, string>
+  columnMapping: Record<string, string>,
+  manualAttributeColumns?: string[]
 ): { groups: GroupedProduct[]; detectedAttributeColumns: string[] } => {
   
-  // Identify attribute columns
-  const attributeColumns = headers.filter(h => {
-    // Skip mapped standard columns
-    const isMapped = Object.values(columnMapping).includes(h);
-    if (isMapped) return false;
-    return isAttributeColumn(h);
-  });
+  // Identify attribute columns - use manual selection if provided, otherwise auto-detect
+  const attributeColumns = manualAttributeColumns && manualAttributeColumns.length > 0
+    ? manualAttributeColumns.filter(col => headers.includes(col))
+    : headers.filter(h => {
+        // Skip mapped standard columns
+        const isMapped = Object.values(columnMapping).includes(h);
+        if (isMapped) return false;
+        return isAttributeColumn(h);
+      });
 
   // Build detected attributes info
   const detectedAttrs: Record<string, DetectedAttribute> = {};
