@@ -47,7 +47,7 @@ const SellerRegistrationPage = () => {
     password: "",
     confirmPassword: "",
   });
-  const [errors, setErrors] = useState<Record<string, string>>();
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Check if email exists when user leaves email field
   const checkEmailExists = async (email: string) => {
