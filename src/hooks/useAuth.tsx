@@ -37,22 +37,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const getUserRole = async (userId: string): Promise<UserRole> => {
     try {
+      // Get all roles for user (handles duplicates and multiple roles)
       const { data, error } = await supabase
         .from('user_roles')
         .select('role')
-        .eq('user_id', userId)
-        .maybeSingle();
+        .eq('user_id', userId);
 
       if (error) {
         console.error('Error checking user role:', error);
         return UserRole.CLIENT;
       }
 
-      // Mapeo de roles de la BD a roles de la app
-      const dbRole = data?.role as string;
-      if (dbRole === 'admin') return UserRole.ADMIN;
-      if (dbRole === 'seller') return UserRole.SELLER;
-      // 'user' en BD = 'client' en app
+      if (!data || data.length === 0) {
+        return UserRole.CLIENT;
+      }
+
+      // Priority: admin > seller > client
+      const roles = data.map(r => r.role as string);
+      if (roles.includes('admin')) return UserRole.ADMIN;
+      if (roles.includes('seller')) return UserRole.SELLER;
       return UserRole.CLIENT;
     } catch (error) {
       console.error('Error checking user role:', error);
