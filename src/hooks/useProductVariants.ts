@@ -95,9 +95,39 @@ export const useAllProductVariants = (productId: string | undefined) => {
   });
 };
 
+// Get attribute display names from the attributes table
+export const useAttributeDisplayNames = () => {
+  return useQuery({
+    queryKey: ["attribute-display-names"],
+    queryFn: async (): Promise<Record<string, string>> => {
+      const { data, error } = await supabase
+        .from("attributes")
+        .select("slug, display_name, name");
+
+      if (error) {
+        console.error("Error fetching attribute names:", error);
+        return {};
+      }
+
+      const map: Record<string, string> = {};
+      data?.forEach(attr => {
+        // Map both slug and name to display_name
+        if (attr.slug) map[attr.slug] = attr.display_name;
+        if (attr.name) map[attr.name] = attr.display_name;
+        // Also map lowercase versions
+        if (attr.slug) map[attr.slug.toLowerCase()] = attr.display_name;
+        if (attr.name) map[attr.name.toLowerCase()] = attr.display_name;
+      });
+      return map;
+    },
+    staleTime: 1000 * 60 * 30, // 30 minutes cache
+  });
+};
+
 // Get variants grouped by option_type
 export const useGroupedVariants = (productId: string | undefined) => {
   const { data: variants, ...rest } = useProductVariants(productId);
+  const { data: attrDisplayNames } = useAttributeDisplayNames();
 
   const grouped = variants?.reduce((acc, variant) => {
     const type = variant.option_type;
@@ -108,7 +138,7 @@ export const useGroupedVariants = (productId: string | undefined) => {
     return acc;
   }, {} as Record<string, ProductVariant[]>) || {};
 
-  return { grouped, variants, ...rest };
+  return { grouped, variants, attrDisplayNames: attrDisplayNames || {}, ...rest };
 };
 
 // Get variant stock summary
