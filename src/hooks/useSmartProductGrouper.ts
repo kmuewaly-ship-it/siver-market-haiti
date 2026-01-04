@@ -12,8 +12,8 @@ export interface DetectedAttribute {
   renderType: 'swatches' | 'chips' | 'dropdown' | 'buttons';
   categoryHint: string;
   uniqueValues: Set<string>;
-  // Maps color value to image URL for thumbnail display
-  colorImageMap?: Record<string, string>;
+  // Maps each attribute value to its corresponding image URL from the same row
+  valueImageMap: Record<string, string>;
 }
 
 export interface GroupedProduct {
@@ -188,7 +188,7 @@ export const groupProductsByParent = (
       renderType: render,
       categoryHint,
       uniqueValues: new Set<string>(),
-      colorImageMap: type === 'color' ? {} : undefined,
+      valueImageMap: {}, // Always create image map for all attributes
     };
   });
 
@@ -236,12 +236,10 @@ export const groupProductsByParent = (
         attributeValues[col] = val;
         detectedAttrs[col].uniqueValues.add(val);
         
-        // Map color value to image URL for thumbnail display
-        if (detectedAttrs[col].type === 'color' && imageUrl && detectedAttrs[col].colorImageMap) {
-          // Only set if not already mapped (first image for this color wins)
-          if (!detectedAttrs[col].colorImageMap![val]) {
-            detectedAttrs[col].colorImageMap![val] = imageUrl;
-          }
+        // Map attribute value to image URL for thumbnail display (all attributes)
+        if (imageUrl && !detectedAttrs[col].valueImageMap[val]) {
+          // Only set if not already mapped (first image for this value wins)
+          detectedAttrs[col].valueImageMap[val] = imageUrl;
         }
       }
     });
@@ -275,13 +273,11 @@ export const groupProductsByParent = (
       })
       .map(col => ({
         ...detectedAttrs[col],
-        // Filter colorImageMap to only include colors in this group
-        colorImageMap: detectedAttrs[col].colorImageMap 
-          ? Object.fromEntries(
-              Object.entries(detectedAttrs[col].colorImageMap || {})
-                .filter(([color]) => group.variants.some(v => v.attributeValues[col] === color))
-            )
-          : undefined,
+        // Filter valueImageMap to only include values in this group
+        valueImageMap: Object.fromEntries(
+          Object.entries(detectedAttrs[col].valueImageMap)
+            .filter(([value]) => group.variants.some(v => v.attributeValues[col] === value))
+        ),
       }));
   });
 
@@ -397,8 +393,8 @@ export const importGroupedProducts = async (
             optionCache[attrId][value] = existingOpt.id;
           } else {
             const colorHex = detectedAttr.type === 'color' ? parseColorToHex(value) : undefined;
-            // Get the image URL for this color from the colorImageMap
-            const imageUrl = detectedAttr.colorImageMap?.[value] || undefined;
+            // Get the image URL for this value from the valueImageMap
+            const imageUrl = detectedAttr.valueImageMap[value] || undefined;
             
             const { data: newOpt, error: optError } = await supabase
               .from('attribute_options')
