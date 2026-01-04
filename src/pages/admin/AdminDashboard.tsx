@@ -42,19 +42,31 @@ const getMethodLabel = (method: string) => {
   }
 };
 
-const StatCard = ({ icon: Icon, label, value, color, bgColor, isLoading }: any) => (
-  <div className="bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-border/50">
-    <div className="flex items-start justify-between mb-3">
-      <div className={`${bgColor} p-2 rounded-lg`}>
-        <Icon className={`w-5 h-5 ${color}`} />
+const StatCard = ({ icon: Icon, label, value, color, bgColor, isLoading, trend }: any) => (
+  <div className="group relative bg-gradient-to-br from-card to-card/80 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 p-4 border border-border/30 hover:border-primary/20 overflow-hidden">
+    {/* Subtle gradient overlay on hover */}
+    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+    
+    <div className="relative z-10">
+      <div className="flex items-center justify-between mb-3">
+        <div className={`${bgColor} p-2.5 rounded-xl shadow-sm`}>
+          <Icon className={`w-4 h-4 ${color}`} />
+        </div>
+        {trend && (
+          <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+            trend > 0 ? 'bg-emerald-100 text-emerald-600' : 'bg-red-100 text-red-600'
+          }`}>
+            {trend > 0 ? '+' : ''}{trend}%
+          </span>
+        )}
       </div>
+      <p className="text-[11px] uppercase tracking-wider text-muted-foreground/80 font-medium mb-1">{label}</p>
+      {isLoading ? (
+        <Skeleton className="h-7 w-20" />
+      ) : (
+        <p className="text-xl font-bold text-foreground tracking-tight">{value}</p>
+      )}
     </div>
-    <p className="text-xs text-muted-foreground mb-1">{label}</p>
-    {isLoading ? (
-      <Skeleton className="h-6 w-16" />
-    ) : (
-      <p className="text-lg font-semibold text-foreground">{value}</p>
-    )}
   </div>
 );
 
@@ -256,8 +268,8 @@ const AdminDashboard = () => {
       subtitle="Bienvenido al panel de administración"
     >
       {/* Sticky Stats Header */}
-      <div className="sticky top-0 z-40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b border-border/40 -mx-6 px-6 py-4 mb-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+      <div className="sticky top-0 z-40 bg-gradient-to-b from-background via-background/98 to-background/95 backdrop-blur-xl supports-[backdrop-filter]:bg-background/80 border-b border-border/20 shadow-sm -mx-6 px-6 py-5 mb-8">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {stickyStatsData.map((stat) => (
             <StatCard
               key={stat.label}
@@ -273,18 +285,21 @@ const AdminDashboard = () => {
       </div>
 
       {/* Dashboard Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 mb-10">
         {dashStatsData.map((stat) => (
           <Link key={stat.title} to={stat.link}>
-            <Card className="hover:shadow-card transition-all duration-300 cursor-pointer group">
-              <CardContent className="p-6">
+            <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 cursor-pointer border-border/30 hover:border-primary/30 bg-gradient-to-br from-card to-card/90">
+              {/* Decorative gradient */}
+              <div className={`absolute top-0 right-0 w-24 h-24 ${stat.bgColor} rounded-full blur-2xl opacity-40 group-hover:opacity-60 transition-opacity -translate-y-8 translate-x-8`} />
+              
+              <CardContent className="relative z-10 p-6">
                 <div className="flex items-start justify-between">
-                  <div>
-                    <p className="text-sm text-muted-foreground mb-1">{stat.title}</p>
-                    <p className="text-3xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{stat.description}</p>
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
+                    <p className="text-3xl font-bold text-foreground tracking-tight">{stat.value}</p>
+                    <p className="text-xs text-muted-foreground/80">{stat.description}</p>
                   </div>
-                  <div className={`p-3 rounded-xl ${stat.bgColor} group-hover:scale-110 transition-transform`}>
+                  <div className={`p-3.5 rounded-2xl ${stat.bgColor} shadow-sm group-hover:scale-110 group-hover:shadow-md transition-all duration-300`}>
                     <stat.icon className={`w-6 h-6 ${stat.color}`} />
                   </div>
                 </div>
