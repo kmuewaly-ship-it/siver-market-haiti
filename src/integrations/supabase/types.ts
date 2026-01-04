@@ -3245,6 +3245,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      process_withdrawal_completion: {
+        Args: {
+          p_action: string
+          p_admin_notes?: string
+          p_withdrawal_id: string
+        }
+        Returns: Json
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user" | "seller" | "staff_pickup"
