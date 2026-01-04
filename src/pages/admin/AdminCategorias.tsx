@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -47,9 +48,11 @@ import {
   Tag,
   Upload,
   X,
-  ImageIcon
+  ImageIcon,
+  Settings2
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import CategoryAttributeTemplateManager from "@/components/admin/CategoryAttributeTemplateManager";
 
 interface Category {
   id: string;
@@ -488,39 +491,59 @@ const AdminCategorias = () => {
         </Card>
       </div>
 
-      {/* Actions */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        <Button onClick={() => setIsFormOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nueva Categoría
-        </Button>
-        <Button variant="outline" onClick={expandAll}>
-          Expandir Todo
-        </Button>
-        <Button variant="outline" onClick={collapseAll}>
-          Colapsar Todo
-        </Button>
-      </div>
+      {/* Tabs for Categories and Templates */}
+      <Tabs defaultValue="categories" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="categories" className="gap-2">
+            <FolderTree className="h-4 w-4" />
+            Categorías
+          </TabsTrigger>
+          <TabsTrigger value="templates" className="gap-2">
+            <Settings2 className="h-4 w-4" />
+            Plantillas de Atributos
+          </TabsTrigger>
+        </TabsList>
 
-      {/* Category Tree */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Árbol de Categorías</CardTitle>
-        </CardHeader>
-        <CardContent>
-          {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Cargando categorías...</div>
-          ) : categoryTree.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No hay categorías. Crea la primera categoría para comenzar.
-            </div>
-          ) : (
-            <div className="space-y-1">
-              {categoryTree.map((node) => renderTreeNode(node))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+        <TabsContent value="categories" className="space-y-4">
+          {/* Actions */}
+          <div className="flex flex-wrap gap-2">
+            <Button onClick={() => setIsFormOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Nueva Categoría
+            </Button>
+            <Button variant="outline" onClick={expandAll}>
+              Expandir Todo
+            </Button>
+            <Button variant="outline" onClick={collapseAll}>
+              Colapsar Todo
+            </Button>
+          </div>
+
+          {/* Category Tree */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Árbol de Categorías</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading ? (
+                <div className="text-center py-8 text-muted-foreground">Cargando categorías...</div>
+              ) : categoryTree.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No hay categorías. Crea la primera categoría para comenzar.
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  {categoryTree.map((node) => renderTreeNode(node))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="templates">
+          <CategoryAttributeTemplateManager />
+        </TabsContent>
+      </Tabs>
 
       {/* Form Dialog */}
       <Dialog open={isFormOpen} onOpenChange={(open) => !open && resetForm()}>
