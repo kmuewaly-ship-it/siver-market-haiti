@@ -68,7 +68,7 @@ const VariantSelector = ({
   onSelectionChange,
   onVariantImageChange,
 }: VariantSelectorProps) => {
-  const { grouped, variants, isLoading } = useGroupedVariants(productId);
+  const { grouped, variants, attrDisplayNames, isLoading } = useGroupedVariants(productId);
   const [selections, setSelections] = useState<Record<string, number>>({});
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const onSelectionChangeRef = useRef(onSelectionChange);
@@ -288,7 +288,7 @@ const VariantSelector = ({
         {orderedAttributeTypes.map((attrType, idx) => {
           const availableOptions = getAvailableOptions(attrType);
           const selectedValue = selectedAttributes[attrType];
-          const displayName = ATTRIBUTE_CONFIG[attrType.toLowerCase()]?.displayName || attrType;
+          const displayName = attrDisplayNames[attrType] || attrDisplayNames[attrType.toLowerCase()] || ATTRIBUTE_CONFIG[attrType.toLowerCase()]?.displayName || attrType;
           const isColor = attrType.toLowerCase() === 'color';
           
           // Only show if previous attributes are selected (except first)
