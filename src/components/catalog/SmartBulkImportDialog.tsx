@@ -617,6 +617,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                           availableColumns={[...unusedColumns, config.valueColumn].filter(Boolean)}
                           rawData={rawData}
                           headers={headers}
+                          imageColumnName={mapping.url_imagen}
                           onUpdate={updateAttributeConfig}
                           onRemove={removeAttributeConfig}
                         />
