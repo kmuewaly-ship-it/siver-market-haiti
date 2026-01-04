@@ -288,8 +288,36 @@ const VariantSelector = ({
         {orderedAttributeTypes.map((attrType, idx) => {
           const availableOptions = getAvailableOptions(attrType);
           const selectedValue = selectedAttributes[attrType];
-          const displayName = attrDisplayNames[attrType] || attrDisplayNames[attrType.toLowerCase()] || ATTRIBUTE_CONFIG[attrType.toLowerCase()]?.displayName || attrType;
-          const isColor = attrType.toLowerCase() === 'color';
+          
+          // Smart display name detection
+          let displayName = attrDisplayNames[attrType] || attrDisplayNames[attrType.toLowerCase()] || ATTRIBUTE_CONFIG[attrType.toLowerCase()]?.displayName;
+          
+          // If still generic name, try to infer from values
+          if (!displayName || displayName.toLowerCase().includes('attribute')) {
+            // Check if values look like colors
+            const colorNames = Object.keys(COLOR_HEX_MAP);
+            const hasColorValues = availableOptions.some(opt => 
+              colorNames.includes(opt.toLowerCase())
+            );
+            // Check if values look like sizes
+            const sizePattern = /^(xs|s|m|l|xl|xxl|xxxl|2xl|3xl|4xl|5xl|\d+)$/i;
+            const hasSizeValues = availableOptions.some(opt => 
+              sizePattern.test(opt.trim())
+            );
+            
+            if (hasColorValues) {
+              displayName = 'Color';
+            } else if (hasSizeValues) {
+              displayName = 'Talla';
+            } else {
+              displayName = `Opción ${idx + 1}`;
+            }
+          }
+          
+          // Detect if this is a color attribute based on name or values
+          const isColor = attrType.toLowerCase().includes('color') || 
+            displayName.toLowerCase() === 'color' ||
+            availableOptions.some(opt => Object.keys(COLOR_HEX_MAP).includes(opt.toLowerCase()));
           
           // Only show if previous attributes are selected (except first)
           const prevAttr = orderedAttributeTypes[idx - 1];
@@ -299,14 +327,16 @@ const VariantSelector = ({
 
           return (
             <div key={attrType} className="p-3 bg-muted/30 rounded-lg border border-border/50">
-              <h4 className="text-xs font-semibold text-foreground mb-2 uppercase tracking-wide flex items-center gap-2">
-                {displayName}
+              <div className="flex items-center justify-between mb-2">
+                <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                  {displayName}
+                </h4>
                 {selectedValue && (
-                  <Badge variant="secondary" className="text-[10px] font-normal capitalize">
+                  <Badge variant="secondary" className="text-[10px] font-normal capitalize ml-2">
                     {selectedValue}
                   </Badge>
                 )}
-              </h4>
+              </div>
               <div className={cn(
                 "flex flex-wrap gap-2",
                 isColor && "gap-2"
