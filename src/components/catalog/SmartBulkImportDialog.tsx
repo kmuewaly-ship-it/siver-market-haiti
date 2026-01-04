@@ -723,10 +723,10 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                                 </div>
                                 <div className="flex gap-2 flex-wrap ml-6">
                                   {Array.from(attr.uniqueValues).slice(0, 8).map(v => {
-                                    const imgUrl = attr.colorImageMap?.[v];
+                                    const imgUrl = attr.valueImageMap?.[v];
                                     return (
                                       <div key={v} className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1">
-                                        {isColorAttr && imgUrl && (
+                                        {imgUrl && (
                                           <img 
                                             src={imgUrl} 
                                             alt={v} 
