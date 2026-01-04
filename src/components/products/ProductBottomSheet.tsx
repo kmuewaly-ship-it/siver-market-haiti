@@ -5,7 +5,6 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { UserRole } from "@/types/auth";
 import { addItemB2C, addItemB2B } from "@/services/cartService";
 import VariantSelector from './VariantSelector';
-import VariantSelectorB2B from './VariantSelectorB2B';
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -212,30 +211,19 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       )}
 
       <div className={isMobile ? "px-4 pb-24 overflow-y-auto flex-1" : "px-6 pb-24 overflow-y-auto flex-1"}>
-        {/* Variant Selector - use B2B grouped variants if we have multiple */}
+        {/* Variant Selector - unified component same as product page */}
         <div className="mb-4 sm:mb-6">
-          {(product?.variants && product.variants.length > 0) || (product?.variantOptions && product.variantOptions.length > 1) || (product?.colorOptions && product.colorOptions.length > 1) ? (
-            <VariantSelectorB2B 
-              variants={product?.variants || []}
-              variantOptions={product?.variantOptions || []}
-              variantType={product?.variantType || 'unknown'}
-              colorOptions={product?.colorOptions}
-              basePrice={product?.priceB2B || product?.price || 0}
-              baseImage={product?.image}
-              onVariantImageChange={(img) => setVariantImage(img)}
-              onSelectionChange={(list, totalQty) => {
-                setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity })));
-                setQuantity(totalQty);
-              }}
-            />
-          ) : (
-            <VariantSelector 
-              productId={product?.source_product_id || product?.id || ''}
-              basePrice={product?.price || 0}
-              isB2B={isSeller}
-              onSelectionChange={(list) => setSelections(list)}
-            />
-          )}
+          <VariantSelector 
+            productId={product?.source_product_id || product?.id || ''}
+            basePrice={isSeller ? (product?.priceB2B || product?.price || 0) : (product?.price || 0)}
+            baseImage={product?.image}
+            isB2B={isSeller}
+            onVariantImageChange={(img) => setVariantImage(img)}
+            onSelectionChange={(list, totalQty) => {
+              setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity })));
+              setQuantity(totalQty > 0 ? totalQty : (isSeller ? moq : 1));
+            }}
+          />
         </div>
 
         {/* B2B Business Panel - compact for mobile */}
@@ -455,27 +443,17 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 {/* Content */}
                 <div className="px-4 pb-24 overflow-y-auto flex-1">
                   <div className="mb-4">
-                    {/* Use B2B variant selector if we have variants or color options */}
-                    {(product?.variants && product.variants.length > 0) || (product?.variantOptions && product.variantOptions.length > 1) || (product?.colorOptions && product.colorOptions.length > 1) ? (
-                      <VariantSelectorB2B 
-                        variants={product?.variants || []}
-                        variantOptions={product?.variantOptions || []}
-                        variantType={product?.variantType || 'unknown'}
-                        colorOptions={product?.colorOptions}
-                        basePrice={product?.priceB2B || product?.price || 0}
-                        onSelectionChange={(list, totalQty, totalPrice) => {
-                          setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: s.label })));
-                          setQuantity(totalQty);
-                        }}
-                      />
-                    ) : (
-                      <VariantSelector 
-                        productId={product?.source_product_id || product?.id || ''}
-                        basePrice={product?.price || 0}
-                        isB2B={isSeller}
-                        onSelectionChange={(list) => setSelections(list)}
-                      />
-                    )}
+                    {/* Unified VariantSelector - same as product page */}
+                    <VariantSelector 
+                      productId={product?.source_product_id || product?.id || ''}
+                      basePrice={isSeller ? (product?.priceB2B || product?.price || 0) : (product?.price || 0)}
+                      baseImage={product?.image}
+                      isB2B={isSeller}
+                      onSelectionChange={(list, totalQty) => {
+                        setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: '' })));
+                        setQuantity(totalQty > 0 ? totalQty : (isSeller ? moq : 1));
+                      }}
+                    />
                   </div>
 
                   {isSeller && (
@@ -652,25 +630,17 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 {/* Content */}
               <div className="px-6 pb-24 overflow-y-auto flex-1">
                 <div className="mb-6">
-                  {/* Use B2B variant selector if we have variants or color options */}
-                  {(product?.variants && product.variants.length > 0) || (product?.colorOptions && product.colorOptions.length > 1) ? (
-                    <VariantSelectorB2B 
-                      variants={product?.variants || []}
-                      colorOptions={product?.colorOptions}
-                      basePrice={product?.priceB2B || product?.price || 0}
-                      onSelectionChange={(list, totalQty, totalPrice) => {
-                        setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: s.label })));
-                        setQuantity(totalQty);
-                      }}
-                    />
-                  ) : (
-                    <VariantSelector 
-                      productId={product?.source_product_id || product?.id || ''}
-                      basePrice={product?.price || 0}
-                      isB2B={isSeller}
-                      onSelectionChange={(list) => setSelections(list)}
-                    />
-                  )}
+                  {/* Always use the unified VariantSelector (same as product page) */}
+                  <VariantSelector 
+                    productId={product?.source_product_id || product?.id || ''}
+                    basePrice={isSeller ? (product?.priceB2B || product?.price || 0) : (product?.price || 0)}
+                    baseImage={product?.image}
+                    isB2B={isSeller}
+                    onSelectionChange={(list, totalQty, totalPrice) => {
+                      setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: '' })));
+                      setQuantity(totalQty > 0 ? totalQty : (isSeller ? moq : 1));
+                    }}
+                  />
                 </div>
 
                 {isSeller && (
