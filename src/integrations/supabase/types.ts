@@ -667,6 +667,56 @@ export type Database = {
           },
         ]
       }
+      category_attribute_templates: {
+        Row: {
+          attribute_display_name: string
+          attribute_name: string
+          attribute_type: string | null
+          category_id: string | null
+          created_at: string | null
+          id: string
+          is_required: boolean | null
+          render_type: string | null
+          sort_order: number | null
+          suggested_values: string[] | null
+          updated_at: string | null
+        }
+        Insert: {
+          attribute_display_name: string
+          attribute_name: string
+          attribute_type?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          render_type?: string | null
+          sort_order?: number | null
+          suggested_values?: string[] | null
+          updated_at?: string | null
+        }
+        Update: {
+          attribute_display_name?: string
+          attribute_name?: string
+          attribute_type?: string | null
+          category_id?: string | null
+          created_at?: string | null
+          id?: string
+          is_required?: boolean | null
+          render_type?: string | null
+          sort_order?: number | null
+          suggested_values?: string[] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_attribute_templates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_debts: {
         Row: {
           commission_amount: number
