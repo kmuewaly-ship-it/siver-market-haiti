@@ -9,14 +9,16 @@ import {
   AlertTriangle,
   Percent,
   Package,
-  PackageCheck,
   AlertCircle,
-  DollarSign
+  DollarSign,
+  ShoppingCart
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { usePayments, useSellers, Payment } from "@/hooks/usePayments";
+import { usePayments, useSellers } from "@/hooks/usePayments";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -40,7 +42,7 @@ const getMethodLabel = (method: string) => {
   }
 };
 
-const StatCard = ({ icon: Icon, label, value, color, bgColor }: any) => (
+const StatCard = ({ icon: Icon, label, value, color, bgColor, isLoading }: any) => (
   <div className="bg-card rounded-lg shadow-sm hover:shadow-md transition-shadow p-4 border border-border/50">
     <div className="flex items-start justify-between mb-3">
       <div className={`${bgColor} p-2 rounded-lg`}>
@@ -48,59 +50,135 @@ const StatCard = ({ icon: Icon, label, value, color, bgColor }: any) => (
       </div>
     </div>
     <p className="text-xs text-muted-foreground mb-1">{label}</p>
-    <p className="text-lg font-semibold text-foreground">{value}</p>
+    {isLoading ? (
+      <Skeleton className="h-6 w-16" />
+    ) : (
+      <p className="text-lg font-semibold text-foreground">{value}</p>
+    )}
   </div>
 );
+
+// Hook to get admin dashboard stats
+const useAdminDashboardStats = () => {
+  return useQuery({
+    queryKey: ["admin-dashboard-stats"],
+    queryFn: async () => {
+      // Fetch all stats in parallel
+      const [
+        ordersResult,
+        commissionsResult,
+        kycPendingResult,
+        approvalsResult,
+        totalRevenueResult
+      ] = await Promise.all([
+        // Total orders (B2B)
+        supabase.from("orders_b2b").select("id, total_amount", { count: "exact" }),
+        // Total commissions (unpaid)
+        supabase.from("commission_debts").select("commission_amount, is_paid"),
+        // KYC pending
+        supabase.from("kyc_verifications").select("id", { count: "exact" }).eq("status", "pending_verification"),
+        // Pending approvals
+        supabase.from("admin_approval_requests").select("id", { count: "exact" }).eq("status", "pending"),
+        // Total revenue from paid orders
+        supabase.from("orders_b2b").select("total_amount").eq("payment_status", "paid")
+      ]);
+
+      // Calculate totals
+      const totalOrders = ordersResult.count || 0;
+      
+      const totalRevenue = totalRevenueResult.data?.reduce(
+        (sum, order) => sum + (Number(order.total_amount) || 0), 0
+      ) || 0;
+      
+      const commissions = commissionsResult.data || [];
+      const totalCommissions = commissions.reduce(
+        (sum, c) => sum + (Number(c.commission_amount) || 0), 0
+      );
+      const unpaidCommissions = commissions
+        .filter(c => !c.is_paid)
+        .reduce((sum, c) => sum + (Number(c.commission_amount) || 0), 0);
+      
+      const kycPending = kycPendingResult.count || 0;
+      const pendingApprovals = approvalsResult.count || 0;
+
+      return {
+        totalOrders,
+        totalRevenue,
+        totalCommissions,
+        unpaidCommissions,
+        kycPending,
+        pendingApprovals,
+      };
+    },
+    staleTime: 1000 * 60 * 2, // 2 minutes cache
+  });
+};
 
 const AdminDashboard = () => {
   const { payments, stats, isLoading: paymentsLoading } = usePayments();
   const { sellersCount, isLoading: sellersLoading } = useSellers();
+  const { data: dashStats, isLoading: statsLoading } = useAdminDashboardStats();
 
   const isLoading = paymentsLoading || sellersLoading;
   const recentPayments = payments.slice(0, 5);
 
+  const formatCurrency = (amount: number) => {
+    if (amount >= 1000000) {
+      return `$${(amount / 1000000).toFixed(1)}M`;
+    } else if (amount >= 1000) {
+      return `$${(amount / 1000).toFixed(1)}K`;
+    }
+    return `$${amount.toFixed(0)}`;
+  };
+
   const stickyStatsData = [
     {
       label: "Total Órdenes",
-      value: "2,847",
+      value: dashStats?.totalOrders?.toLocaleString() || "0",
       icon: Package,
       color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      bgColor: "bg-blue-50",
+      isLoading: statsLoading
     },
     {
       label: "Ingresos",
-      value: "$48,392",
+      value: formatCurrency(dashStats?.totalRevenue || 0),
       icon: TrendingUp,
       color: "text-green-600",
-      bgColor: "bg-green-50"
+      bgColor: "bg-green-50",
+      isLoading: statsLoading
     },
     {
       label: "Comisiones",
-      value: "$4,839",
+      value: formatCurrency(dashStats?.totalCommissions || 0),
       icon: DollarSign,
       color: "text-amber-600",
-      bgColor: "bg-amber-50"
+      bgColor: "bg-amber-50",
+      isLoading: statsLoading
     },
     {
       label: "Vendedores",
       value: sellersCount.toString(),
       icon: Users,
       color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      bgColor: "bg-purple-50",
+      isLoading: sellersLoading
     },
     {
       label: "KYC Pendiente",
-      value: "12",
+      value: dashStats?.kycPending?.toString() || "0",
       icon: AlertCircle,
       color: "text-yellow-600",
-      bgColor: "bg-yellow-50"
+      bgColor: "bg-yellow-50",
+      isLoading: statsLoading
     },
     {
       label: "Aprobaciones",
-      value: "8",
+      value: dashStats?.pendingApprovals?.toString() || "0",
       icon: CheckCircle2,
       color: "text-emerald-600",
-      bgColor: "bg-emerald-50"
+      bgColor: "bg-emerald-50",
+      isLoading: statsLoading
     }
   ];
 
@@ -134,7 +212,7 @@ const AdminDashboard = () => {
     },
     {
       title: "Volumen B2B",
-      value: `$${(stats.totalVolume / 1000).toFixed(1)}K`,
+      value: formatCurrency(stats.totalVolume || 0),
       description: "Total verificado",
       icon: TrendingUp,
       color: "text-accent",
@@ -142,9 +220,9 @@ const AdminDashboard = () => {
       link: "/admin/conciliacion"
     },
     {
-      title: "Comisiones Personalizadas",
-      value: "Gestionar",
-      description: "Overrides por vendedor",
+      title: "Comisiones Pendientes",
+      value: formatCurrency(dashStats?.unpaidCommissions || 0),
+      description: "Por cobrar",
       icon: Percent,
       color: "text-purple-600",
       bgColor: "bg-purple-600/10",
@@ -188,6 +266,7 @@ const AdminDashboard = () => {
               value={stat.value}
               color={stat.color}
               bgColor={stat.bgColor}
+              isLoading={stat.isLoading}
             />
           ))}
         </div>
