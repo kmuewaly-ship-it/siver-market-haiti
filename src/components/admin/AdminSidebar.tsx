@@ -17,7 +17,8 @@ import {
   MessageSquare,
   RefreshCw,
   Ticket,
-  UserCheck
+  UserCheck,
+  BarChart3
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -53,6 +54,10 @@ const mainNavItems = [
   { title: "Config. Precios", url: "/admin/precios", icon: Calculator },
   { title: "Vendedores", url: "/admin/vendedores", icon: Users },
   { title: "Banners", url: "/admin/banners", icon: ImageIcon },
+];
+
+const analyticsItems = [
+  { title: "Optimización Inventario", url: "/admin/cart-analytics", icon: BarChart3 },
 ];
 
 const settingsItems = [
@@ -109,6 +114,30 @@ export function AdminSidebar() {
                     <NavLink 
                       to={item.url} 
                       end={item.url === "/admin"}
+                      className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      {!isCollapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className={isCollapsed ? "sr-only" : ""}>
+            Analytics
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {analyticsItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild tooltip={item.title}>
+                    <NavLink 
+                      to={item.url}
                       className="flex items-center gap-3 px-3 py-2 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
