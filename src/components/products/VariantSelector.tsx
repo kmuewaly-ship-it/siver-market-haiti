@@ -497,17 +497,17 @@ const VariantSelector = ({
                     <Badge variant="outline" className="text-xs">Min: {matchingVariant.moq}</Badge>
                   )}
                 </div>
-                <div className="flex items-center gap-3 mt-1">
-                  <span className="text-lg font-bold text-primary">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1">
+                  <span className="text-lg font-bold text-primary whitespace-nowrap">
                     ${(matchingVariant.price ?? basePrice).toFixed(2)}
                   </span>
                   {matchingVariant.precio_promocional && matchingVariant.precio_promocional < (matchingVariant.price ?? basePrice) && (
-                    <span className="text-sm text-muted-foreground line-through">
+                    <span className="text-sm text-muted-foreground line-through whitespace-nowrap">
                       ${(matchingVariant.price ?? basePrice).toFixed(2)}
                     </span>
                   )}
-                  <span className="text-xs text-muted-foreground">
-                    · {matchingVariant.stock} disponibles
+                  <span className="text-xs text-muted-foreground whitespace-nowrap">
+                    {matchingVariant.stock} disponibles
                   </span>
                 </div>
               </div>
