@@ -337,55 +337,57 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) resetState(); }}>
-      <DialogContent className="max-w-5xl max-h-[90vh] flex flex-col">
-        <DialogHeader className="pb-2 flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <Layers className="h-5 w-5 text-primary" />
-            Importación Inteligente de Productos
-          </DialogTitle>
-          <DialogDescription>
-            Configura atributos dinámicos y agrupa variantes automáticamente
-          </DialogDescription>
-        </DialogHeader>
+      <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden p-0">
+        <div className="px-6 pt-6 pb-2 flex-shrink-0">
+          <DialogHeader className="pb-2">
+            <DialogTitle className="flex items-center gap-2">
+              <Layers className="h-5 w-5 text-primary" />
+              Importación Inteligente de Productos
+            </DialogTitle>
+            <DialogDescription>
+              Configura atributos dinámicos y agrupa variantes automáticamente
+            </DialogDescription>
+          </DialogHeader>
 
-        {/* Stepper */}
-        <div className="flex items-center gap-1 border-b pb-3 flex-shrink-0">
-          {STEPS.map((s, i) => {
-            const isCompleted = currentStepIndex > i;
-            const isCurrent = step === s.id || (step === 'importing' && s.id === 'preview');
-            const StepIcon = s.icon;
-            
-            return (
-              <div key={s.id} className="flex items-center">
-                <div className={cn(
-                  "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all",
-                  isCurrent && "bg-primary/10"
-                )}>
+          {/* Stepper */}
+          <div className="flex items-center gap-1 border-b pb-3 mt-3 overflow-x-auto">
+            {STEPS.map((s, i) => {
+              const isCompleted = currentStepIndex > i;
+              const isCurrent = step === s.id || (step === 'importing' && s.id === 'preview');
+              const StepIcon = s.icon;
+              
+              return (
+                <div key={s.id} className="flex items-center flex-shrink-0">
                   <div className={cn(
-                    "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
-                    isCurrent && "bg-primary text-primary-foreground",
-                    isCompleted && "bg-green-500 text-white",
-                    !isCurrent && !isCompleted && "bg-muted text-muted-foreground"
+                    "flex items-center gap-2 px-3 py-1.5 rounded-lg transition-all",
+                    isCurrent && "bg-primary/10"
                   )}>
-                    {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <StepIcon className="h-3.5 w-3.5" />}
+                    <div className={cn(
+                      "w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold",
+                      isCurrent && "bg-primary text-primary-foreground",
+                      isCompleted && "bg-green-500 text-white",
+                      !isCurrent && !isCompleted && "bg-muted text-muted-foreground"
+                    )}>
+                      {isCompleted ? <CheckCircle2 className="h-3.5 w-3.5" /> : <StepIcon className="h-3.5 w-3.5" />}
+                    </div>
+                    <span className={cn(
+                      "text-sm font-medium hidden sm:block",
+                      isCurrent && "text-primary",
+                      !isCurrent && !isCompleted && "text-muted-foreground"
+                    )}>
+                      {s.label}
+                    </span>
                   </div>
-                  <span className={cn(
-                    "text-sm font-medium hidden sm:block",
-                    isCurrent && "text-primary",
-                    !isCurrent && !isCompleted && "text-muted-foreground"
-                  )}>
-                    {s.label}
-                  </span>
+                  {i < STEPS.length - 1 && <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground flex-shrink-0" />}
                 </div>
-                {i < STEPS.length - 1 && <ChevronRight className="h-4 w-4 mx-1 text-muted-foreground" />}
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
 
-        {/* Content */}
-        <ScrollArea className="flex-1 min-h-0">
-          <div className="pr-4 py-4 space-y-6">
+        {/* Content - Scrollable area */}
+        <div className="flex-1 overflow-y-auto px-6">
+          <div className="py-4 space-y-6">
             {/* Step 1: Upload */}
             {step === 'upload' && (
               <>
@@ -750,11 +752,11 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
               </div>
             )}
           </div>
-        </ScrollArea>
+        </div>
 
         {/* Footer with Navigation */}
         {step !== 'upload' && step !== 'importing' && (
-          <div className="flex justify-between items-center pt-4 border-t flex-shrink-0">
+          <div className="flex justify-between items-center p-6 pt-4 border-t flex-shrink-0 bg-background">
             <Button variant="outline" onClick={() => {
               if (step === 'mapping') setStep('upload');
               else if (step === 'attributes') setStep('mapping');
