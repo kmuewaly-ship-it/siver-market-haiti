@@ -5,7 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Trash2, Palette, Ruler, Zap, Package, ImageIcon, CheckCircle2, XCircle, Tag, List } from 'lucide-react';
+import { Trash2, Palette, Ruler, Zap, Package, ImageIcon, CheckCircle2, Tag, List, LinkIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useMemo } from 'react';
 
@@ -14,7 +14,7 @@ export interface AttributeConfig {
   nameType: 'manual' | 'column';
   nameValue: string;
   valueColumn: string;
-  imageColumn?: string;
+  imageColumn?: string; // Kept for compatibility but now auto-mapped
 }
 
 interface AttributeConfigCardProps {
@@ -23,6 +23,7 @@ interface AttributeConfigCardProps {
   availableColumns: string[];
   rawData: string[][];
   headers: string[];
+  imageColumnName?: string; // The main image column from mapping
   onUpdate: (id: string, updates: Partial<AttributeConfig>) => void;
   onRemove: (id: string) => void;
 }
@@ -33,12 +34,10 @@ const VALID_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
 const isValidImageUrl = (url: string): boolean => {
   if (!url) return false;
   try {
-    // Check if it's a valid URL with image extension
     const urlObj = new URL(url);
     const pathname = urlObj.pathname.toLowerCase();
     return VALID_IMAGE_EXTENSIONS.some(ext => pathname.endsWith(`.${ext}`));
   } catch {
-    // If not a valid URL, check extension directly
     const extension = url.split('.').pop()?.toLowerCase().split('?')[0];
     return VALID_IMAGE_EXTENSIONS.includes(extension || '');
   }
@@ -66,71 +65,46 @@ export const AttributeConfigCard = ({
   availableColumns,
   rawData,
   headers,
+  imageColumnName,
   onUpdate,
   onRemove,
 }: AttributeConfigCardProps) => {
-  // Get unique values for the selected value column
-  const uniqueValues = useMemo(() => {
+  // Get unique values with their corresponding image URLs from the same row
+  const valueImagePairs = useMemo(() => {
     if (!config.valueColumn) return [];
-    const colIndex = headers.indexOf(config.valueColumn);
-    if (colIndex === -1) return [];
+    const valueColIndex = headers.indexOf(config.valueColumn);
+    const imageColIndex = imageColumnName ? headers.indexOf(imageColumnName) : -1;
     
-    const values = new Set<string>();
+    if (valueColIndex === -1) return [];
+    
+    // Map: value -> first image found for that value
+    const valueToImage = new Map<string, string>();
+    
     rawData.forEach(row => {
-      const val = row[colIndex]?.trim();
+      const val = row[valueColIndex]?.trim();
       if (val && val !== '' && val.toLowerCase() !== 'n/a') {
-        values.add(val);
-      }
-    });
-    return Array.from(values);
-  }, [config.valueColumn, headers, rawData]);
-
-  // Detect columns that contain image URLs
-  const imageColumns = useMemo(() => {
-    return headers.filter(header => {
-      const colIndex = headers.indexOf(header);
-      if (colIndex === -1) return false;
-      
-      // Check first 5 rows to see if column contains image URLs
-      let validCount = 0;
-      const samplesToCheck = Math.min(5, rawData.length);
-      
-      for (let i = 0; i < samplesToCheck; i++) {
-        const val = rawData[i]?.[colIndex]?.trim();
-        if (val && isValidImageUrl(val)) {
-          validCount++;
-        }
-      }
-      
-      // Consider it an image column if at least 2 valid URLs found
-      return validCount >= 2;
-    });
-  }, [headers, rawData]);
-
-  // Get image URLs for the selected image column
-  const imageStats = useMemo(() => {
-    if (!config.imageColumn) return { total: 0, valid: 0, invalid: 0, samples: [] as string[] };
-    const colIndex = headers.indexOf(config.imageColumn);
-    if (colIndex === -1) return { total: 0, valid: 0, invalid: 0, samples: [] as string[] };
-    
-    let valid = 0;
-    let invalid = 0;
-    const samples: string[] = [];
-    
-    rawData.forEach(row => {
-      const url = row[colIndex]?.trim();
-      if (url) {
-        if (isValidImageUrl(url)) {
-          valid++;
-          if (samples.length < 4) samples.push(url);
-        } else {
-          invalid++;
+        // Only set image if we haven't seen this value before (first occurrence wins)
+        if (!valueToImage.has(val) && imageColIndex !== -1) {
+          const imgUrl = row[imageColIndex]?.trim();
+          if (imgUrl && isValidImageUrl(imgUrl)) {
+            valueToImage.set(val, imgUrl);
+          } else {
+            valueToImage.set(val, ''); // Mark as seen but no valid image
+          }
+        } else if (!valueToImage.has(val)) {
+          valueToImage.set(val, '');
         }
       }
     });
     
-    return { total: valid + invalid, valid, invalid, samples };
-  }, [config.imageColumn, headers, rawData]);
+    return Array.from(valueToImage.entries()).map(([value, imageUrl]) => ({
+      value,
+      imageUrl,
+    }));
+  }, [config.valueColumn, headers, rawData, imageColumnName]);
+
+  const uniqueValues = valueImagePairs.map(p => p.value);
+  const valuesWithImages = valueImagePairs.filter(p => p.imageUrl).length;
 
   const displayName = config.nameType === 'manual' ? config.nameValue : config.valueColumn;
 
@@ -259,113 +233,64 @@ export const AttributeConfigCard = ({
               ))}
             </SelectContent>
           </Select>
-
-          {/* Unique Values Preview */}
-          {uniqueValues.length > 0 && (
-            <div className="space-y-2 pt-2">
-              <Label className="text-xs text-muted-foreground">
-                Valores encontrados:
-              </Label>
-              <div className="flex flex-wrap gap-1.5">
-                {uniqueValues.slice(0, 10).map(val => (
-                  <Badge key={val} variant="outline" className="text-xs font-normal">
-                    {val}
-                  </Badge>
-                ))}
-                {uniqueValues.length > 10 && (
-                  <Badge variant="secondary" className="text-xs">
-                    +{uniqueValues.length - 10} más
-                  </Badge>
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* SECTION 3: Image Column Selection (Optional) */}
-        <div className="space-y-3 p-3 border rounded-lg">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="h-4 w-4 text-primary" />
-            <Label className="text-xs font-semibold uppercase tracking-wide">
-              3. Imagen del Valor (Opcional)
-            </Label>
-          </div>
-          <p className="text-xs text-muted-foreground -mt-1">
-            Asocia una imagen a cada valor del atributo (ej: foto del color rojo)
-          </p>
-          
-          {imageColumns.length > 0 ? (
-            <>
-              <Select
-                value={config.imageColumn || '__none__'}
-                onValueChange={(value) => onUpdate(config.id, { 
-                  imageColumn: value === '__none__' ? undefined : value 
-                })}
-              >
-                <SelectTrigger className="h-10">
-                  <SelectValue placeholder="Sin imagen asociada" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="__none__">
-                    <span className="text-muted-foreground">Sin imagen asociada</span>
-                  </SelectItem>
-                  {imageColumns.map(col => (
-                    <SelectItem key={col} value={col}>
-                      <span className="flex items-center gap-2">
-                        <ImageIcon className="h-3 w-3 text-green-600" />
-                        <span className="font-medium">{col}</span>
-                        <span className="text-xs text-muted-foreground">(contiene URLs)</span>
-                      </span>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+        {/* SECTION 3: Auto-mapped Images Preview */}
+        {config.valueColumn && valueImagePairs.length > 0 && (
+          <div className="space-y-3 p-3 border rounded-lg bg-green-50/50 dark:bg-green-900/10 border-green-200 dark:border-green-800">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <LinkIcon className="h-4 w-4 text-green-600" />
+                <Label className="text-xs font-semibold uppercase tracking-wide text-green-700 dark:text-green-400">
+                  Imágenes Asociadas Automáticamente
+                </Label>
+              </div>
+              {valuesWithImages > 0 && (
+                <Badge variant="secondary" className="text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                  <CheckCircle2 className="h-3 w-3 mr-1" />
+                  {valuesWithImages} de {uniqueValues.length} con imagen
+                </Badge>
+              )}
+            </div>
+            
+            <p className="text-xs text-muted-foreground">
+              Cada valor se asocia con la imagen de su fila en el Excel 
+              {imageColumnName && <span className="font-medium"> (columna: {imageColumnName})</span>}
+            </p>
 
-              {/* Image Preview & Validation */}
-              {config.imageColumn && imageStats.total > 0 && (
-                <div className="space-y-2 bg-muted/50 rounded-lg p-3 mt-2">
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="flex items-center gap-1 text-green-600">
-                      <CheckCircle2 className="h-3 w-3" />
-                      {imageStats.valid} imágenes válidas
-                    </div>
-                    {imageStats.invalid > 0 && (
-                      <div className="flex items-center gap-1 text-destructive">
-                        <XCircle className="h-3 w-3" />
-                        {imageStats.invalid} URLs inválidas
-                      </div>
-                    )}
-                  </div>
-                  {imageStats.samples.length > 0 && (
-                    <div className="flex gap-2 mt-2">
-                      {imageStats.samples.map((url, i) => (
-                        <img
-                          key={i}
-                          src={url}
-                          alt={`Preview ${i + 1}`}
-                          className="w-12 h-12 rounded-md object-cover border shadow-sm"
-                          onError={(e) => {
-                            (e.target as HTMLImageElement).style.display = 'none';
-                          }}
-                        />
-                      ))}
+            {/* Preview grid of values with their images */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 mt-2">
+              {valueImagePairs.slice(0, 8).map(({ value, imageUrl }) => (
+                <div 
+                  key={value} 
+                  className="flex items-center gap-2 p-2 rounded-md bg-background border"
+                >
+                  {imageUrl ? (
+                    <img
+                      src={imageUrl}
+                      alt={value}
+                      className="w-8 h-8 rounded object-cover border shadow-sm flex-shrink-0"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : (
+                    <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
                     </div>
                   )}
+                  <span className="text-xs font-medium truncate">{value}</span>
                 </div>
-              )}
-            </>
-          ) : (
-            <div className="text-xs text-muted-foreground bg-muted/50 rounded-lg p-3">
-              <p className="flex items-center gap-2">
-                <XCircle className="h-3 w-3" />
-                No se detectaron columnas con URLs de imágenes válidas
-              </p>
-              <p className="mt-1 text-[10px]">
-                Formatos soportados: JPG, JPEG, PNG, WebP, GIF
-              </p>
+              ))}
             </div>
-          )}
-        </div>
+            
+            {valueImagePairs.length > 8 && (
+              <p className="text-xs text-muted-foreground text-center">
+                +{valueImagePairs.length - 8} valores más...
+              </p>
+            )}
+          </div>
+        )}
       </CardContent>
     </Card>
   );
