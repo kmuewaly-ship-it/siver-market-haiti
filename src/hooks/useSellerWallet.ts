@@ -230,49 +230,14 @@ export const useAdminWallets = () => {
     notes?: string
   ) => {
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      const updateData: any = {
-        status: action,
-        admin_notes: notes,
-        updated_at: new Date().toISOString(),
-      };
-
-      if (action === 'completed' || action === 'rejected') {
-        updateData.processed_by = user?.id;
-        updateData.processed_at = new Date().toISOString();
-      }
-
-      const { error } = await supabase
-        .from('withdrawal_requests')
-        .update(updateData)
-        .eq('id', withdrawalId);
+      // Use secure server-side function for withdrawal processing
+      const { data, error } = await supabase.rpc('process_withdrawal_completion', {
+        p_withdrawal_id: withdrawalId,
+        p_action: action,
+        p_admin_notes: notes || null
+      });
 
       if (error) throw error;
-
-      // If completed, update wallet balance manually
-      if (action === 'completed') {
-        const withdrawal = pendingWithdrawals.find(w => w.id === withdrawalId);
-        if (withdrawal) {
-          // Get current wallet balance
-          const { data: currentWallet } = await supabase
-            .from('seller_wallets')
-            .select('available_balance, total_withdrawn')
-            .eq('id', withdrawal.wallet_id)
-            .single();
-
-          if (currentWallet) {
-            await supabase
-              .from('seller_wallets')
-              .update({
-                available_balance: currentWallet.available_balance - withdrawal.net_amount,
-                total_withdrawn: currentWallet.total_withdrawn + withdrawal.net_amount,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('id', withdrawal.wallet_id);
-          }
-        }
-      }
 
       toast({
         title: 'Retiro actualizado',
