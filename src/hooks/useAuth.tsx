@@ -1,6 +1,6 @@
 import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { User, Session } from '@supabase/supabase-js';
+import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types/auth';
 
@@ -60,21 +60,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const buildFallbackUser = (sbUser: User, userRole: UserRole): AppUser => {
-    const nameFromMeta = (sbUser.user_metadata?.full_name as string | undefined) ||
-      (sbUser.user_metadata?.name as string | undefined);
-
-    return {
-      id: sbUser.id,
-      email: sbUser.email || '',
-      name: nameFromMeta || sbUser.email?.split('@')[0] || 'Usuario',
-      role: userRole,
-      avatar_url: null,
-      banner_url: null,
-      created_at: (sbUser.created_at as string) || new Date().toISOString(),
-      updated_at: (sbUser.updated_at as string) || new Date().toISOString(),
-    };
-  };
 
   const fetchUserProfile = async (userId: string): Promise<AppUser | null> => {
     try {
@@ -125,9 +110,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = await fetchUserProfile(session.user.id);
             const userRole = await getUserRole(session.user.id);
             
-            const appUser: AppUser = profile
-              ? { ...profile, role: userRole }
-              : buildFallbackUser(session.user, userRole);
+            if (!profile) {
+              console.error('No profile found for user:', session.user.id);
+              setUser(null);
+              setRole(null);
+              setIsLoading(false);
+              clearTimeout(safetyTimeout);
+              return;
+            }
+            
+            const appUser: AppUser = { ...profile, role: userRole };
 
             setUser(appUser);
             setRole(userRole);
@@ -186,9 +178,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const profile = await fetchUserProfile(session.user.id);
         const userRole = await getUserRole(session.user.id);
         
-        const appUser: AppUser = profile
-          ? { ...profile, role: userRole }
-          : buildFallbackUser(session.user, userRole);
+        if (!profile) {
+          console.error('No profile found for user:', session.user.id);
+          setIsLoading(false);
+          clearTimeout(safetyTimeout);
+          setHasInitialized(true);
+          return;
+        }
+        
+        const appUser: AppUser = { ...profile, role: userRole };
 
         setUser(appUser);
         setRole(userRole);
