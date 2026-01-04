@@ -680,11 +680,18 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                             </div>
                           </div>
                           <div className="flex gap-1">
-                            {group.detectedAttributes.slice(0, 3).map(attr => (
-                              <Badge key={attr.columnName} variant="outline" className="text-[10px] gap-1">
-                                {getAttributeIcon(attr.columnName)} {attr.uniqueValues.size}
-                              </Badge>
-                            ))}
+                            {group.detectedAttributes.slice(0, 3).map(attr => {
+                              // Find configured name for this attribute
+                              const configuredAttr = attributeConfigs.find(c => c.valueColumn === attr.columnName);
+                              const displayName = configuredAttr?.nameType === 'manual' && configuredAttr.nameValue 
+                                ? configuredAttr.nameValue 
+                                : attr.columnName;
+                              return (
+                                <Badge key={attr.columnName} variant="outline" className="text-[10px] gap-1">
+                                  {getAttributeIcon(displayName)} {displayName}: {attr.uniqueValues.size}
+                                </Badge>
+                              );
+                            })}
                           </div>
                         </div>
                       </Card>
@@ -698,17 +705,46 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                           <CardTitle className="text-sm">{group.parentName}</CardTitle>
                           <CardDescription className="text-xs">{group.variants.length} variantes</CardDescription>
                         </CardHeader>
-                        <CardContent className="text-xs space-y-2">
-                          {group.detectedAttributes.map(attr => (
-                            <div key={attr.columnName} className="flex items-center gap-2">
-                              {getAttributeIcon(attr.columnName)}
-                              <span className="font-medium">{attr.columnName}:</span>
-                              <div className="flex gap-1 flex-wrap">
-                                {Array.from(attr.uniqueValues).slice(0, 6).map(v => <Badge key={v} variant="secondary" className="text-[10px]">{v}</Badge>)}
-                                {attr.uniqueValues.size > 6 && <Badge variant="outline" className="text-[10px]">+{attr.uniqueValues.size - 6}</Badge>}
+                        <CardContent className="text-xs space-y-3">
+                          {group.detectedAttributes.map(attr => {
+                            // Find configured name for this attribute
+                            const configuredAttr = attributeConfigs.find(c => c.valueColumn === attr.columnName);
+                            const displayName = configuredAttr?.nameType === 'manual' && configuredAttr.nameValue 
+                              ? configuredAttr.nameValue 
+                              : attr.columnName;
+                            const isColorAttr = (displayName.toLowerCase().includes('color') || attr.type === 'color');
+                            
+                            return (
+                              <div key={attr.columnName} className="space-y-2">
+                                <div className="flex items-center gap-2">
+                                  {getAttributeIcon(displayName)}
+                                  <span className="font-semibold">{displayName}:</span>
+                                  <span className="text-muted-foreground">({attr.uniqueValues.size} valores)</span>
+                                </div>
+                                <div className="flex gap-2 flex-wrap ml-6">
+                                  {Array.from(attr.uniqueValues).slice(0, 8).map(v => {
+                                    const imgUrl = attr.colorImageMap?.[v];
+                                    return (
+                                      <div key={v} className="flex items-center gap-1.5 bg-muted/50 rounded-md px-2 py-1">
+                                        {isColorAttr && imgUrl && (
+                                          <img 
+                                            src={imgUrl} 
+                                            alt={v} 
+                                            className="w-5 h-5 rounded object-cover border flex-shrink-0"
+                                            onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                                          />
+                                        )}
+                                        <Badge variant="secondary" className="text-[10px]">{v}</Badge>
+                                      </div>
+                                    );
+                                  })}
+                                  {attr.uniqueValues.size > 8 && (
+                                    <Badge variant="outline" className="text-[10px]">+{attr.uniqueValues.size - 8}</Badge>
+                                  )}
+                                </div>
                               </div>
-                            </div>
-                          ))}
+                            );
+                          })}
                         </CardContent>
                       </Card>
                     ))}
