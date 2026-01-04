@@ -109,24 +109,45 @@ const VariantSelector = ({
     );
   }, [variants]);
 
-  // Build color-to-image map from variants
-  const colorImageMap = useMemo(() => {
+  // Build attribute-to-image map from variants (for any attribute type)
+  const attributeImageMap = useMemo(() => {
     if (!variants || variants.length === 0) return {};
     
-    const map: Record<string, string> = {};
+    const map: Record<string, Record<string, string>> = {};
     
     variants.forEach(v => {
       const combo = v.attribute_combination;
-      if (combo && typeof combo === 'object') {
-        const colorValue = combo.color || combo.Color;
-        if (colorValue && v.images?.[0] && !map[colorValue]) {
-          map[colorValue] = v.images[0];
+      const variantImage = v.images?.[0];
+      
+      if (combo && typeof combo === 'object' && variantImage) {
+        // Map each attribute value to its first found image
+        Object.entries(combo).forEach(([attrKey, attrValue]) => {
+          if (attrValue) {
+            if (!map[attrKey]) map[attrKey] = {};
+            if (!map[attrKey][attrValue]) {
+              map[attrKey][attrValue] = variantImage;
+            }
+          }
+        });
+      }
+      
+      // Also check option_type/option_value for fallback
+      if (v.option_type && v.option_value && variantImage) {
+        const key = v.option_type.toLowerCase();
+        if (!map[key]) map[key] = {};
+        if (!map[key][v.option_value]) {
+          map[key][v.option_value] = variantImage;
         }
       }
     });
     
     return map;
   }, [variants]);
+
+  // Legacy colorImageMap for backwards compatibility
+  const colorImageMap = useMemo(() => {
+    return attributeImageMap['color'] || attributeImageMap['Color'] || {};
+  }, [attributeImageMap]);
 
   // Check if we have EAV attributes
   const hasEAVAttributes = Object.keys(attributeOptions).length > 0;
@@ -293,7 +314,8 @@ const VariantSelector = ({
                 {availableOptions.map(option => {
                   const isSelected = selectedValue === option;
                   const colorHex = isColor ? getColorHex(option) : null;
-                  const colorImage = isColor ? colorImageMap[option] : null;
+                  // Get image for this option from the attribute image map
+                  const optionImage = attributeImageMap[attrType]?.[option] || null;
                   
                   // Get stock for this option
                   const optionStock = variants?.reduce((sum, v) => {
@@ -317,7 +339,7 @@ const VariantSelector = ({
                   // Color selector with IMAGE THUMBNAIL
                   if (isColor) {
                     // Show image thumbnail if available, otherwise show color swatch
-                    if (colorImage) {
+                    if (optionImage) {
                       return (
                         <button
                           key={option}
@@ -333,7 +355,7 @@ const VariantSelector = ({
                           title={`${option}${isOutOfStock ? ' (Agotado)' : ''}`}
                         >
                           <img 
-                            src={colorImage} 
+                            src={optionImage} 
                             alt={option}
                             className="w-full h-full object-cover"
                           />
