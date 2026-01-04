@@ -60,6 +60,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
+  const buildFallbackUser = (sbUser: User, userRole: UserRole): AppUser => {
+    const nameFromMeta = (sbUser.user_metadata?.full_name as string | undefined) ||
+      (sbUser.user_metadata?.name as string | undefined);
+
+    return {
+      id: sbUser.id,
+      email: sbUser.email || '',
+      name: nameFromMeta || sbUser.email?.split('@')[0] || 'Usuario',
+      role: userRole,
+      avatar_url: null,
+      banner_url: null,
+      created_at: (sbUser.created_at as string) || new Date().toISOString(),
+      updated_at: (sbUser.updated_at as string) || new Date().toISOString(),
+    };
+  };
+
   const fetchUserProfile = async (userId: string): Promise<AppUser | null> => {
     try {
       const { data, error } = await supabase
@@ -109,11 +125,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             const profile = await fetchUserProfile(session.user.id);
             const userRole = await getUserRole(session.user.id);
             
-            const appUser: AppUser | null = profile ? {
-              ...profile,
-              role: userRole,
-            } : null;
-            
+            const appUser: AppUser = profile
+              ? { ...profile, role: userRole }
+              : buildFallbackUser(session.user, userRole);
+
             setUser(appUser);
             setRole(userRole);
             setIsLoading(false);
@@ -171,11 +186,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         const profile = await fetchUserProfile(session.user.id);
         const userRole = await getUserRole(session.user.id);
         
-        const appUser: AppUser | null = profile ? {
-          ...profile,
-          role: userRole,
-        } : null;
-        
+        const appUser: AppUser = profile
+          ? { ...profile, role: userRole }
+          : buildFallbackUser(session.user, userRole);
+
         setUser(appUser);
         setRole(userRole);
         setIsLoading(false);
