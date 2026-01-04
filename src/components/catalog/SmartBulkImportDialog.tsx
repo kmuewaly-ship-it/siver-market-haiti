@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useMemo, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,8 +9,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Progress } from '@/components/ui/progress';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { useCatalog } from '@/hooks/useCatalog';
 import { usePriceEngine } from '@/hooks/usePriceEngine';
+import { useTemplatesForCategory, applyTemplateToImport } from '@/hooks/useCategoryAttributeTemplates';
+import AttributeConfigCard, { AttributeConfig } from './AttributeConfigCard';
 import { 
   groupProductsByParent, 
   importGroupedProducts,
@@ -21,10 +24,12 @@ import {
 import { 
   Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, 
   Loader2, Calculator, Layers, Palette, Ruler, Zap, Package,
-  ArrowRight, ChevronRight, AlertTriangle
+  ArrowRight, ChevronRight, AlertTriangle, Plus, Sparkles, X,
+  ImageIcon, Table, Settings2
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
+import { cn } from '@/lib/utils';
 
 interface SmartBulkImportDialogProps {
   open: boolean;
@@ -44,11 +49,6 @@ interface ColumnMapping {
   url_origen: string;
 }
 
-interface VariantColumnConfig {
-  column: string;
-  displayName: string;
-}
-
 const DEFAULT_MAPPING: ColumnMapping = {
   sku_interno: 'SKU_Interno',
   nombre: 'Nombre',
@@ -61,6 +61,13 @@ const DEFAULT_MAPPING: ColumnMapping = {
   proveedor: 'Proveedor',
   url_origen: 'URL_Proveedor'
 };
+
+const STEPS = [
+  { id: 'upload', label: 'Subir', icon: Upload },
+  { id: 'mapping', label: 'Mapear', icon: Table },
+  { id: 'attributes', label: 'Atributos', icon: Settings2 },
+  { id: 'preview', label: 'Confirmar', icon: CheckCircle2 },
+];
 
 const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProps) => {
   const { useCategories, useSuppliers } = useCatalog();
@@ -79,7 +86,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const { data: expenses } = useDynamicExpenses();
   const profitMargin = getProfitMargin(priceSettings);
   
-  const [step, setStep] = useState<'upload' | 'mapping' | 'grouping' | 'preview' | 'importing'>('upload');
+  const [step, setStep] = useState<'upload' | 'mapping' | 'attributes' | 'preview' | 'importing'>('upload');
   const [rawData, setRawData] = useState<string[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>(DEFAULT_MAPPING);
@@ -91,7 +98,56 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [duplicateSkus, setDuplicateSkus] = useState<string[]>([]);
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
-  const [selectedVariantColumns, setSelectedVariantColumns] = useState<VariantColumnConfig[]>([]);
+  
+  // New: Dynamic attribute configuration
+  const [attributeConfigs, setAttributeConfigs] = useState<AttributeConfig[]>([]);
+  const [showTemplateHint, setShowTemplateHint] = useState(false);
+  
+  // Fetch category templates when category is selected
+  const { data: categoryTemplates } = useTemplatesForCategory(defaultCategoryId);
+
+  // Get available columns (not mapped to standard fields)
+  const availableColumns = useMemo(() => {
+    const mappedCols = Object.values(mapping);
+    return headers.filter(h => !mappedCols.includes(h));
+  }, [headers, mapping]);
+
+  // Auto-apply templates when category changes
+  useEffect(() => {
+    if (categoryTemplates && categoryTemplates.length > 0 && headers.length > 0) {
+      const suggestions = applyTemplateToImport(categoryTemplates, headers);
+      const hasMatchingColumns = suggestions.some(s => s.suggestedColumn);
+      
+      if (hasMatchingColumns && attributeConfigs.length === 0) {
+        setShowTemplateHint(true);
+      }
+    }
+  }, [categoryTemplates, headers]);
+
+  // Apply category template
+  const applyTemplate = () => {
+    if (!categoryTemplates) return;
+    
+    const suggestions = applyTemplateToImport(categoryTemplates, headers);
+    const newConfigs: AttributeConfig[] = suggestions
+      .filter(s => s.suggestedColumn)
+      .map((s, i) => ({
+        id: `template-${i}-${Date.now()}`,
+        nameType: 'manual' as const,
+        nameValue: s.displayName,
+        valueColumn: s.suggestedColumn!,
+        imageColumn: undefined,
+      }));
+    
+    if (newConfigs.length > 0) {
+      setAttributeConfigs(newConfigs);
+      setShowTemplateHint(false);
+      toast({ 
+        title: `${newConfigs.length} atributos aplicados desde plantilla`,
+        description: `Categoría: ${categories?.find(c => c.id === defaultCategoryId)?.name}`,
+      });
+    }
+  };
 
   const downloadTemplate = () => {
     const csvContent = [
@@ -189,14 +245,16 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
 
     const mappingRecord: Record<string, string> = { ...mapping };
     
-    // Use manually selected variant columns instead of auto-detection
-    const manualVariantColumns = selectedVariantColumns.map(vc => vc.column);
+    // Build attribute columns from configuration
+    const configuredColumns = attributeConfigs
+      .filter(c => c.valueColumn)
+      .map(c => c.valueColumn);
     
     const { groups, detectedAttributeColumns: attrs } = groupProductsByParent(
       rows, 
       headers, 
       mappingRecord,
-      manualVariantColumns.length > 0 ? manualVariantColumns : undefined
+      configuredColumns.length > 0 ? configuredColumns : undefined
     );
     
     // Check for duplicate SKUs in database
@@ -224,7 +282,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     
     setGroupedProducts(groups);
     setDetectedAttributeColumns(attrs);
-    setStep('grouping');
+    setStep('preview');
   };
 
   const handleImport = async () => {
@@ -274,7 +332,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     setImportResult(null);
     setDuplicateSkus([]);
     setIsCheckingDuplicates(false);
-    setSelectedVariantColumns([]);
+    setAttributeConfigs([]);
+    setShowTemplateHint(false);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -288,43 +347,95 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
 
   const getAttributeIcon = (type: string) => {
     const lower = type.toLowerCase();
-    if (lower.includes('color')) return <Palette className="h-3 w-3" />;
+    if (lower.includes('color') || lower.includes('colour')) return <Palette className="h-3 w-3" />;
     if (lower.includes('size') || lower.includes('talla')) return <Ruler className="h-3 w-3" />;
     if (lower.includes('volt') || lower.includes('watt') || lower.includes('power')) return <Zap className="h-3 w-3" />;
     return <Package className="h-3 w-3" />;
   };
 
+  // Attribute config handlers
+  const addAttributeConfig = (column?: string) => {
+    const newConfig: AttributeConfig = {
+      id: `attr-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      nameType: column ? 'column' : 'manual',
+      nameValue: column || '',
+      valueColumn: column || '',
+      imageColumn: undefined,
+    };
+    setAttributeConfigs(prev => [...prev, newConfig]);
+  };
+
+  const updateAttributeConfig = (id: string, updates: Partial<AttributeConfig>) => {
+    setAttributeConfigs(prev => prev.map(c => 
+      c.id === id ? { ...c, ...updates } : c
+    ));
+  };
+
+  const removeAttributeConfig = (id: string) => {
+    setAttributeConfigs(prev => prev.filter(c => c.id !== id));
+  };
+
+  // Get columns not yet used in attribute configs
+  const unusedColumns = useMemo(() => {
+    const usedCols = new Set(attributeConfigs.map(c => c.valueColumn).filter(Boolean));
+    return availableColumns.filter(col => !usedCols.has(col));
+  }, [availableColumns, attributeConfigs]);
+
   const activeExpenses = expenses?.filter(e => e.is_active) || [];
+  const currentStepIndex = STEPS.findIndex(s => s.id === step);
 
   return (
     <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) resetState(); }}>
       <DialogContent className="max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader>
+        <DialogHeader className="pb-2">
           <DialogTitle className="flex items-center gap-2">
             <Layers className="h-5 w-5 text-primary" />
-            Importación Inteligente EAV
+            Importación Inteligente de Productos
           </DialogTitle>
           <DialogDescription>
-            Agrupa automáticamente variantes y detecta atributos dinámicos (Color, Talla, Voltaje, etc.)
+            Configura atributos dinámicos y agrupa variantes automáticamente
           </DialogDescription>
         </DialogHeader>
 
-        {/* Progress Steps */}
-        <div className="flex items-center gap-2 text-xs border-b pb-3">
-          {['upload', 'mapping', 'grouping', 'importing'].map((s, i) => (
-            <div key={s} className="flex items-center gap-1">
-              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold ${
-                step === s ? 'bg-primary text-primary-foreground' : 
-                ['upload', 'mapping', 'grouping', 'importing'].indexOf(step) > i ? 'bg-green-500 text-white' : 'bg-muted text-muted-foreground'
-              }`}>
-                {i + 1}
+        {/* Enhanced Stepper */}
+        <div className="flex items-center gap-1 border-b pb-4 mb-2">
+          {STEPS.map((s, i) => {
+            const isCompleted = currentStepIndex > i;
+            const isCurrent = step === s.id || (step === 'importing' && s.id === 'preview');
+            const StepIcon = s.icon;
+            
+            return (
+              <div key={s.id} className="flex items-center">
+                <div className={cn(
+                  "flex items-center gap-2 px-3 py-2 rounded-lg transition-all",
+                  isCurrent && "bg-primary/10",
+                  isCompleted && "text-green-600"
+                )}>
+                  <div className={cn(
+                    "w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold transition-all",
+                    isCurrent && "bg-primary text-primary-foreground",
+                    isCompleted && "bg-green-500 text-white",
+                    !isCurrent && !isCompleted && "bg-muted text-muted-foreground"
+                  )}>
+                    {isCompleted ? <CheckCircle2 className="h-4 w-4" /> : <StepIcon className="h-4 w-4" />}
+                  </div>
+                  <span className={cn(
+                    "text-sm font-medium hidden sm:block",
+                    isCurrent && "text-primary",
+                    !isCurrent && !isCompleted && "text-muted-foreground"
+                  )}>
+                    {s.label}
+                  </span>
+                </div>
+                {i < STEPS.length - 1 && (
+                  <ChevronRight className={cn(
+                    "h-4 w-4 mx-1",
+                    isCompleted ? "text-green-500" : "text-muted-foreground"
+                  )} />
+                )}
               </div>
-              <span className={step === s ? 'font-medium' : 'text-muted-foreground'}>
-                {s === 'upload' ? 'Subir' : s === 'mapping' ? 'Mapear' : s === 'grouping' ? 'Agrupar' : 'Importar'}
-              </span>
-              {i < 3 && <ChevronRight className="h-4 w-4 text-muted-foreground" />}
-            </div>
-          ))}
+            );
+          })}
         </div>
 
         <ScrollArea className="flex-1 pr-4">
@@ -335,7 +446,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                 <CardHeader className="pb-3">
                   <CardTitle className="text-sm flex items-center gap-2">
                     <Calculator className="h-4 w-4" />
-                    Motor de Precios + Atributos EAV
+                    Motor de Precios Automático
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="text-sm space-y-2">
@@ -344,21 +455,22 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                     <Badge variant="secondary">{profitMargin}%</Badge>
                   </div>
                   <div className="text-xs text-muted-foreground border-t pt-2 mt-2">
-                    ✨ Detecta automáticamente: Color, Talla, Voltaje, Potencia, Material y más
+                    ✨ Detecta automáticamente: Color, Talla, Voltaje, Material y más
                   </div>
                 </CardContent>
               </Card>
 
-              <Card className="border-dashed border-2">
-                <CardContent className="pt-6">
+              <Card className="border-dashed border-2 hover:border-primary/50 transition-colors cursor-pointer" 
+                    onClick={() => fileInputRef.current?.click()}>
+                <CardContent className="pt-8 pb-8">
                   <div className="text-center space-y-4">
-                    <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                      <Upload className="h-6 w-6 text-primary" />
+                    <div className="mx-auto w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
+                      <Upload className="h-8 w-8 text-primary" />
                     </div>
                     <div>
-                      <h3 className="font-medium">Subir archivo CSV con variantes</h3>
-                      <p className="text-sm text-muted-foreground">
-                        Los productos con mismo nombre/SKU base se agrupan automáticamente
+                      <h3 className="text-lg font-medium">Arrastra tu archivo CSV aquí</h3>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        o haz clic para seleccionar • Formatos: CSV, XLSX
                       </p>
                     </div>
                     <Input
@@ -366,16 +478,16 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                       type="file"
                       accept=".csv,.xlsx,.xls"
                       onChange={handleFileUpload}
-                      className="max-w-xs mx-auto"
+                      className="hidden"
                     />
                   </div>
                 </CardContent>
               </Card>
 
               <div className="flex justify-center">
-                <Button variant="outline" onClick={downloadTemplate}>
+                <Button variant="outline" size="sm" onClick={downloadTemplate}>
                   <Download className="h-4 w-4 mr-2" />
-                  Descargar Plantilla con Variantes
+                  Descargar Plantilla de Ejemplo
                 </Button>
               </div>
 
@@ -385,10 +497,10 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                   ¿Cómo funciona?
                 </h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Las filas con mismo <strong>nombre base</strong> o <strong>SKU base</strong> se agrupan como un producto padre</li>
-                  <li>• Columnas extra (Color, Size, Voltage, etc.) se detectan como <strong>atributos dinámicos</strong></li>
-                  <li>• Cada combinación de atributos genera una <strong>variante (SKU)</strong> única</li>
-                  <li>• El sistema crea automáticamente las tablas EAV necesarias</li>
+                  <li>1. Sube tu archivo CSV con productos y variantes</li>
+                  <li>2. Mapea las columnas principales (SKU, Nombre, Precio)</li>
+                  <li>3. Configura los atributos de variantes (Color, Talla, etc.)</li>
+                  <li>4. El sistema agrupa automáticamente las variantes por producto padre</li>
                 </ul>
               </div>
             </div>
@@ -397,130 +509,117 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
           {/* Step 2: Mapping */}
           {step === 'mapping' && (
             <div className="space-y-6 py-4">
-              <p className="text-sm text-muted-foreground">
-                Encontramos <strong>{rawData.length}</strong> filas y <strong>{headers.length}</strong> columnas. 
-                Mapee las columnas principales:
-              </p>
-
-              <div className="grid grid-cols-2 gap-4">
-                {Object.entries(mapping).map(([field, value]) => (
-                  <div key={field} className="space-y-2">
-                    <Label className="capitalize text-xs">{field.replace(/_/g, ' ')}</Label>
-                    <Select
-                      value={value}
-                      onValueChange={(v) => setMapping(m => ({ ...m, [field]: v }))}
-                    >
-                      <SelectTrigger className="h-9">
-                        <SelectValue placeholder="Seleccionar" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="__none__">-- No mapear --</SelectItem>
-                        {headers.map((header) => (
-                          <SelectItem key={header} value={header}>{header}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-
-              <Card className="bg-primary/5 border-primary/20">
+              {/* CSV Preview */}
+              <Card>
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm flex items-center gap-2">
-                    <Layers className="h-4 w-4" />
-                    Seleccionar Columnas de Variantes
+                    <FileSpreadsheet className="h-4 w-4" />
+                    Vista Previa del Archivo
                   </CardTitle>
-                  <CardDescription className="text-xs">
-                    Seleccione manualmente las columnas que contienen atributos de variante (ej: Color, Talla, Voltaje)
-                  </CardDescription>
+                  <CardDescription>{rawData.length} filas • {headers.length} columnas</CardDescription>
                 </CardHeader>
-                <CardContent className="space-y-3">
-                  {/* Available columns to add as variant */}
-                  <div className="space-y-2">
-                    <Label className="text-xs text-muted-foreground">Agregar columna de variante:</Label>
-                    <div className="flex gap-2">
-                      <Select
-                        value=""
-                        onValueChange={(col) => {
-                          if (col && !selectedVariantColumns.find(vc => vc.column === col)) {
-                            setSelectedVariantColumns(prev => [...prev, { column: col, displayName: col }]);
-                          }
-                        }}
-                      >
-                        <SelectTrigger className="h-9">
-                          <SelectValue placeholder="Seleccionar columna..." />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {headers
-                            .filter(h => !Object.values(mapping).includes(h))
-                            .filter(h => !selectedVariantColumns.find(vc => vc.column === h))
-                            .map((header) => (
-                              <SelectItem key={header} value={header}>
-                                <span className="flex items-center gap-2">
-                                  {getAttributeIcon(header)}
-                                  {header}
-                                </span>
-                              </SelectItem>
-                            ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-
-                  {/* Selected variant columns */}
-                  {selectedVariantColumns.length > 0 ? (
-                    <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Columnas de variante seleccionadas:</Label>
-                      <div className="flex flex-wrap gap-2">
-                        {selectedVariantColumns.map((vc, index) => (
-                          <Badge 
-                            key={vc.column} 
-                            className="gap-1 pr-1 cursor-pointer hover:bg-destructive/20"
-                            onClick={() => {
-                              setSelectedVariantColumns(prev => prev.filter((_, i) => i !== index));
-                            }}
-                          >
-                            {getAttributeIcon(vc.column)}
-                            {vc.displayName}
-                            <span className="ml-1 text-muted-foreground hover:text-destructive">×</span>
-                          </Badge>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-muted-foreground italic">
-                      No hay columnas de variante seleccionadas. Si no selecciona ninguna, se detectarán automáticamente las columnas no mapeadas.
-                    </p>
-                  )}
-
-                  {/* Show remaining unmapped columns */}
-                  {headers.filter(h => !Object.values(mapping).includes(h) && !selectedVariantColumns.find(vc => vc.column === h)).length > 0 && (
-                    <div className="pt-2 border-t">
-                      <Label className="text-xs text-muted-foreground">Columnas disponibles sin mapear:</Label>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {headers
-                          .filter(h => !Object.values(mapping).includes(h))
-                          .filter(h => !selectedVariantColumns.find(vc => vc.column === h))
-                          .map(col => (
-                            <Badge 
-                              key={col} 
-                              variant="outline" 
-                              className="gap-1 cursor-pointer hover:bg-primary/10 text-xs"
-                              onClick={() => {
-                                setSelectedVariantColumns(prev => [...prev, { column: col, displayName: col }]);
-                              }}
-                            >
-                              {getAttributeIcon(col)}
-                              {col}
-                              <span className="text-primary">+</span>
-                            </Badge>
+                <CardContent>
+                  <div className="overflow-x-auto">
+                    <table className="text-xs w-full border-collapse">
+                      <thead>
+                        <tr className="bg-muted">
+                          {headers.map((h, i) => (
+                            <th key={i} className="border px-2 py-1 text-left font-medium max-w-[120px] truncate">
+                              {h}
+                            </th>
                           ))}
-                      </div>
-                    </div>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {rawData.slice(0, 3).map((row, ri) => (
+                          <tr key={ri}>
+                            {row.map((cell, ci) => (
+                              <td key={ci} className="border px-2 py-1 max-w-[120px] truncate text-muted-foreground">
+                                {cell || '-'}
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {rawData.length > 3 && (
+                    <p className="text-xs text-muted-foreground mt-2 text-center">
+                      ... y {rawData.length - 3} filas más
+                    </p>
                   )}
                 </CardContent>
               </Card>
 
+              {/* Column Mapping */}
+              <Accordion type="single" collapsible defaultValue="required">
+                <AccordionItem value="required">
+                  <AccordionTrigger className="text-sm font-medium">
+                    Campos Requeridos
+                    <Badge variant="secondary" className="ml-2">4</Badge>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      {(['sku_interno', 'nombre', 'costo_base', 'stock_fisico'] as const).map((field) => (
+                        <div key={field} className="space-y-2">
+                          <Label className="capitalize text-xs flex items-center gap-2">
+                            {field.replace(/_/g, ' ')}
+                            {headers.includes(mapping[field]) && (
+                              <CheckCircle2 className="h-3 w-3 text-green-500" />
+                            )}
+                          </Label>
+                          <Select
+                            value={mapping[field]}
+                            onValueChange={(v) => setMapping(m => ({ ...m, [field]: v }))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">-- No mapear --</SelectItem>
+                              {headers.map((header) => (
+                                <SelectItem key={header} value={header}>{header}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+                
+                <AccordionItem value="optional">
+                  <AccordionTrigger className="text-sm font-medium">
+                    Campos Opcionales
+                    <Badge variant="outline" className="ml-2">6</Badge>
+                  </AccordionTrigger>
+                  <AccordionContent>
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      {(['descripcion_corta', 'moq', 'url_imagen', 'categoria', 'proveedor', 'url_origen'] as const).map((field) => (
+                        <div key={field} className="space-y-2">
+                          <Label className="capitalize text-xs">{field.replace(/_/g, ' ')}</Label>
+                          <Select
+                            value={mapping[field]}
+                            onValueChange={(v) => setMapping(m => ({ ...m, [field]: v }))}
+                          >
+                            <SelectTrigger className="h-9">
+                              <SelectValue placeholder="Seleccionar" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="__none__">-- No mapear --</SelectItem>
+                              {headers.map((header) => (
+                                <SelectItem key={header} value={header}>{header}</SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      ))}
+                    </div>
+                  </AccordionContent>
+                </AccordionItem>
+              </Accordion>
+
+              {/* Default Category & Supplier */}
               <div className="grid grid-cols-2 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Categoría por defecto</Label>
@@ -548,38 +647,166 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
 
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setStep('upload')}>Atrás</Button>
-                <Button onClick={processGrouping}>
-                  <Layers className="h-4 w-4 mr-2" />
-                  Agrupar Productos
+                <Button onClick={() => setStep('attributes')}>
+                  Siguiente: Configurar Atributos
+                  <ArrowRight className="h-4 w-4 ml-2" />
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Step 3: Grouping Preview */}
-          {step === 'grouping' && (
+          {/* Step 3: Attribute Configuration (NEW) */}
+          {step === 'attributes' && (
             <div className="space-y-6 py-4">
-              <div className="flex items-center gap-4 flex-wrap">
-                <Badge variant="secondary" className="gap-1">
-                  <Package className="h-3 w-3" />
-                  {groupedProducts.length} productos padre
-                </Badge>
-                <Badge variant="outline" className="gap-1">
-                  <Layers className="h-3 w-3" />
-                  {groupedProducts.reduce((sum, g) => sum + g.variants.length, 0)} variantes
-                </Badge>
-                {detectedAttributeColumns.length > 0 && (
-                  <Badge variant="outline" className="gap-1 text-primary border-primary">
-                    {detectedAttributeColumns.length} atributos detectados
-                  </Badge>
+              {/* Template Hint */}
+              {showTemplateHint && categoryTemplates && categoryTemplates.length > 0 && (
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                          <Sparkles className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">Plantilla disponible</p>
+                          <p className="text-xs text-muted-foreground">
+                            {categoryTemplates.length} atributos predefinidos para esta categoría
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => setShowTemplateHint(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                        <Button size="sm" onClick={applyTemplate}>
+                          <Sparkles className="h-4 w-4 mr-1" />
+                          Aplicar Plantilla
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Available Columns */}
+              {unusedColumns.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm">Columnas Disponibles</CardTitle>
+                    <CardDescription className="text-xs">
+                      Haz clic en una columna para agregarla como atributo de variante
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {unusedColumns.map(col => (
+                        <Badge 
+                          key={col}
+                          variant="outline"
+                          className="cursor-pointer hover:bg-primary/10 hover:border-primary transition-colors gap-1.5 py-1.5 px-3"
+                          onClick={() => addAttributeConfig(col)}
+                        >
+                          {getAttributeIcon(col)}
+                          {col}
+                          <Plus className="h-3 w-3 ml-1 text-primary" />
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Configured Attributes */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-medium">
+                    Atributos Configurados ({attributeConfigs.length})
+                  </h3>
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => addAttributeConfig()}
+                    disabled={unusedColumns.length === 0}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    Agregar Atributo
+                  </Button>
+                </div>
+
+                {attributeConfigs.length === 0 ? (
+                  <Card className="p-8 text-center border-dashed">
+                    <Package className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
+                    <p className="text-muted-foreground">
+                      No hay atributos configurados. Haz clic en las columnas disponibles arriba 
+                      o usa "Agregar Atributo" para crear uno.
+                    </p>
+                    {categoryTemplates && categoryTemplates.length > 0 && (
+                      <Button 
+                        variant="secondary" 
+                        size="sm" 
+                        className="mt-4"
+                        onClick={applyTemplate}
+                      >
+                        <Sparkles className="h-4 w-4 mr-1" />
+                        Usar Plantilla de Categoría
+                      </Button>
+                    )}
+                  </Card>
+                ) : (
+                  <div className="space-y-4">
+                    {attributeConfigs.map((config, index) => (
+                      <AttributeConfigCard
+                        key={config.id}
+                        config={config}
+                        index={index}
+                        availableColumns={[...unusedColumns, config.valueColumn].filter(Boolean)}
+                        rawData={rawData}
+                        headers={headers}
+                        onUpdate={updateAttributeConfig}
+                        onRemove={removeAttributeConfig}
+                      />
+                    ))}
+                  </div>
                 )}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setStep('mapping')}>Atrás</Button>
+                <Button onClick={processGrouping} disabled={isCheckingDuplicates}>
+                  {isCheckingDuplicates && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  Agrupar y Previsualizar
+                  <ArrowRight className="h-4 w-4 ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 4: Preview & Confirm */}
+          {step === 'preview' && (
+            <div className="space-y-6 py-4">
+              {/* Stats */}
+              <div className="grid grid-cols-3 gap-4">
+                <Card className="text-center p-4">
+                  <div className="text-3xl font-bold text-primary">{groupedProducts.length}</div>
+                  <p className="text-sm text-muted-foreground">Productos Padre</p>
+                </Card>
+                <Card className="text-center p-4">
+                  <div className="text-3xl font-bold text-primary">
+                    {groupedProducts.reduce((sum, g) => sum + g.variants.length, 0)}
+                  </div>
+                  <p className="text-sm text-muted-foreground">Variantes Totales</p>
+                </Card>
+                <Card className="text-center p-4">
+                  <div className="text-3xl font-bold text-primary">{detectedAttributeColumns.length}</div>
+                  <p className="text-sm text-muted-foreground">Atributos</p>
+                </Card>
               </div>
 
               {/* Detected Attributes */}
               {detectedAttributeColumns.length > 0 && (
                 <Card className="bg-primary/5 border-primary/20">
                   <CardHeader className="pb-2">
-                    <CardTitle className="text-sm">Atributos Dinámicos Detectados</CardTitle>
+                    <CardTitle className="text-sm">Atributos Detectados</CardTitle>
                   </CardHeader>
                   <CardContent className="flex flex-wrap gap-2">
                     {detectedAttributeColumns.map(col => (
@@ -598,59 +825,59 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm flex items-center gap-2 text-orange-700 dark:text-orange-400">
                       <AlertTriangle className="h-4 w-4" />
-                      {duplicateSkus.length} SKU(s) ya existen en la base de datos
+                      {duplicateSkus.length} SKU(s) ya existen
                     </CardTitle>
-                    <CardDescription className="text-xs text-orange-600 dark:text-orange-500">
-                      Los siguientes productos ya están registrados. Puedes ignorarlos o continuar para actualizar.
-                    </CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     <div className="flex flex-wrap gap-1.5">
-                      {duplicateSkus.slice(0, 10).map(sku => (
-                        <Badge key={sku} variant="outline" className="text-xs text-orange-700 border-orange-300 dark:text-orange-400">
+                      {duplicateSkus.slice(0, 8).map(sku => (
+                        <Badge key={sku} variant="outline" className="text-xs text-orange-700 border-orange-300">
                           {sku}
                         </Badge>
                       ))}
-                      {duplicateSkus.length > 10 && (
-                        <Badge variant="outline" className="text-xs text-orange-700 border-orange-300">
-                          +{duplicateSkus.length - 10} más
-                        </Badge>
+                      {duplicateSkus.length > 8 && (
+                        <Badge variant="outline" className="text-xs">+{duplicateSkus.length - 8}</Badge>
                       )}
                     </div>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        onClick={removeDuplicates}
-                        className="text-xs"
-                      >
-                        Ignorar duplicados
-                      </Button>
-                      <p className="text-[10px] text-muted-foreground self-center">
-                        o continúa para intentar importar (puede fallar si el SKU ya existe)
-                      </p>
-                    </div>
+                    <Button variant="outline" size="sm" onClick={removeDuplicates}>
+                      Ignorar duplicados
+                    </Button>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Grouped Products Preview */}
-              <Tabs defaultValue="preview" className="w-full">
+              {/* Products Preview */}
+              <Tabs defaultValue="list" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
-                  <TabsTrigger value="preview">Vista Previa</TabsTrigger>
+                  <TabsTrigger value="list">Lista</TabsTrigger>
                   <TabsTrigger value="details">Detalles</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="preview" className="space-y-2 mt-4">
+                <TabsContent value="list" className="space-y-2 mt-4">
                   {groupedProducts.slice(0, 10).map((group, i) => (
-                    <Card key={i} className="p-3">
+                    <Card key={i} className={cn("p-3", group.existsInDb && "opacity-50")}>
                       <div className="flex items-center justify-between gap-4">
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-medium truncate">{group.parentName}</h4>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                            <span>SKU: {group.baseSku}</span>
-                            <span>•</span>
-                            <span>{group.variants.length} variantes</span>
+                        <div className="flex items-center gap-3">
+                          {group.variants[0]?.imageUrl && (
+                            <img 
+                              src={group.variants[0].imageUrl} 
+                              alt=""
+                              className="w-10 h-10 rounded object-cover border"
+                            />
+                          )}
+                          <div className="min-w-0">
+                            <h4 className="font-medium truncate">{group.parentName}</h4>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>SKU: {group.baseSku}</span>
+                              <span>•</span>
+                              <span>{group.variants.length} variantes</span>
+                              {group.existsInDb && (
+                                <>
+                                  <span>•</span>
+                                  <Badge variant="secondary" className="text-[10px]">Duplicado</Badge>
+                                </>
+                              )}
+                            </div>
                           </div>
                         </div>
                         <div className="flex gap-1">
@@ -671,86 +898,80 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                   )}
                 </TabsContent>
 
-                <TabsContent value="details" className="mt-4">
-                  <div className="space-y-4">
-                    {groupedProducts.slice(0, 5).map((group, i) => (
-                      <Card key={i}>
-                        <CardHeader className="pb-2">
-                          <CardTitle className="text-sm">{group.parentName}</CardTitle>
-                          <CardDescription className="text-xs">
-                            {group.variants.length} variantes • {group.detectedAttributes.length} atributos
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="text-xs space-y-3">
-                          {/* Attributes */}
-                          <div className="space-y-2">
-                            {group.detectedAttributes.map(attr => (
-                              <div key={attr.columnName} className="flex items-center gap-2">
-                                {getAttributeIcon(attr.columnName)}
-                                <span className="font-medium">{attr.columnName}:</span>
-                                <div className="flex gap-1 flex-wrap">
-                                  {Array.from(attr.uniqueValues).slice(0, 5).map(v => (
-                                    <Badge key={v} variant="secondary" className="text-[10px]">{v}</Badge>
-                                  ))}
-                                  {attr.uniqueValues.size > 5 && (
-                                    <Badge variant="outline" className="text-[10px]">+{attr.uniqueValues.size - 5}</Badge>
+                <TabsContent value="details" className="mt-4 space-y-4">
+                  {groupedProducts.slice(0, 5).map((group, i) => (
+                    <Card key={i}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-sm">{group.parentName}</CardTitle>
+                        <CardDescription className="text-xs">
+                          SKU: {group.baseSku} • {group.variants.length} variantes
+                        </CardDescription>
+                      </CardHeader>
+                      <CardContent className="text-xs space-y-3">
+                        {/* Attributes */}
+                        {group.detectedAttributes.map(attr => (
+                          <div key={attr.columnName} className="flex items-center gap-2">
+                            {getAttributeIcon(attr.columnName)}
+                            <span className="font-medium">{attr.columnName}:</span>
+                            <div className="flex gap-1 flex-wrap">
+                              {Array.from(attr.uniqueValues).slice(0, 6).map(v => (
+                                <Badge key={v} variant="secondary" className="text-[10px]">{v}</Badge>
+                              ))}
+                              {attr.uniqueValues.size > 6 && (
+                                <Badge variant="outline" className="text-[10px]">+{attr.uniqueValues.size - 6}</Badge>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                        
+                        {/* Variant Images */}
+                        {group.variants.some(v => v.imageUrl) && (
+                          <div className="border-t pt-2">
+                            <p className="text-muted-foreground mb-2 flex items-center gap-1">
+                              <ImageIcon className="h-3 w-3" />
+                              Imágenes:
+                            </p>
+                            <div className="flex gap-2 flex-wrap">
+                              {group.variants.slice(0, 6).map((variant, vi) => (
+                                <div key={vi} className="relative group">
+                                  {variant.imageUrl ? (
+                                    <img 
+                                      src={variant.imageUrl} 
+                                      alt=""
+                                      className="w-12 h-12 rounded object-cover border"
+                                    />
+                                  ) : (
+                                    <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border">
+                                      <Package className="h-4 w-4 text-muted-foreground" />
+                                    </div>
                                   )}
                                 </div>
-                              </div>
-                            ))}
-                          </div>
-                          
-                          {/* Variant Images Preview */}
-                          {group.variants.some(v => v.imageUrl) && (
-                            <div className="border-t pt-2">
-                              <p className="text-muted-foreground mb-2">Imágenes por variante:</p>
-                              <div className="flex gap-2 flex-wrap">
-                                {group.variants.slice(0, 6).map((variant, vi) => (
-                                  <div key={vi} className="relative group">
-                                    {variant.imageUrl ? (
-                                      <img 
-                                        src={variant.imageUrl} 
-                                        alt={Object.values(variant.attributeValues).join(' ')}
-                                        className="w-12 h-12 rounded object-cover border"
-                                      />
-                                    ) : (
-                                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border">
-                                        <Package className="h-4 w-4 text-muted-foreground" />
-                                      </div>
-                                    )}
-                                    <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                                      <span className="text-[8px] text-white text-center px-1">
-                                        {Object.values(variant.attributeValues).slice(0, 2).join(' / ')}
-                                      </span>
-                                    </div>
-                                  </div>
-                                ))}
-                                {group.variants.length > 6 && (
-                                  <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border text-xs text-muted-foreground">
-                                    +{group.variants.length - 6}
-                                  </div>
-                                )}
-                              </div>
+                              ))}
+                              {group.variants.length > 6 && (
+                                <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border text-xs">
+                                  +{group.variants.length - 6}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))}
                 </TabsContent>
               </Tabs>
 
-              <div className="flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setStep('mapping')}>Atrás</Button>
-                <Button onClick={handleImport}>
+              <div className="flex justify-end gap-2 pt-4 border-t">
+                <Button variant="outline" onClick={() => setStep('attributes')}>Atrás</Button>
+                <Button onClick={handleImport} size="lg">
                   <ArrowRight className="h-4 w-4 mr-2" />
-                  Importar {groupedProducts.length} Productos
+                  Importar {groupedProducts.filter(g => !g.existsInDb).length} Productos
                 </Button>
               </div>
             </div>
           )}
 
-          {/* Step 4: Importing */}
+          {/* Step 5: Importing */}
           {step === 'importing' && (
             <div className="space-y-6 py-8">
               {!importResult ? (
