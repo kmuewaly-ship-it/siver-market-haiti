@@ -118,13 +118,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             setRole(userRole);
             setIsLoading(false);
             clearTimeout(safetyTimeout);
+            setHasInitialized(true);
 
-            // Solo redirigir si es un nuevo login desde una página PROTEGIDA o LOGIN
+            // Redirigir solo en eventos de login
             if (event === 'SIGNED_IN') {
               const currentPath = window.location.pathname;
 
-              // Si estamos en login, SIEMPRE redirigir
-              if (currentPath === '/login') {
+              // Páginas de autenticación - siempre redirigir
+              if (currentPath === '/login' || currentPath === '/cuenta') {
                 if (userRole === UserRole.SELLER) {
                   navigate('/seller/adquisicion-lotes');
                 } else if (userRole === UserRole.ADMIN) {
@@ -135,17 +136,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 return;
               }
 
-              // Páginas públicas donde NO queremos redirigir (si ya estaba ahí)
-              // Usamos validación más estricta para evitar que '/' coincida con todo
+              // Páginas públicas donde NO queremos redirigir
               const publicPagesPrefixes = ['/tienda/', '/producto/'];
               const isPublicPage = currentPath === '/' || publicPagesPrefixes.some(page => currentPath.startsWith(page));
 
               if (isPublicPage) {
-                // Usuario se logueó en una página pública, lo dejamos donde está
                 return;
               }
 
-              // Si está en una página protegida (que no sea las públicas listadas), redirigir según rol
+              // Si está en una página protegida, redirigir según rol
               if (userRole === UserRole.SELLER) {
                 navigate('/seller/adquisicion-lotes');
               } else if (userRole === UserRole.ADMIN) {
@@ -186,12 +185,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         clearTimeout(safetyTimeout);
       }
       
-      // Marcar como inicializado después de cargar la sesión
       setHasInitialized(true);
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate, hasInitialized]);
+  }, [navigate]);
 
   const signIn = async (email: string, password: string) => {
     const { error } = await supabase.auth.signInWithPassword({
