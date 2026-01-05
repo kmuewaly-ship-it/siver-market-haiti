@@ -531,12 +531,20 @@ export const useSiverMatch = () => {
           .eq('id', assignmentId)
           .single();
         
-        // Update pending orders count directly
+        // Update pending orders count - increment by 1
         if (assignment) {
-          await supabase
+          const { data: profile } = await supabase
             .from('siver_match_profiles')
-            .update({ current_pending_orders: supabase.rpc as any })
-            .eq('id', assignment.gestor_id);
+            .select('current_pending_orders')
+            .eq('id', assignment.gestor_id)
+            .single();
+          
+          if (profile) {
+            await supabase
+              .from('siver_match_profiles')
+              .update({ current_pending_orders: (profile.current_pending_orders || 0) + 1 })
+              .eq('id', assignment.gestor_id);
+          }
         }
       }
     },
