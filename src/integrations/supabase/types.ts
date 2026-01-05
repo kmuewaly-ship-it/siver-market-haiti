@@ -3184,6 +3184,640 @@ export type Database = {
         }
         Relationships: []
       }
+      siver_match_assignments: {
+        Row: {
+          accepted_at: string | null
+          completed_at: string | null
+          created_at: string | null
+          gestor_id: string
+          gestor_notes: string | null
+          id: string
+          initiated_by: Database["public"]["Enums"]["siver_match_role"]
+          investor_id: string
+          investor_notes: string | null
+          metadata: Json | null
+          quantity_assigned: number
+          quantity_available: number
+          quantity_sold: number | null
+          requested_at: string | null
+          status: Database["public"]["Enums"]["assignment_status"] | null
+          stock_lot_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          gestor_id: string
+          gestor_notes?: string | null
+          id?: string
+          initiated_by: Database["public"]["Enums"]["siver_match_role"]
+          investor_id: string
+          investor_notes?: string | null
+          metadata?: Json | null
+          quantity_assigned: number
+          quantity_available: number
+          quantity_sold?: number | null
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"] | null
+          stock_lot_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          accepted_at?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          gestor_id?: string
+          gestor_notes?: string | null
+          id?: string
+          initiated_by?: Database["public"]["Enums"]["siver_match_role"]
+          investor_id?: string
+          investor_notes?: string | null
+          metadata?: Json | null
+          quantity_assigned?: number
+          quantity_available?: number
+          quantity_sold?: number | null
+          requested_at?: string | null
+          status?: Database["public"]["Enums"]["assignment_status"] | null
+          stock_lot_id?: string
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siver_match_assignments_gestor_id_fkey"
+            columns: ["gestor_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_assignments_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_assignments_stock_lot_id_fkey"
+            columns: ["stock_lot_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_stock_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siver_match_badges: {
+        Row: {
+          code: string
+          color: string | null
+          created_at: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          min_rating: number | null
+          min_reviews: number | null
+          min_sales: number | null
+          name: string
+          role: Database["public"]["Enums"]["siver_match_role"] | null
+          sort_order: number | null
+        }
+        Insert: {
+          code: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_rating?: number | null
+          min_reviews?: number | null
+          min_sales?: number | null
+          name: string
+          role?: Database["public"]["Enums"]["siver_match_role"] | null
+          sort_order?: number | null
+        }
+        Update: {
+          code?: string
+          color?: string | null
+          created_at?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          min_rating?: number | null
+          min_reviews?: number | null
+          min_sales?: number | null
+          name?: string
+          role?: Database["public"]["Enums"]["siver_match_role"] | null
+          sort_order?: number | null
+        }
+        Relationships: []
+      }
+      siver_match_profiles: {
+        Row: {
+          avatar_url: string | null
+          average_rating: number | null
+          badges: Json | null
+          bio: string | null
+          commune_id: string | null
+          created_at: string | null
+          current_pending_orders: number | null
+          department_id: string | null
+          display_name: string
+          id: string
+          is_active: boolean | null
+          is_verified: boolean | null
+          max_pending_orders: number | null
+          phone: string | null
+          role: Database["public"]["Enums"]["siver_match_role"]
+          total_reviews: number | null
+          total_sales_amount: number | null
+          total_sales_count: number | null
+          updated_at: string | null
+          user_id: string
+          verified_at: string | null
+        }
+        Insert: {
+          avatar_url?: string | null
+          average_rating?: number | null
+          badges?: Json | null
+          bio?: string | null
+          commune_id?: string | null
+          created_at?: string | null
+          current_pending_orders?: number | null
+          department_id?: string | null
+          display_name: string
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          max_pending_orders?: number | null
+          phone?: string | null
+          role: Database["public"]["Enums"]["siver_match_role"]
+          total_reviews?: number | null
+          total_sales_amount?: number | null
+          total_sales_count?: number | null
+          updated_at?: string | null
+          user_id: string
+          verified_at?: string | null
+        }
+        Update: {
+          avatar_url?: string | null
+          average_rating?: number | null
+          badges?: Json | null
+          bio?: string | null
+          commune_id?: string | null
+          created_at?: string | null
+          current_pending_orders?: number | null
+          department_id?: string | null
+          display_name?: string
+          id?: string
+          is_active?: boolean | null
+          is_verified?: boolean | null
+          max_pending_orders?: number | null
+          phone?: string | null
+          role?: Database["public"]["Enums"]["siver_match_role"]
+          total_reviews?: number | null
+          total_sales_amount?: number | null
+          total_sales_count?: number | null
+          updated_at?: string | null
+          user_id?: string
+          verified_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siver_match_profiles_commune_id_fkey"
+            columns: ["commune_id"]
+            isOneToOne: false
+            referencedRelation: "communes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_profiles_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siver_match_reviews: {
+        Row: {
+          comment: string | null
+          created_at: string | null
+          id: string
+          is_public: boolean | null
+          rating: number
+          reviewed_profile_id: string
+          reviewer_profile_id: string
+          reviewer_role: Database["public"]["Enums"]["siver_match_role"]
+          sale_id: string
+        }
+        Insert: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          rating: number
+          reviewed_profile_id: string
+          reviewer_profile_id: string
+          reviewer_role: Database["public"]["Enums"]["siver_match_role"]
+          sale_id: string
+        }
+        Update: {
+          comment?: string | null
+          created_at?: string | null
+          id?: string
+          is_public?: boolean | null
+          rating?: number
+          reviewed_profile_id?: string
+          reviewer_profile_id?: string
+          reviewer_role?: Database["public"]["Enums"]["siver_match_role"]
+          sale_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siver_match_reviews_reviewed_profile_id_fkey"
+            columns: ["reviewed_profile_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_reviews_reviewer_profile_id_fkey"
+            columns: ["reviewer_profile_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_reviews_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siver_match_sales: {
+        Row: {
+          assignment_id: string
+          commune_id: string | null
+          created_at: string | null
+          customer_email: string | null
+          customer_name: string
+          customer_phone: string | null
+          customer_user_id: string | null
+          delivered_at: string | null
+          delivery_address: string | null
+          delivery_confirmed_by: string | null
+          delivery_photo_url: string | null
+          department_id: string | null
+          gestor_commission: number
+          gestor_id: string
+          gestor_wallet_tx_id: string | null
+          hybrid_tracking_id: string | null
+          id: string
+          investor_amount: number
+          investor_id: string
+          investor_wallet_tx_id: string | null
+          metadata: Json | null
+          payment_confirmed_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          picked_up_at: string | null
+          picked_up_by: string | null
+          pickup_code: string | null
+          pickup_qr_code: string | null
+          pickup_qr_generated_at: string | null
+          quantity: number
+          sale_number: string
+          siver_fee: number
+          siver_wallet_tx_id: string | null
+          status: Database["public"]["Enums"]["match_sale_status"] | null
+          stock_lot_id: string
+          total_amount: number
+          unit_price: number
+          updated_at: string | null
+        }
+        Insert: {
+          assignment_id: string
+          commune_id?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_confirmed_by?: string | null
+          delivery_photo_url?: string | null
+          department_id?: string | null
+          gestor_commission: number
+          gestor_id: string
+          gestor_wallet_tx_id?: string | null
+          hybrid_tracking_id?: string | null
+          id?: string
+          investor_amount: number
+          investor_id: string
+          investor_wallet_tx_id?: string | null
+          metadata?: Json | null
+          payment_confirmed_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          picked_up_at?: string | null
+          picked_up_by?: string | null
+          pickup_code?: string | null
+          pickup_qr_code?: string | null
+          pickup_qr_generated_at?: string | null
+          quantity: number
+          sale_number: string
+          siver_fee: number
+          siver_wallet_tx_id?: string | null
+          status?: Database["public"]["Enums"]["match_sale_status"] | null
+          stock_lot_id: string
+          total_amount: number
+          unit_price: number
+          updated_at?: string | null
+        }
+        Update: {
+          assignment_id?: string
+          commune_id?: string | null
+          created_at?: string | null
+          customer_email?: string | null
+          customer_name?: string
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          delivered_at?: string | null
+          delivery_address?: string | null
+          delivery_confirmed_by?: string | null
+          delivery_photo_url?: string | null
+          department_id?: string | null
+          gestor_commission?: number
+          gestor_id?: string
+          gestor_wallet_tx_id?: string | null
+          hybrid_tracking_id?: string | null
+          id?: string
+          investor_amount?: number
+          investor_id?: string
+          investor_wallet_tx_id?: string | null
+          metadata?: Json | null
+          payment_confirmed_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          picked_up_at?: string | null
+          picked_up_by?: string | null
+          pickup_code?: string | null
+          pickup_qr_code?: string | null
+          pickup_qr_generated_at?: string | null
+          quantity?: number
+          sale_number?: string
+          siver_fee?: number
+          siver_wallet_tx_id?: string | null
+          status?: Database["public"]["Enums"]["match_sale_status"] | null
+          stock_lot_id?: string
+          total_amount?: number
+          unit_price?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siver_match_sales_assignment_id_fkey"
+            columns: ["assignment_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_sales_commune_id_fkey"
+            columns: ["commune_id"]
+            isOneToOne: false
+            referencedRelation: "communes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_sales_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_sales_gestor_id_fkey"
+            columns: ["gestor_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_sales_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_sales_stock_lot_id_fkey"
+            columns: ["stock_lot_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_stock_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      siver_match_stock_lots: {
+        Row: {
+          arrived_at_hub_at: string | null
+          available_quantity: number
+          china_tracking_number: string | null
+          color: string | null
+          cost_per_unit: number
+          created_at: string | null
+          gestor_commission_per_unit: number
+          id: string
+          internal_tracking_id: string | null
+          investor_id: string
+          logistics_stage: string | null
+          metadata: Json | null
+          min_price: number | null
+          notes: string | null
+          product_id: string | null
+          product_image: string | null
+          product_name: string
+          size: string | null
+          sku: string | null
+          sold_quantity: number | null
+          status: Database["public"]["Enums"]["stock_lot_status"] | null
+          suggested_price: number
+          total_quantity: number
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          arrived_at_hub_at?: string | null
+          available_quantity: number
+          china_tracking_number?: string | null
+          color?: string | null
+          cost_per_unit: number
+          created_at?: string | null
+          gestor_commission_per_unit: number
+          id?: string
+          internal_tracking_id?: string | null
+          investor_id: string
+          logistics_stage?: string | null
+          metadata?: Json | null
+          min_price?: number | null
+          notes?: string | null
+          product_id?: string | null
+          product_image?: string | null
+          product_name: string
+          size?: string | null
+          sku?: string | null
+          sold_quantity?: number | null
+          status?: Database["public"]["Enums"]["stock_lot_status"] | null
+          suggested_price: number
+          total_quantity: number
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          arrived_at_hub_at?: string | null
+          available_quantity?: number
+          china_tracking_number?: string | null
+          color?: string | null
+          cost_per_unit?: number
+          created_at?: string | null
+          gestor_commission_per_unit?: number
+          id?: string
+          internal_tracking_id?: string | null
+          investor_id?: string
+          logistics_stage?: string | null
+          metadata?: Json | null
+          min_price?: number | null
+          notes?: string | null
+          product_id?: string | null
+          product_image?: string | null
+          product_name?: string
+          size?: string | null
+          sku?: string | null
+          sold_quantity?: number | null
+          status?: Database["public"]["Enums"]["stock_lot_status"] | null
+          suggested_price?: number
+          total_quantity?: number
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siver_match_stock_lots_investor_id_fkey"
+            columns: ["investor_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_stock_lots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_stock_lots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "siver_match_stock_lots_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "siver_match_stock_lots_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_stock_lots_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "siver_match_stock_lots_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
+          },
+        ]
+      }
+      siver_match_wallet_splits: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          gestor_amount: number
+          gestor_tx_ref: string | null
+          id: string
+          investor_amount: number
+          investor_tx_ref: string | null
+          is_processed: boolean | null
+          processed_at: string | null
+          sale_id: string
+          siver_amount: number
+          siver_tx_ref: string | null
+          total_received: number
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          gestor_amount: number
+          gestor_tx_ref?: string | null
+          id?: string
+          investor_amount: number
+          investor_tx_ref?: string | null
+          is_processed?: boolean | null
+          processed_at?: string | null
+          sale_id: string
+          siver_amount: number
+          siver_tx_ref?: string | null
+          total_received: number
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          gestor_amount?: number
+          gestor_tx_ref?: string | null
+          id?: string
+          investor_amount?: number
+          investor_tx_ref?: string | null
+          is_processed?: boolean | null
+          processed_at?: string | null
+          sale_id?: string
+          siver_amount?: number
+          siver_tx_ref?: string | null
+          total_received?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "siver_match_wallet_splits_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       stock_in_transit: {
         Row: {
           batch_id: string | null
@@ -4135,6 +4769,8 @@ export type Database = {
         }
         Returns: string
       }
+      generate_match_sale_number: { Args: never; Returns: string }
+      generate_pickup_code: { Args: never; Returns: string }
       get_trending_products: {
         Args: { days_back?: number; limit_count?: number }
         Returns: {
@@ -4206,6 +4842,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      process_siver_match_wallet_split: {
+        Args: { p_sale_id: string }
+        Returns: boolean
+      }
       process_withdrawal_completion: {
         Args: {
           p_action: string
@@ -4224,6 +4864,20 @@ export type Database = {
         | "credit_activation"
         | "seller_upgrade"
       approval_status: "pending" | "approved" | "rejected"
+      assignment_status:
+        | "pending"
+        | "accepted"
+        | "rejected"
+        | "active"
+        | "completed"
+        | "cancelled"
+      match_sale_status:
+        | "pending_payment"
+        | "payment_confirmed"
+        | "ready_pickup"
+        | "picked_up"
+        | "delivered"
+        | "cancelled"
       payment_method: "stripe" | "moncash" | "transfer"
       payment_status: "pending" | "verified" | "rejected"
       payment_status_order:
@@ -4233,6 +4887,16 @@ export type Database = {
         | "paid"
         | "failed"
         | "expired"
+        | "cancelled"
+      siver_match_role: "investor" | "gestor"
+      stock_lot_status:
+        | "draft"
+        | "published"
+        | "assigned"
+        | "in_transit"
+        | "in_hub"
+        | "active"
+        | "depleted"
         | "cancelled"
       stock_status: "in_stock" | "low_stock" | "out_of_stock"
       verification_status:
@@ -4399,6 +5063,22 @@ export const Constants = {
         "seller_upgrade",
       ],
       approval_status: ["pending", "approved", "rejected"],
+      assignment_status: [
+        "pending",
+        "accepted",
+        "rejected",
+        "active",
+        "completed",
+        "cancelled",
+      ],
+      match_sale_status: [
+        "pending_payment",
+        "payment_confirmed",
+        "ready_pickup",
+        "picked_up",
+        "delivered",
+        "cancelled",
+      ],
       payment_method: ["stripe", "moncash", "transfer"],
       payment_status: ["pending", "verified", "rejected"],
       payment_status_order: [
@@ -4408,6 +5088,17 @@ export const Constants = {
         "paid",
         "failed",
         "expired",
+        "cancelled",
+      ],
+      siver_match_role: ["investor", "gestor"],
+      stock_lot_status: [
+        "draft",
+        "published",
+        "assigned",
+        "in_transit",
+        "in_hub",
+        "active",
+        "depleted",
         "cancelled",
       ],
       stock_status: ["in_stock", "low_stock", "out_of_stock"],
