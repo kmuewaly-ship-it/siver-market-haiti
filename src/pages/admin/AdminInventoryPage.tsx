@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,14 +10,18 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Progress } from '@/components/ui/progress';
+import { Switch } from '@/components/ui/switch';
 import { useInventoryManagement } from '@/hooks/useInventoryManagement';
 import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
+import { useConsolidationEngine, ConsolidationMode } from '@/hooks/useConsolidationEngine';
 import { PDFGenerators } from '@/services/pdfGenerators';
 import { 
   Package, Truck, AlertTriangle, FileText, Printer, 
   Plus, Search, ShoppingCart, CheckCircle, Clock,
   Box, Download, Play, Link2, QrCode, Eye,
-  Globe, Plane, Building2, MapPin
+  Globe, Plane, Building2, MapPin, Settings, Timer, 
+  Zap, StopCircle, RefreshCw
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -44,6 +48,7 @@ const AdminInventoryPage = () => {
   const [trackingDialog, setTrackingDialog] = useState(false);
   const [chinaTracking, setChinaTracking] = useState('');
   const [poDetailDialog, setPoDetailDialog] = useState(false);
+  const [settingsDialog, setSettingsDialog] = useState(false);
   
   const {
     useStockBalance,
@@ -65,6 +70,22 @@ const AdminInventoryPage = () => {
     closePO,
     getPickingManifest,
   } = usePurchaseOrders();
+  
+  const {
+    useConsolidationStats,
+    useConsolidationSettings,
+    updateSettings,
+    manualClosePO,
+    checkAutoClose,
+    getUrgencyLevel,
+    useRealtimeOrderUpdates,
+  } = useConsolidationEngine();
+  
+  // Real-time updates
+  useRealtimeOrderUpdates(true);
+  
+  const { data: consolidationStats, isLoading: loadingStats } = useConsolidationStats();
+  const { data: consolidationSettings } = useConsolidationSettings();
   
   const { data: stockBalance, isLoading: loadingBalance } = useStockBalance();
   const { data: stockTransit, isLoading: loadingTransit } = useStockInTransit();
@@ -275,6 +296,152 @@ const AdminInventoryPage = () => {
           {/* PO Management Tab - Command Center */}
           <TabsContent value="po-management">
             <div className="space-y-6">
+              {/* Auto-Consolidation Engine Panel */}
+              {consolidationStats && (
+                <Card className={`border-2 ${
+                  getUrgencyLevel(consolidationStats) === 'critical' ? 'border-red-500 bg-red-50' :
+                  getUrgencyLevel(consolidationStats) === 'high' ? 'border-orange-500 bg-orange-50' :
+                  getUrgencyLevel(consolidationStats) === 'medium' ? 'border-yellow-500 bg-yellow-50' :
+                  'border-green-500 bg-green-50'
+                }`}>
+                  <CardHeader className="pb-3">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2 rounded-full ${
+                          getUrgencyLevel(consolidationStats) === 'critical' ? 'bg-red-100' :
+                          getUrgencyLevel(consolidationStats) === 'high' ? 'bg-orange-100' :
+                          getUrgencyLevel(consolidationStats) === 'medium' ? 'bg-yellow-100' :
+                          'bg-green-100'
+                        }`}>
+                          <Zap className={`h-5 w-5 ${
+                            getUrgencyLevel(consolidationStats) === 'critical' ? 'text-red-600' :
+                            getUrgencyLevel(consolidationStats) === 'high' ? 'text-orange-600' :
+                            getUrgencyLevel(consolidationStats) === 'medium' ? 'text-yellow-600' :
+                            'text-green-600'
+                          }`} />
+                        </div>
+                        <div>
+                          <CardTitle className="text-lg flex items-center gap-2">
+                            Motor de Consolidación Automática
+                            <Badge variant={consolidationStats.settings.is_active ? 'default' : 'secondary'}>
+                              {consolidationStats.settings.is_active ? 'Activo' : 'Pausado'}
+                            </Badge>
+                          </CardTitle>
+                          <CardDescription>
+                            Modo: {consolidationStats.settings.mode === 'hybrid' ? 'Híbrido (Tiempo + Cantidad)' :
+                                   consolidationStats.settings.mode === 'time' ? 'Por Tiempo' : 'Por Cantidad'}
+                          </CardDescription>
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => setSettingsDialog(true)}>
+                          <Settings className="h-4 w-4 mr-2" />
+                          Configurar
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => checkAutoClose.mutate()}>
+                          <RefreshCw className="h-4 w-4 mr-2" />
+                          Verificar
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      {/* Progress Ring */}
+                      <div className="flex flex-col items-center justify-center">
+                        <div className="relative w-32 h-32">
+                          <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
+                            <circle
+                              className="text-muted stroke-current"
+                              strokeWidth="8"
+                              fill="transparent"
+                              r="40"
+                              cx="50"
+                              cy="50"
+                            />
+                            <circle
+                              className={`stroke-current ${
+                                consolidationStats.progress.percent_full >= 100 ? 'text-red-500' :
+                                consolidationStats.progress.percent_full >= 80 ? 'text-orange-500' :
+                                consolidationStats.progress.percent_full >= 50 ? 'text-yellow-500' :
+                                'text-green-500'
+                              }`}
+                              strokeWidth="8"
+                              strokeLinecap="round"
+                              fill="transparent"
+                              r="40"
+                              cx="50"
+                              cy="50"
+                              strokeDasharray={`${(consolidationStats.progress.percent_full / 100) * 251.2} 251.2`}
+                            />
+                          </svg>
+                          <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <span className="text-2xl font-bold">{Math.round(consolidationStats.progress.percent_full)}%</span>
+                            <span className="text-xs text-muted-foreground">Capacidad</span>
+                          </div>
+                        </div>
+                        <p className="mt-2 text-sm text-center">
+                          {consolidationStats.progress.orders_current} / {consolidationStats.progress.orders_threshold} pedidos
+                        </p>
+                      </div>
+                      
+                      {/* Stats */}
+                      <div className="space-y-4">
+                        <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Timer className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">Tiempo restante</span>
+                          </div>
+                          <span className="font-mono font-bold">
+                            {consolidationStats.progress.time_remaining_formatted}
+                          </span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">Pedidos actuales</span>
+                          </div>
+                          <span className="font-bold">{consolidationStats.progress.orders_current}</span>
+                        </div>
+                        <div className="flex items-center justify-between p-3 bg-background rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <Box className="h-4 w-4 text-muted-foreground" />
+                            <span className="text-sm">Unidades totales</span>
+                          </div>
+                          <span className="font-bold">{consolidationStats.active_po.total_quantity}</span>
+                        </div>
+                      </div>
+                      
+                      {/* Actions */}
+                      <div className="flex flex-col justify-center gap-3">
+                        <div className="p-3 bg-background rounded-lg text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Valor Acumulado</p>
+                          <p className="text-2xl font-bold text-primary">
+                            ${Number(consolidationStats.active_po.total_amount).toFixed(0)}
+                          </p>
+                        </div>
+                        <Button 
+                          variant="destructive" 
+                          className="w-full gap-2"
+                          onClick={() => {
+                            if (consolidationStats.active_po.id) {
+                              manualClosePO.mutate(consolidationStats.active_po.id);
+                            }
+                          }}
+                          disabled={manualClosePO.isPending || consolidationStats.progress.orders_current === 0}
+                        >
+                          <StopCircle className="h-4 w-4" />
+                          Cerrar PO Ahora
+                        </Button>
+                        <p className="text-xs text-center text-muted-foreground">
+                          Cierre manual de emergencia
+                        </p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Current Open PO Card */}
               {currentOpenPO && (
                 <Card className="border-2 border-primary">
@@ -954,6 +1121,123 @@ const AdminInventoryPage = () => {
                   Generar PDF Manifiesto
                 </Button>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Consolidation Settings Dialog */}
+        <Dialog open={settingsDialog} onOpenChange={setSettingsDialog}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Settings className="h-5 w-5" />
+                Configuración de Consolidación
+              </DialogTitle>
+              <DialogDescription>
+                Define las reglas para cerrar automáticamente las Órdenes de Compra
+              </DialogDescription>
+            </DialogHeader>
+            
+            {consolidationSettings && (
+              <div className="space-y-6">
+                {/* Mode Selection */}
+                <div className="space-y-2">
+                  <Label>Modo de Consolidación</Label>
+                  <Select 
+                    defaultValue={consolidationSettings.consolidation_mode}
+                    onValueChange={(value) => updateSettings.mutate({ mode: value as ConsolidationMode })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="hybrid">
+                        <div className="flex items-center gap-2">
+                          <Zap className="h-4 w-4" />
+                          Híbrido (lo que ocurra primero)
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="time">
+                        <div className="flex items-center gap-2">
+                          <Timer className="h-4 w-4" />
+                          Solo por Tiempo
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="quantity">
+                        <div className="flex items-center gap-2">
+                          <ShoppingCart className="h-4 w-4" />
+                          Solo por Cantidad
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Time Interval */}
+                <div className="space-y-2">
+                  <Label>Intervalo de Tiempo (horas)</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      min={1}
+                      max={168}
+                      defaultValue={consolidationSettings.time_interval_hours}
+                      onBlur={(e) => {
+                        const value = parseInt(e.target.value);
+                        if (value > 0) {
+                          updateSettings.mutate({ time_hours: value });
+                        }
+                      }}
+                    />
+                    <span className="text-sm text-muted-foreground whitespace-nowrap">
+                      = {Math.floor((consolidationSettings.time_interval_hours || 48) / 24)} días
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    La PO se cerrará automáticamente después de este tiempo
+                  </p>
+                </div>
+
+                {/* Quantity Threshold */}
+                <div className="space-y-2">
+                  <Label>Umbral de Pedidos</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    max={1000}
+                    defaultValue={consolidationSettings.order_quantity_threshold}
+                    onBlur={(e) => {
+                      const value = parseInt(e.target.value);
+                      if (value > 0) {
+                        updateSettings.mutate({ quantity_threshold: value });
+                      }
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    La PO se cerrará cuando alcance esta cantidad de pedidos
+                  </p>
+                </div>
+
+                {/* Active Toggle */}
+                <div className="flex items-center justify-between p-4 bg-muted rounded-lg">
+                  <div>
+                    <Label>Motor Activo</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Si está desactivado, los pedidos no se vincularán automáticamente
+                    </p>
+                  </div>
+                  <Switch
+                    checked={consolidationSettings.is_active}
+                    onCheckedChange={(checked) => updateSettings.mutate({ is_active: checked })}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setSettingsDialog(false)}>
+                Cerrar
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

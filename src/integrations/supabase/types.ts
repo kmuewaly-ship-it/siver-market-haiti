@@ -905,6 +905,48 @@ export type Database = {
           },
         ]
       }
+      consolidation_settings: {
+        Row: {
+          consolidation_mode: string | null
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          last_auto_close_at: string | null
+          next_scheduled_close_at: string | null
+          notify_on_close: boolean | null
+          notify_threshold_percent: number | null
+          order_quantity_threshold: number | null
+          time_interval_hours: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          consolidation_mode?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_auto_close_at?: string | null
+          next_scheduled_close_at?: string | null
+          notify_on_close?: boolean | null
+          notify_threshold_percent?: number | null
+          order_quantity_threshold?: number | null
+          time_interval_hours?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          consolidation_mode?: string | null
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_auto_close_at?: string | null
+          next_scheduled_close_at?: string | null
+          notify_on_close?: boolean | null
+          notify_threshold_percent?: number | null
+          order_quantity_threshold?: number | null
+          time_interval_hours?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       credit_movements: {
         Row: {
           amount: number
@@ -1311,8 +1353,10 @@ export type Database = {
         Row: {
           arrived_hub_at: string | null
           arrived_usa_at: string | null
+          auto_close_at: string | null
           china_tracking_entered_at: string | null
           china_tracking_number: string | null
+          close_reason: string | null
           closed_at: string | null
           created_at: string | null
           created_by: string | null
@@ -1321,6 +1365,7 @@ export type Database = {
           id: string
           metadata: Json | null
           notes: string | null
+          orders_at_close: number | null
           po_number: string
           shipped_from_china_at: string | null
           shipped_to_haiti_at: string | null
@@ -1334,8 +1379,10 @@ export type Database = {
         Insert: {
           arrived_hub_at?: string | null
           arrived_usa_at?: string | null
+          auto_close_at?: string | null
           china_tracking_entered_at?: string | null
           china_tracking_number?: string | null
+          close_reason?: string | null
           closed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1344,6 +1391,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           notes?: string | null
+          orders_at_close?: number | null
           po_number: string
           shipped_from_china_at?: string | null
           shipped_to_haiti_at?: string | null
@@ -1357,8 +1405,10 @@ export type Database = {
         Update: {
           arrived_hub_at?: string | null
           arrived_usa_at?: string | null
+          auto_close_at?: string | null
           china_tracking_entered_at?: string | null
           china_tracking_number?: string | null
+          close_reason?: string | null
           closed_at?: string | null
           created_at?: string | null
           created_by?: string | null
@@ -1367,6 +1417,7 @@ export type Database = {
           id?: string
           metadata?: Json | null
           notes?: string | null
+          orders_at_close?: number | null
           po_number?: string
           shipped_from_china_at?: string | null
           shipped_to_haiti_at?: string | null
@@ -1707,6 +1758,7 @@ export type Database = {
         Row: {
           buyer_id: string | null
           checkout_session_id: string | null
+          consolidation_status: string | null
           created_at: string
           currency: string
           id: string
@@ -1715,6 +1767,8 @@ export type Database = {
           payment_confirmed_at: string | null
           payment_method: string | null
           payment_status: string | null
+          po_id: string | null
+          po_linked_at: string | null
           reservation_expires_at: string | null
           reserved_at: string | null
           seller_id: string
@@ -1727,6 +1781,7 @@ export type Database = {
         Insert: {
           buyer_id?: string | null
           checkout_session_id?: string | null
+          consolidation_status?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -1735,6 +1790,8 @@ export type Database = {
           payment_confirmed_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          po_id?: string | null
+          po_linked_at?: string | null
           reservation_expires_at?: string | null
           reserved_at?: string | null
           seller_id: string
@@ -1747,6 +1804,7 @@ export type Database = {
         Update: {
           buyer_id?: string | null
           checkout_session_id?: string | null
+          consolidation_status?: string | null
           created_at?: string
           currency?: string
           id?: string
@@ -1755,6 +1813,8 @@ export type Database = {
           payment_confirmed_at?: string | null
           payment_method?: string | null
           payment_status?: string | null
+          po_id?: string | null
+          po_linked_at?: string | null
           reservation_expires_at?: string | null
           reserved_at?: string | null
           seller_id?: string
@@ -1770,6 +1830,13 @@ export type Database = {
             columns: ["buyer_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_b2b_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "master_purchase_orders"
             referencedColumns: ["id"]
           },
           {
@@ -5012,6 +5079,11 @@ export type Database = {
       }
     }
     Functions: {
+      auto_close_po: {
+        Args: { p_close_reason?: string; p_po_id: string }
+        Returns: Json
+      }
+      check_po_auto_close: { Args: never; Returns: Json }
       fn_expire_pending_orders: { Args: never; Returns: number }
       generate_consolidation_number: { Args: never; Returns: string }
       generate_delivery_code: { Args: never; Returns: string }
@@ -5042,6 +5114,8 @@ export type Database = {
         Args: { p_order_link_id: string }
         Returns: string
       }
+      get_consolidation_stats: { Args: never; Returns: Json }
+      get_or_create_active_po: { Args: never; Returns: string }
       get_trending_products: {
         Args: { days_back?: number; limit_count?: number }
         Returns: {
@@ -5136,6 +5210,15 @@ export type Database = {
           p_action: string
           p_admin_notes?: string
           p_withdrawal_id: string
+        }
+        Returns: Json
+      }
+      update_consolidation_settings: {
+        Args: {
+          p_is_active?: boolean
+          p_mode?: string
+          p_quantity_threshold?: number
+          p_time_hours?: number
         }
         Returns: Json
       }
