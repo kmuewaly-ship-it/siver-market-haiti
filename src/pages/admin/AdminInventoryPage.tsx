@@ -6,43 +6,73 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Progress } from '@/components/ui/progress';
 import { useInventoryManagement } from '@/hooks/useInventoryManagement';
+import { usePurchaseOrders } from '@/hooks/usePurchaseOrders';
 import { PDFGenerators } from '@/services/pdfGenerators';
 import { 
   Package, Truck, AlertTriangle, FileText, Printer, 
-  Plus, Search, TrendingDown, ShoppingCart, CheckCircle,
-  Clock, Box, ArrowRight, Filter, Download
+  Plus, Search, ShoppingCart, CheckCircle, Clock,
+  Box, Download, Play, Link2, QrCode, Eye,
+  Globe, Plane, Building2, MapPin
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { toast } from 'sonner';
+
+// PO Status configuration
+const poStatusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  draft: { label: 'Borrador', color: 'bg-gray-100 text-gray-800', icon: <FileText className="h-4 w-4" /> },
+  open: { label: 'Abierta', color: 'bg-blue-100 text-blue-800', icon: <Play className="h-4 w-4" /> },
+  closed: { label: 'Cerrada', color: 'bg-purple-100 text-purple-800', icon: <CheckCircle className="h-4 w-4" /> },
+  ordered: { label: 'Pedida', color: 'bg-yellow-100 text-yellow-800', icon: <ShoppingCart className="h-4 w-4" /> },
+  in_transit_china: { label: 'En Tránsito China', color: 'bg-orange-100 text-orange-800', icon: <Globe className="h-4 w-4" /> },
+  in_transit_usa: { label: 'En Tránsito USA', color: 'bg-indigo-100 text-indigo-800', icon: <Plane className="h-4 w-4" /> },
+  arrived_hub: { label: 'En Hub Haití', color: 'bg-green-100 text-green-800', icon: <Building2 className="h-4 w-4" /> },
+  processing: { label: 'Procesando', color: 'bg-cyan-100 text-cyan-800', icon: <Package className="h-4 w-4" /> },
+  completed: { label: 'Completada', color: 'bg-emerald-100 text-emerald-800', icon: <CheckCircle className="h-4 w-4" /> },
+};
 
 const AdminInventoryPage = () => {
-  const [activeTab, setActiveTab] = useState('balance');
+  const [activeTab, setActiveTab] = useState('po-management');
   const [searchQuery, setSearchQuery] = useState('');
   const [transitDialog, setTransitDialog] = useState(false);
-  const [consolidationDialog, setConsolidationDialog] = useState(false);
+  const [selectedPO, setSelectedPO] = useState<string | null>(null);
+  const [trackingDialog, setTrackingDialog] = useState(false);
+  const [chinaTracking, setChinaTracking] = useState('');
+  const [poDetailDialog, setPoDetailDialog] = useState(false);
   
   const {
     useStockBalance,
     useStockInTransit,
     useRotationAlerts,
     useDemandSummary,
-    useConsolidations,
     createStockInTransit,
     updateTransitStatus,
-    createConsolidation,
   } = useInventoryManagement();
+  
+  const {
+    usePOList,
+    usePODetails,
+    useCurrentOpenPO,
+    createPO,
+    linkOrdersToPO,
+    enterChinaTracking,
+    updatePOStage,
+    closePO,
+    getPickingManifest,
+  } = usePurchaseOrders();
   
   const { data: stockBalance, isLoading: loadingBalance } = useStockBalance();
   const { data: stockTransit, isLoading: loadingTransit } = useStockInTransit();
   const { data: rotationAlerts, isLoading: loadingAlerts } = useRotationAlerts();
   const { data: demandSummary, isLoading: loadingDemand } = useDemandSummary();
-  const { data: consolidations, isLoading: loadingConsolidations } = useConsolidations();
+  const { data: poList, isLoading: loadingPOList } = usePOList();
+  const { data: currentOpenPO } = useCurrentOpenPO();
+  const { data: poDetails } = usePODetails(selectedPO || '');
   
   // Form state for new transit stock
   const [transitForm, setTransitForm] = useState({
@@ -63,6 +93,79 @@ const AdminInventoryPage = () => {
   const totalInTransit = stockBalance?.reduce((sum, item) => sum + (item.stock_in_transit || 0), 0) || 0;
   const totalPendingOrders = stockBalance?.reduce((sum, item) => sum + (item.orders_pending || 0), 0) || 0;
   const alertCount = rotationAlerts?.length || 0;
+
+  // Handle create new PO
+  const handleCreatePO = async () => {
+    try {
+      await createPO.mutateAsync(undefined);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Handle link orders to PO
+  const handleLinkOrders = async (poId: string) => {
+    try {
+      await linkOrdersToPO.mutateAsync(poId);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Handle enter tracking
+  const handleEnterTracking = async () => {
+    if (!selectedPO || !chinaTracking.trim()) {
+      toast.error('Ingresa el número de tracking de China');
+      return;
+    }
+    try {
+      await enterChinaTracking.mutateAsync({ poId: selectedPO, chinaTracking: chinaTracking.trim() });
+      setTrackingDialog(false);
+      setChinaTracking('');
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Handle update stage
+  const handleUpdateStage = async (poId: string, newStatus: string) => {
+    try {
+      await updatePOStage.mutateAsync({ poId, newStatus });
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  // Handle generate picking manifest PDF
+  const handleGeneratePickingPDF = async (poId: string) => {
+    const manifest = await getPickingManifest(poId);
+    if (!manifest) {
+      toast.error('No se pudo obtener datos del manifiesto');
+      return;
+    }
+    
+    PDFGenerators.generatePOPickingManifestPDF({
+      po_number: manifest.po.po_number,
+      china_tracking: manifest.po.china_tracking_number || '',
+      total_orders: manifest.po.total_orders,
+      total_items: manifest.po.total_items,
+      customers: manifest.customers.map(c => ({
+        customer_name: c.customer_name,
+        customer_phone: c.customer_phone,
+        hybrid_tracking_id: c.hybrid_tracking_id,
+        department_code: c.department_code,
+        commune_code: c.commune_code,
+        items: c.items.map(i => ({
+          product_name: i.product_name,
+          sku: i.sku,
+          color: i.color,
+          size: i.size,
+          image_url: i.image_url,
+          quantity: i.quantity,
+        })),
+      })),
+    });
+  };
 
   // Generate purchase order from demand
   const handleGeneratePurchaseOrder = () => {
@@ -144,6 +247,10 @@ const AdminInventoryPage = () => {
 
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="po-management" className="gap-2">
+              <FileText className="h-4 w-4" />
+              Órdenes de Compra
+            </TabsTrigger>
             <TabsTrigger value="balance" className="gap-2">
               <Package className="h-4 w-4" />
               Balance Stock
@@ -160,11 +267,180 @@ const AdminInventoryPage = () => {
               <AlertTriangle className="h-4 w-4" />
               Alertas
             </TabsTrigger>
-            <TabsTrigger value="consolidations" className="gap-2">
-              <FileText className="h-4 w-4" />
-              Consolidaciones
-            </TabsTrigger>
           </TabsList>
+
+          {/* PO Management Tab - Command Center */}
+          <TabsContent value="po-management">
+            <div className="space-y-6">
+              {/* Current Open PO Card */}
+              {currentOpenPO && (
+                <Card className="border-2 border-primary">
+                  <CardHeader className="bg-primary/5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <CardTitle className="flex items-center gap-2">
+                          <Play className="h-5 w-5 text-primary" />
+                          PO Activa: {currentOpenPO.po_number}
+                        </CardTitle>
+                        <CardDescription>
+                          Ciclo iniciado: {format(new Date(currentOpenPO.cycle_start_at), 'PPP p', { locale: es })}
+                        </CardDescription>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button variant="outline" size="sm" onClick={() => handleLinkOrders(currentOpenPO.id)}>
+                          <Link2 className="h-4 w-4 mr-2" />
+                          Vincular Pedidos
+                        </Button>
+                        {!currentOpenPO.china_tracking_number && (
+                          <Button 
+                            size="sm" 
+                            onClick={() => { setSelectedPO(currentOpenPO.id); setTrackingDialog(true); }}
+                          >
+                            <Globe className="h-4 w-4 mr-2" />
+                            Ingresar Tracking China
+                          </Button>
+                        )}
+                        {currentOpenPO.china_tracking_number && (
+                          <Button variant="outline" size="sm" onClick={() => handleGeneratePickingPDF(currentOpenPO.id)}>
+                            <Printer className="h-4 w-4 mr-2" />
+                            PDF Picking
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="pt-4">
+                    <div className="grid grid-cols-4 gap-4 mb-4">
+                      <div className="text-center p-3 bg-muted rounded-lg">
+                        <p className="text-2xl font-bold">{currentOpenPO.total_orders}</p>
+                        <p className="text-xs text-muted-foreground">Pedidos</p>
+                      </div>
+                      <div className="text-center p-3 bg-muted rounded-lg">
+                        <p className="text-2xl font-bold">{currentOpenPO.total_quantity}</p>
+                        <p className="text-xs text-muted-foreground">Unidades</p>
+                      </div>
+                      <div className="text-center p-3 bg-muted rounded-lg">
+                        <p className="text-2xl font-bold">${Number(currentOpenPO.total_amount).toFixed(0)}</p>
+                        <p className="text-xs text-muted-foreground">Total</p>
+                      </div>
+                      <div className="text-center p-3 bg-muted rounded-lg">
+                        <p className="text-sm font-mono font-bold">{currentOpenPO.china_tracking_number || 'Sin tracking'}</p>
+                        <p className="text-xs text-muted-foreground">Tracking China</p>
+                      </div>
+                    </div>
+                    
+                    {currentOpenPO.china_tracking_number && (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="text-sm font-medium">Actualizar Estado:</span>
+                        {['in_transit_china', 'in_transit_usa', 'arrived_hub', 'processing', 'completed'].map(status => (
+                          <Button
+                            key={status}
+                            size="sm"
+                            variant={currentOpenPO.status === status ? 'default' : 'outline'}
+                            onClick={() => handleUpdateStage(currentOpenPO.id, status)}
+                            className="gap-1"
+                          >
+                            {poStatusConfig[status]?.icon}
+                            {poStatusConfig[status]?.label}
+                          </Button>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Create New PO if none active */}
+              {!currentOpenPO && (
+                <Card className="border-dashed">
+                  <CardContent className="pt-6 text-center">
+                    <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-4">No hay una Orden de Compra activa</p>
+                    <Button onClick={handleCreatePO} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Crear Nueva PO
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* PO History */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Historial de Órdenes de Compra</CardTitle>
+                  <CardDescription>Todas las PO con sus estados y tracking</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  {loadingPOList ? (
+                    <Skeleton className="h-48 w-full" />
+                  ) : poList?.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <FileText className="h-12 w-12 mx-auto mb-4" />
+                      <p>No hay órdenes de compra aún.</p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>PO #</TableHead>
+                          <TableHead>Tracking China</TableHead>
+                          <TableHead className="text-center">Pedidos</TableHead>
+                          <TableHead className="text-center">Unidades</TableHead>
+                          <TableHead className="text-right">Monto</TableHead>
+                          <TableHead>Estado</TableHead>
+                          <TableHead>Fecha</TableHead>
+                          <TableHead className="text-right">Acciones</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {poList?.map((po) => {
+                          const statusConf = poStatusConfig[po.status] || poStatusConfig.draft;
+                          return (
+                            <TableRow key={po.id}>
+                              <TableCell className="font-mono font-bold">{po.po_number}</TableCell>
+                              <TableCell className="font-mono text-sm">{po.china_tracking_number || '-'}</TableCell>
+                              <TableCell className="text-center">{po.total_orders}</TableCell>
+                              <TableCell className="text-center">{po.total_quantity}</TableCell>
+                              <TableCell className="text-right">${Number(po.total_amount).toFixed(2)}</TableCell>
+                              <TableCell>
+                                <Badge className={statusConf.color}>
+                                  {statusConf.icon}
+                                  <span className="ml-1">{statusConf.label}</span>
+                                </Badge>
+                              </TableCell>
+                              <TableCell>
+                                {format(new Date(po.created_at), 'PP', { locale: es })}
+                              </TableCell>
+                              <TableCell className="text-right">
+                                <div className="flex justify-end gap-1">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => { setSelectedPO(po.id); setPoDetailDialog(true); }}
+                                  >
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                  {po.china_tracking_number && (
+                                    <Button 
+                                      variant="ghost" 
+                                      size="sm"
+                                      onClick={() => handleGeneratePickingPDF(po.id)}
+                                    >
+                                      <Printer className="h-4 w-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </TableCell>
+                            </TableRow>
+                          );
+                        })}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
 
           {/* Balance Stock Tab */}
           <TabsContent value="balance">
@@ -461,70 +737,6 @@ const AdminInventoryPage = () => {
             </Card>
           </TabsContent>
 
-          {/* Consolidations Tab */}
-          <TabsContent value="consolidations">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <div>
-                  <CardTitle>Historial de Consolidaciones</CardTitle>
-                  <CardDescription>Órdenes de compra generadas</CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {loadingConsolidations ? (
-                  <Skeleton className="h-48 w-full" />
-                ) : consolidations?.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">
-                    <FileText className="h-12 w-12 mx-auto mb-4" />
-                    <p>No hay consolidaciones aún. Genera una desde la pestaña de Demanda.</p>
-                  </div>
-                ) : (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Número</TableHead>
-                        <TableHead>Proveedor</TableHead>
-                        <TableHead className="text-center">Items</TableHead>
-                        <TableHead className="text-center">Cantidad</TableHead>
-                        <TableHead className="text-right">Costo Est.</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead>Fecha</TableHead>
-                        <TableHead className="text-right">Acciones</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {consolidations?.map((cons: any) => (
-                        <TableRow key={cons.id}>
-                          <TableCell className="font-mono font-bold">{cons.consolidation_number}</TableCell>
-                          <TableCell>{cons.suppliers?.name || '-'}</TableCell>
-                          <TableCell className="text-center">{cons.total_items}</TableCell>
-                          <TableCell className="text-center">{cons.total_quantity}</TableCell>
-                          <TableCell className="text-right">${cons.estimated_cost?.toFixed(2)}</TableCell>
-                          <TableCell>
-                            <Badge variant={
-                              cons.status === 'received' ? 'default' :
-                              cons.status === 'ordered' ? 'secondary' :
-                              cons.status === 'submitted' ? 'outline' : 'outline'
-                            }>
-                              {cons.status}
-                            </Badge>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(cons.created_at), 'PP', { locale: es })}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <Button variant="ghost" size="sm">
-                              <Printer className="h-4 w-4" />
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
         </Tabs>
 
         {/* Transit Stock Dialog */}
@@ -586,6 +798,42 @@ const AdminInventoryPage = () => {
                 setTransitForm({ china_tracking_number: '', quantity: 0, expected_arrival_date: '', notes: '' });
               }}>
                 Registrar
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* China Tracking Dialog for PO */}
+        <Dialog open={trackingDialog} onOpenChange={setTrackingDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Ingresar Tracking de China</DialogTitle>
+              <DialogDescription>
+                Al guardar, se generarán automáticamente los IDs de seguimiento híbridos para todos los pedidos vinculados.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Número de Tracking Completo</Label>
+                <Input
+                  value={chinaTracking}
+                  onChange={(e) => setChinaTracking(e.target.value.toUpperCase())}
+                  placeholder="YT2024123456789CN"
+                  className="font-mono"
+                />
+              </div>
+              <div className="bg-muted p-3 rounded-lg text-sm">
+                <p className="font-medium mb-1">Formato del ID Híbrido generado:</p>
+                <p className="font-mono text-xs">[DEPTO][COMUNA]-[PO]-[TRACKING]-[ID_PEDIDO]</p>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => { setTrackingDialog(false); setChinaTracking(''); }}>
+                Cancelar
+              </Button>
+              <Button onClick={handleEnterTracking} disabled={!chinaTracking.trim()}>
+                <Globe className="h-4 w-4 mr-2" />
+                Guardar y Generar IDs
               </Button>
             </DialogFooter>
           </DialogContent>
