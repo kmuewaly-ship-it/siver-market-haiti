@@ -155,6 +155,9 @@ const AdminInventoryPage = () => {
         hybrid_tracking_id: c.hybrid_tracking_id,
         department_code: c.department_code,
         commune_code: c.commune_code,
+        source_type: c.source_type || 'b2c',
+        gestor_name: c.gestor_name,
+        investor_name: c.investor_name,
         items: c.items.map(i => ({
           product_name: i.product_name,
           sku: i.sku,
@@ -835,6 +838,122 @@ const AdminInventoryPage = () => {
                 <Globe className="h-4 w-4 mr-2" />
                 Guardar y Generar IDs
               </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* PO Detail Dialog - Shows linked orders by source type */}
+        <Dialog open={poDetailDialog} onOpenChange={setPoDetailDialog}>
+          <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Detalle de PO: {poDetails?.po?.po_number}
+              </DialogTitle>
+              <DialogDescription>
+                {poDetails?.po?.china_tracking_number 
+                  ? `Tracking: ${poDetails.po.china_tracking_number}` 
+                  : 'Sin tracking de China asignado'}
+              </DialogDescription>
+            </DialogHeader>
+            
+            {poDetails?.links && poDetails.links.length > 0 ? (
+              <div className="space-y-4">
+                {/* Summary by source type */}
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-3 text-center">
+                    <div className="text-xs text-green-600 font-medium">🛒 B2C (Clientes)</div>
+                    <div className="text-2xl font-bold text-green-700">
+                      {poDetails.links.filter(l => l.source_type === 'b2c' || !l.source_type).length}
+                    </div>
+                  </div>
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-center">
+                    <div className="text-xs text-blue-600 font-medium">🏪 B2B (Vendedores)</div>
+                    <div className="text-2xl font-bold text-blue-700">
+                      {poDetails.links.filter(l => l.source_type === 'b2b').length}
+                    </div>
+                  </div>
+                  <div className="bg-purple-50 border border-purple-200 rounded-lg p-3 text-center">
+                    <div className="text-xs text-purple-600 font-medium">🤝 Siver Match</div>
+                    <div className="text-2xl font-bold text-purple-700">
+                      {poDetails.links.filter(l => l.source_type === 'siver_match').length}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Orders table */}
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tipo</TableHead>
+                      <TableHead>Cliente/Destinatario</TableHead>
+                      <TableHead>Ubicación</TableHead>
+                      <TableHead>ID Híbrido</TableHead>
+                      <TableHead className="text-center">Unidades</TableHead>
+                      <TableHead>Estado</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {poDetails.links.map((link) => (
+                      <TableRow key={link.id}>
+                        <TableCell>
+                          {link.source_type === 'b2c' || !link.source_type ? (
+                            <Badge className="bg-green-100 text-green-800 gap-1">
+                              🛒 B2C
+                            </Badge>
+                          ) : link.source_type === 'b2b' ? (
+                            <Badge className="bg-blue-100 text-blue-800 gap-1">
+                              🏪 B2B
+                            </Badge>
+                          ) : (
+                            <Badge className="bg-purple-100 text-purple-800 gap-1">
+                              🤝 Match
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <div className="font-medium">{link.customer_name || 'Sin nombre'}</div>
+                          <div className="text-xs text-muted-foreground">{link.customer_phone || '-'}</div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-sm">
+                            {link.department_code || 'XX'}-{link.commune_code || 'XX'}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <code className="text-xs bg-muted px-2 py-1 rounded">
+                            {link.hybrid_tracking_id || 'PENDIENTE'}
+                          </code>
+                        </TableCell>
+                        <TableCell className="text-center font-bold">
+                          {link.unit_count}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-xs">
+                            {link.current_status || 'pending'}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            ) : (
+              <div className="text-center py-8 text-muted-foreground">
+                No hay pedidos vinculados a esta PO
+              </div>
+            )}
+            
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPoDetailDialog(false)}>
+                Cerrar
+              </Button>
+              {poDetails?.po && (
+                <Button onClick={() => handleGeneratePickingPDF(poDetails.po.id)}>
+                  <Printer className="h-4 w-4 mr-2" />
+                  Generar PDF Manifiesto
+                </Button>
+              )}
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -1967,8 +1967,10 @@ export type Database = {
           customer_user_id: string | null
           delivery_confirmed_at: string | null
           department_code: string | null
+          gestor_user_id: string | null
           hybrid_tracking_id: string | null
           id: string
+          investor_user_id: string | null
           order_id: string
           order_type: string
           pickup_point_code: string | null
@@ -1977,6 +1979,8 @@ export type Database = {
           po_id: string
           previous_status: string | null
           short_order_id: string | null
+          siver_match_sale_id: string | null
+          source_type: string | null
           status_synced_at: string | null
           unit_count: number | null
           updated_at: string | null
@@ -1990,8 +1994,10 @@ export type Database = {
           customer_user_id?: string | null
           delivery_confirmed_at?: string | null
           department_code?: string | null
+          gestor_user_id?: string | null
           hybrid_tracking_id?: string | null
           id?: string
+          investor_user_id?: string | null
           order_id: string
           order_type: string
           pickup_point_code?: string | null
@@ -2000,6 +2006,8 @@ export type Database = {
           po_id: string
           previous_status?: string | null
           short_order_id?: string | null
+          siver_match_sale_id?: string | null
+          source_type?: string | null
           status_synced_at?: string | null
           unit_count?: number | null
           updated_at?: string | null
@@ -2013,8 +2021,10 @@ export type Database = {
           customer_user_id?: string | null
           delivery_confirmed_at?: string | null
           department_code?: string | null
+          gestor_user_id?: string | null
           hybrid_tracking_id?: string | null
           id?: string
+          investor_user_id?: string | null
           order_id?: string
           order_type?: string
           pickup_point_code?: string | null
@@ -2023,6 +2033,8 @@ export type Database = {
           po_id?: string
           previous_status?: string | null
           short_order_id?: string | null
+          siver_match_sale_id?: string | null
+          source_type?: string | null
           status_synced_at?: string | null
           unit_count?: number | null
           updated_at?: string | null
@@ -2033,6 +2045,13 @@ export type Database = {
             columns: ["po_id"]
             isOneToOne: false
             referencedRelation: "master_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_order_links_siver_match_sale_id_fkey"
+            columns: ["siver_match_sale_id"]
+            isOneToOne: false
+            referencedRelation: "siver_match_sales"
             referencedColumns: ["id"]
           },
         ]
@@ -3702,6 +3721,7 @@ export type Database = {
           investor_amount: number
           investor_id: string
           investor_wallet_tx_id: string | null
+          logistics_stage: string | null
           metadata: Json | null
           payment_confirmed_at: string | null
           payment_method: string | null
@@ -3712,6 +3732,8 @@ export type Database = {
           pickup_code: string | null
           pickup_qr_code: string | null
           pickup_qr_generated_at: string | null
+          po_id: string | null
+          po_linked_at: string | null
           quantity: number
           sale_number: string
           siver_fee: number
@@ -3743,6 +3765,7 @@ export type Database = {
           investor_amount: number
           investor_id: string
           investor_wallet_tx_id?: string | null
+          logistics_stage?: string | null
           metadata?: Json | null
           payment_confirmed_at?: string | null
           payment_method?: string | null
@@ -3753,6 +3776,8 @@ export type Database = {
           pickup_code?: string | null
           pickup_qr_code?: string | null
           pickup_qr_generated_at?: string | null
+          po_id?: string | null
+          po_linked_at?: string | null
           quantity: number
           sale_number: string
           siver_fee: number
@@ -3784,6 +3809,7 @@ export type Database = {
           investor_amount?: number
           investor_id?: string
           investor_wallet_tx_id?: string | null
+          logistics_stage?: string | null
           metadata?: Json | null
           payment_confirmed_at?: string | null
           payment_method?: string | null
@@ -3794,6 +3820,8 @@ export type Database = {
           pickup_code?: string | null
           pickup_qr_code?: string | null
           pickup_qr_generated_at?: string | null
+          po_id?: string | null
+          po_linked_at?: string | null
           quantity?: number
           sale_number?: string
           siver_fee?: number
@@ -3838,6 +3866,13 @@ export type Database = {
             columns: ["investor_id"]
             isOneToOne: false
             referencedRelation: "siver_match_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "siver_match_sales_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "master_purchase_orders"
             referencedColumns: ["id"]
           },
           {
@@ -5032,6 +5067,7 @@ export type Database = {
         Returns: boolean
       }
       is_seller: { Args: { _user_id: string }; Returns: boolean }
+      link_mixed_orders_to_po: { Args: { p_po_id: string }; Returns: Json }
       link_orders_to_po: { Args: { p_po_id: string }; Returns: Json }
       match_products: {
         Args: {
@@ -5079,6 +5115,14 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      process_delivery_wallet_splits: {
+        Args: { p_po_id: string }
+        Returns: Json
+      }
+      process_mixed_po_china_tracking: {
+        Args: { p_china_tracking: string; p_po_id: string }
+        Returns: Json
+      }
       process_po_china_tracking: {
         Args: { p_china_tracking: string; p_po_id: string }
         Returns: Json
@@ -5093,6 +5137,10 @@ export type Database = {
           p_admin_notes?: string
           p_withdrawal_id: string
         }
+        Returns: Json
+      }
+      update_mixed_po_logistics_stage: {
+        Args: { p_new_status: string; p_po_id: string }
         Returns: Json
       }
       update_po_logistics_stage: {

@@ -844,12 +844,18 @@ export const generatePickingManifestPDF = (data: PickingManifestData) => {
 };
 
 // PDF: PO Consolidated Visual Picking Manifest (grouped by customer with images)
+// UPDATED: Now supports B2B, B2C, and Siver Match source types
+type POSourceType = 'b2b' | 'b2c' | 'siver_match';
+
 interface POPickingCustomer {
   customer_name: string;
   customer_phone: string | null;
   hybrid_tracking_id: string | null;
   department_code: string | null;
   commune_code: string | null;
+  source_type: POSourceType;
+  gestor_name?: string | null;
+  investor_name?: string | null;
   items: {
     product_name: string;
     sku: string;
@@ -867,6 +873,20 @@ interface POPickingManifestData {
   total_items: number;
   customers: POPickingCustomer[];
 }
+
+// Helper to get source type badge
+const getSourceTypeBadge = (sourceType: POSourceType): { label: string; color: string; emoji: string } => {
+  switch (sourceType) {
+    case 'b2c':
+      return { label: 'CLIENTE DIRECTO', color: '#4caf50', emoji: '🛒' };
+    case 'b2b':
+      return { label: 'VENDEDOR B2B', color: '#2196f3', emoji: '🏪' };
+    case 'siver_match':
+      return { label: 'SIVER MATCH', color: '#9c27b0', emoji: '🤝' };
+    default:
+      return { label: 'CLIENTE', color: '#666', emoji: '📦' };
+  }
+};
 
 export const generatePOPickingManifestPDF = (data: POPickingManifestData) => {
   const customersHtml = data.customers.map((customer, idx) => {
@@ -896,16 +916,27 @@ export const generatePOPickingManifestPDF = (data: POPickingManifestData) => {
       </tr>
     `).join('');
     
+    const badge = getSourceTypeBadge(customer.source_type || 'b2c');
+    
     return `
-      <div class="customer-block ${idx > 0 ? 'page-break' : ''}">
+      <div class="customer-block ${idx > 0 ? 'page-break' : ''}" data-source="${customer.source_type}">
         <div class="customer-header">
           <div class="customer-number">${idx + 1}</div>
           <div class="customer-details">
+            <div class="source-badge" style="background: ${badge.color};">
+              ${badge.emoji} ${badge.label}
+            </div>
             <div class="customer-name">${customer.customer_name}</div>
             <div class="customer-contact">
               📞 ${customer.customer_phone || 'N/A'} | 
               📍 ${customer.department_code || 'XX'}-${customer.commune_code || 'XX'}
             </div>
+            ${customer.source_type === 'siver_match' ? `
+              <div class="siver-match-info">
+                👤 Gestor: <strong>${customer.gestor_name || 'N/A'}</strong> | 
+                💰 Inversor: <strong>${customer.investor_name || 'N/A'}</strong>
+              </div>
+            ` : ''}
           </div>
           <div class="tracking-badge">
             <div class="tracking-label">ID SEGUIMIENTO</div>
@@ -932,9 +963,12 @@ export const generatePOPickingManifestPDF = (data: POPickingManifestData) => {
           </tbody>
         </table>
         
-        <div class="picking-check">
+        <div class="picking-check ${customer.source_type === 'siver_match' ? 'siver-check' : ''}">
           <span class="check-box">☐</span>
           <span>Verificado y separado correctamente</span>
+          ${customer.source_type === 'siver_match' 
+            ? '<span class="delivery-note">⚠️ Entregar a GESTOR, no cliente final</span>' 
+            : ''}
           <span class="check-signature">Firma: _______________</span>
         </div>
       </div>
@@ -1000,8 +1034,35 @@ export const generatePOPickingManifestPDF = (data: POPickingManifestData) => {
           font-weight: bold;
         }
         .customer-details { flex: 1; }
-        .customer-name { font-size: 18px; font-weight: bold; }
+        .customer-name { font-size: 18px; font-weight: bold; margin-top: 5px; }
         .customer-contact { font-size: 12px; color: #666; margin-top: 4px; }
+        
+        .source-badge {
+          display: inline-block;
+          padding: 4px 10px;
+          border-radius: 12px;
+          font-size: 10px;
+          font-weight: bold;
+          color: white;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .siver-match-info {
+          font-size: 11px;
+          color: #9c27b0;
+          margin-top: 4px;
+          background: #f3e5f5;
+          padding: 4px 8px;
+          border-radius: 4px;
+        }
+        .siver-check {
+          background: #f3e5f5 !important;
+        }
+        .delivery-note {
+          color: #9c27b0;
+          font-weight: bold;
+          font-size: 12px;
+        }
         
         .tracking-badge {
           background: #000;
@@ -1088,23 +1149,30 @@ export const generatePOPickingManifestPDF = (data: POPickingManifestData) => {
       ${customersHtml}
       
       <div class="summary-section">
-        <div class="summary-title">✅ RESUMEN DE PICKING PO</div>
+        <div class="summary-title">✅ RESUMEN DE PICKING PO - MIXTO B2B/B2C</div>
         <div class="summary-grid">
           <div class="summary-item">
-            <div class="summary-label">Clientes</div>
-            <div class="summary-value">${data.customers.length}</div>
+            <div class="summary-label">🛒 B2C (Clientes)</div>
+            <div class="summary-value">${data.customers.filter(c => c.source_type === 'b2c').length}</div>
           </div>
           <div class="summary-item">
-            <div class="summary-label">Productos</div>
-            <div class="summary-value">${data.total_items}</div>
+            <div class="summary-label">🏪 B2B (Vendedores)</div>
+            <div class="summary-value">${data.customers.filter(c => c.source_type === 'b2b').length}</div>
           </div>
           <div class="summary-item">
-            <div class="summary-label">Unidades</div>
+            <div class="summary-label">🤝 Siver Match</div>
+            <div class="summary-value">${data.customers.filter(c => c.source_type === 'siver_match').length}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">📦 Total Unidades</div>
             <div class="summary-value">${totalUnits}</div>
           </div>
-          <div class="summary-item">
-            <div class="summary-label">Tracking</div>
-            <div class="summary-value" style="font-size: 14px;">${data.china_tracking || '-'}</div>
+        </div>
+        <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #4caf50;">
+          <div style="display: flex; justify-content: space-between; font-size: 12px;">
+            <span><strong>Tracking China:</strong> ${data.china_tracking || 'PENDIENTE'}</span>
+            <span><strong>Total Pedidos:</strong> ${data.total_orders}</span>
+            <span><strong>Total Productos:</strong> ${data.total_items}</span>
           </div>
         </div>
       </div>
