@@ -49,10 +49,34 @@ interface ConsolidationData {
 interface ManifestItem {
   hybrid_tracking_id: string;
   customer_name: string;
+  customer_phone?: string;
   commune: string;
   department: string;
   unit_count: number;
   has_owner: boolean;
+}
+
+// NEW: Picking Manifest grouped by customer
+interface PickingManifestCustomer {
+  customer_id: string;
+  customer_name: string;
+  customer_phone?: string;
+  commune: string;
+  department: string;
+  internal_tracking_id: string;
+  items: {
+    product_name: string;
+    image?: string;
+    sku: string;
+    variants: { color?: string; size?: string; quantity: number }[];
+  }[];
+  total_units: number;
+}
+
+interface PickingManifestData {
+  china_tracking: string;
+  arrival_date: string;
+  customers: PickingManifestCustomer[];
 }
 
 // Utility to open print window
@@ -574,10 +598,256 @@ export const generateBatchLabelsPDF = (labels: Array<{
   openPrintWindow(html, `Lote de ${labels.length} Etiquetas`);
 };
 
+// NEW: Picking Manifest PDF - grouped by customer with images and variants
+export const generatePickingManifestPDF = (data: PickingManifestData) => {
+  const customersHtml = data.customers.map((customer, idx) => `
+    <div class="customer-section ${idx > 0 ? 'page-break' : ''}">
+      <div class="customer-header">
+        <div class="customer-number">${idx + 1}</div>
+        <div class="customer-details">
+          <div class="customer-name">${customer.customer_name}</div>
+          <div class="customer-contact">
+            ${customer.customer_phone ? `📞 ${customer.customer_phone}` : ''} 
+            📍 ${customer.commune}, ${customer.department}
+          </div>
+        </div>
+        <div class="tracking-badge">
+          <div class="tracking-label">ID SIVER</div>
+          <div class="tracking-value">${customer.internal_tracking_id}</div>
+        </div>
+      </div>
+      
+      <table class="items-table">
+        <thead>
+          <tr>
+            <th style="width: 70px;">Imagen</th>
+            <th>Producto</th>
+            <th>SKU</th>
+            <th>Variantes</th>
+            <th style="width: 60px;">Cant.</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${customer.items.map(item => `
+            <tr>
+              <td class="image-cell">
+                ${item.image 
+                  ? `<img src="${item.image}" class="product-thumb" onerror="this.style.display='none'" />` 
+                  : '<div class="no-image">📦</div>'}
+              </td>
+              <td class="product-name">${item.product_name}</td>
+              <td class="sku">${item.sku}</td>
+              <td class="variants">
+                ${item.variants.map(v => `
+                  <div class="variant-line">
+                    ${v.color ? `<span class="variant-color">🎨 ${v.color}</span>` : ''}
+                    ${v.size ? `<span class="variant-size">📏 ${v.size}</span>` : ''}
+                    <span class="variant-qty">×${v.quantity}</span>
+                  </div>
+                `).join('')}
+              </td>
+              <td class="quantity">${item.variants.reduce((sum, v) => sum + v.quantity, 0)}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+        <tfoot>
+          <tr class="total-row">
+            <td colspan="4" style="text-align: right; font-weight: bold;">TOTAL UNIDADES:</td>
+            <td class="quantity" style="font-weight: bold; font-size: 16px;">${customer.total_units}</td>
+          </tr>
+        </tfoot>
+      </table>
+      
+      <div class="picking-check">
+        <div class="check-box">☐</div>
+        <span>Verificado y Separado</span>
+        <span class="check-signature">Firma: _______________</span>
+      </div>
+    </div>
+  `).join('');
+
+  const html = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Manifiesto de Picking - ${data.china_tracking}</title>
+      <style>
+        ${baseStyles}
+        @page { margin: 15mm; }
+        .manifest-header {
+          background: linear-gradient(135deg, #071d7f 0%, #0a47a1 100%);
+          color: white;
+          padding: 20px;
+          border-radius: 8px;
+          margin-bottom: 20px;
+        }
+        .manifest-title { font-size: 24px; font-weight: bold; margin-bottom: 10px; }
+        .manifest-subtitle { font-size: 12px; opacity: 0.9; }
+        .manifest-info { display: flex; justify-content: space-between; margin-top: 15px; }
+        .manifest-info-item { text-align: center; }
+        .manifest-info-label { font-size: 10px; opacity: 0.8; }
+        .manifest-info-value { font-size: 18px; font-weight: bold; }
+        
+        .customer-section { 
+          border: 2px solid #333; 
+          border-radius: 8px; 
+          margin-bottom: 25px; 
+          overflow: hidden;
+        }
+        .customer-header {
+          background: #f8f9fa;
+          padding: 15px;
+          display: flex;
+          align-items: center;
+          gap: 15px;
+          border-bottom: 2px solid #333;
+        }
+        .customer-number {
+          width: 40px;
+          height: 40px;
+          background: #071d7f;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          font-weight: bold;
+        }
+        .customer-details { flex: 1; }
+        .customer-name { font-size: 18px; font-weight: bold; }
+        .customer-contact { font-size: 12px; color: #666; margin-top: 4px; }
+        
+        .tracking-badge {
+          background: #000;
+          color: #fff;
+          padding: 10px 15px;
+          border-radius: 6px;
+          text-align: center;
+        }
+        .tracking-label { font-size: 10px; opacity: 0.8; }
+        .tracking-value { font-size: 14px; font-weight: bold; font-family: monospace; }
+        
+        .items-table { width: 100%; border-collapse: collapse; }
+        .items-table th { 
+          background: #e9ecef; 
+          padding: 10px; 
+          text-align: left; 
+          font-size: 11px;
+          text-transform: uppercase;
+          border-bottom: 2px solid #333;
+        }
+        .items-table td { padding: 10px; border-bottom: 1px solid #ddd; vertical-align: middle; }
+        .image-cell { text-align: center; }
+        .product-thumb { width: 60px; height: 60px; object-fit: cover; border-radius: 4px; border: 1px solid #ddd; }
+        .no-image { width: 60px; height: 60px; background: #f0f0f0; display: flex; align-items: center; justify-content: center; font-size: 24px; border-radius: 4px; }
+        .product-name { font-weight: 500; }
+        .sku { font-family: monospace; font-size: 11px; color: #666; }
+        .variants { }
+        .variant-line { 
+          padding: 3px 0; 
+          font-size: 12px;
+          display: flex;
+          gap: 10px;
+          align-items: center;
+        }
+        .variant-color { background: #e3f2fd; padding: 2px 6px; border-radius: 3px; }
+        .variant-size { background: #f3e5f5; padding: 2px 6px; border-radius: 3px; }
+        .variant-qty { font-weight: bold; color: #071d7f; }
+        .quantity { text-align: center; font-size: 14px; }
+        .total-row { background: #f8f9fa; }
+        
+        .picking-check {
+          background: #fff3cd;
+          padding: 12px 15px;
+          display: flex;
+          align-items: center;
+          gap: 10px;
+          font-size: 13px;
+        }
+        .check-box { font-size: 20px; }
+        .check-signature { margin-left: auto; }
+        
+        .page-break { page-break-before: always; }
+        
+        .summary-section {
+          background: #e8f5e9;
+          border: 2px solid #4caf50;
+          border-radius: 8px;
+          padding: 15px;
+          margin-top: 20px;
+        }
+        .summary-title { font-weight: bold; margin-bottom: 10px; color: #2e7d32; }
+        .summary-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; }
+        .summary-item { text-align: center; }
+        .summary-label { font-size: 11px; color: #666; }
+        .summary-value { font-size: 24px; font-weight: bold; color: #2e7d32; }
+      </style>
+    </head>
+    <body>
+      <div class="manifest-header">
+        <div class="manifest-title">📋 MANIFIESTO DE PICKING</div>
+        <div class="manifest-subtitle">Hub Siver Market - Documento de Separación por Destinatario</div>
+        <div class="manifest-info">
+          <div class="manifest-info-item">
+            <div class="manifest-info-label">TRACKING CHINA</div>
+            <div class="manifest-info-value">${data.china_tracking}</div>
+          </div>
+          <div class="manifest-info-item">
+            <div class="manifest-info-label">FECHA LLEGADA</div>
+            <div class="manifest-info-value">${format(new Date(data.arrival_date), 'dd/MM/yyyy')}</div>
+          </div>
+          <div class="manifest-info-item">
+            <div class="manifest-info-label">DESTINATARIOS</div>
+            <div class="manifest-info-value">${data.customers.length}</div>
+          </div>
+          <div class="manifest-info-item">
+            <div class="manifest-info-label">TOTAL UNIDADES</div>
+            <div class="manifest-info-value">${data.customers.reduce((sum, c) => sum + c.total_units, 0)}</div>
+          </div>
+        </div>
+      </div>
+      
+      ${customersHtml}
+      
+      <div class="summary-section">
+        <div class="summary-title">✅ RESUMEN DE PICKING</div>
+        <div class="summary-grid">
+          <div class="summary-item">
+            <div class="summary-label">Clientes Procesados</div>
+            <div class="summary-value">${data.customers.length}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Productos Diferentes</div>
+            <div class="summary-value">${data.customers.reduce((sum, c) => sum + c.items.length, 0)}</div>
+          </div>
+          <div class="summary-item">
+            <div class="summary-label">Unidades Totales</div>
+            <div class="summary-value">${data.customers.reduce((sum, c) => sum + c.total_units, 0)}</div>
+          </div>
+        </div>
+      </div>
+      
+      <div class="signature-area" style="margin-top: 30px;">
+        <p>Verificación Final: __________________________ Hora: ___________</p>
+      </div>
+      
+      <div class="footer">
+        <p>SIVER MARKET 509 - Hub Haití</p>
+        <p>Documento generado el ${format(new Date(), 'PPP p', { locale: es })}</p>
+      </div>
+    </body>
+    </html>
+  `;
+  
+  openPrintWindow(html, `Manifiesto Picking - ${data.china_tracking}`);
+};
+
 export const PDFGenerators = {
   generatePurchaseOrderPDF,
   generateArrivalManifestPDF,
   generateInvoicePDF,
   generateThermalLabelPDF,
   generateBatchLabelsPDF,
+  generatePickingManifestPDF,
 };
