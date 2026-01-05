@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useB2BCartItems } from '@/hooks/useB2BCartItems';
@@ -8,6 +8,7 @@ import { useAddresses, Address } from '@/hooks/useAddresses';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { useCompleteB2BCart } from '@/hooks/useBuyerOrders';
 import { validateB2BCheckout, getFieldError, hasFieldError, type CheckoutValidationError } from '@/services/checkoutValidation';
+import { useApplyDiscount, AppliedDiscount } from '@/hooks/useApplyDiscount';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -39,6 +40,8 @@ import {
   ChevronUp,
   Truck,
   Store,
+  Tag,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -54,6 +57,17 @@ const SellerCheckout = () => {
   const { addresses, isLoading: addressesLoading, createAddress } = useAddresses();
   const { pickupPoints, isLoading: pickupPointsLoading } = usePickupPoints();
   const completeCart = useCompleteB2BCart();
+  
+  // Discount code hook
+  const { 
+    isValidating: isValidatingDiscount, 
+    appliedDiscount, 
+    applyDiscount, 
+    removeDiscount,
+    recordDiscountUse,
+    checkCustomerDiscount,
+    setAppliedDiscount 
+  } = useApplyDiscount();
 
   const [deliveryMethod, setDeliveryMethod] = useState<DeliveryMethod>('address');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
@@ -66,10 +80,31 @@ const SellerCheckout = () => {
   const [useSiverCredit, setUseSiverCredit] = useState(false);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<CheckoutValidationError[]>([]);
+  const [discountCode, setDiscountCode] = useState('');
   
   // Calcular totales desde items de BD
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.cantidad, 0);
+  const discountAmount = appliedDiscount?.discountAmount || 0;
+  
+  // Check for customer-specific discounts on mount
+  useEffect(() => {
+    const checkDiscount = async () => {
+      if (user && subtotal > 0 && !appliedDiscount) {
+        const customerDiscount = await checkCustomerDiscount(subtotal);
+        if (customerDiscount) {
+          setAppliedDiscount(customerDiscount);
+        }
+      }
+    };
+    checkDiscount();
+  }, [user, subtotal]);
+
+  const handleApplyDiscountCode = async () => {
+    if (!discountCode.trim()) return;
+    await applyDiscount(discountCode.trim(), subtotal);
+    setDiscountCode('');
+  };
   
   // Create order from BD cart
   const createOrder = async (
@@ -179,7 +214,7 @@ const SellerCheckout = () => {
 
   // Calculate max credit for current cart (never 100% - max is what admin configured, typically less)
   const maxCreditAmount = calculateMaxCreditForCart(subtotal);
-  const remainingToPay = subtotal - creditAmount;
+  const remainingToPay = subtotal - creditAmount - discountAmount;
 
   // Can use credit only if verified and has active credit
   const canUseCredit = isVerified && hasActiveCredit && maxCreditAmount > 0;
@@ -1127,7 +1162,71 @@ const SellerCheckout = () => {
                       {totalQuantity}
                     </span>
                   </div>
+                  
+                  {/* Discount Code Section */}
+                  <div className="pt-3">
+                    {appliedDiscount ? (
+                      <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg">
+                        <div className="flex items-center gap-2">
+                          <Tag className="h-4 w-4 text-green-600" />
+                          <div>
+                            <p className="text-sm font-medium text-green-800">
+                              {appliedDiscount.code || 'Descuento Cliente'}
+                            </p>
+                            <p className="text-xs text-green-600">
+                              {appliedDiscount.discountType === 'percentage' 
+                                ? `${appliedDiscount.discountValue}% de descuento`
+                                : `$${appliedDiscount.discountValue.toFixed(2)} de descuento`
+                              }
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={removeDiscount}
+                          className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                        >
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <Label className="text-xs text-muted-foreground">Código de descuento</Label>
+                        <div className="flex gap-2">
+                          <Input
+                            value={discountCode}
+                            onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                            placeholder="Ingresa código"
+                            className="text-sm"
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleApplyDiscountCode}
+                            disabled={isValidatingDiscount || !discountCode.trim()}
+                          >
+                            {isValidatingDiscount ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              'Aplicar'
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+
+                {/* Applied discounts */}
+                {appliedDiscount && (
+                  <div className="space-y-2 mb-4 pb-4 border-b">
+                    <div className="flex justify-between text-sm text-green-600">
+                      <span>Descuento:</span>
+                      <span className="font-medium">-${discountAmount.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
 
                 {useSiverCredit && creditAmount > 0 && (
                   <div className="space-y-2 mb-4 pb-4 border-b">
