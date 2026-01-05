@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,10 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBuyerOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from '@/hooks/useBuyerOrders';
 import { usePackageTracking } from '@/hooks/usePackageTracking';
 import { TrackingWidget } from '@/components/tracking/TrackingWidget';
+import { supabase } from '@/integrations/supabase/client';
+import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { generateThermalLabelPDF, generateInvoicePDF } from '@/services/pdfGenerators';
 import { 
   Package, 
   Clock, 
@@ -31,7 +35,10 @@ import {
   RefreshCw,
   AlertTriangle,
   Ban,
-  ChevronRight
+  ChevronRight,
+  Printer,
+  FileText,
+  Tag
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -63,6 +70,7 @@ const carrierUrls: Record<string, string> = {
 
 const SellerMisComprasPage = () => {
   const { user } = useAuth();
+  const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<BuyerOrderStatus | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<BuyerOrder | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -76,6 +84,122 @@ const SellerMisComprasPage = () => {
   const { tracking, isLoading: trackingLoading, getCarrierTrackingUrl } = usePackageTracking(
     selectedOrder?.id || ''
   );
+
+  // Real-time subscription for B2B order updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('seller-b2b-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders_b2b',
+          filter: `buyer_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('B2B Order update received:', payload);
+          
+          // Invalidate queries to refetch data
+          queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+          
+          // Show toast for important updates
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const newData = payload.new as any;
+            const oldData = payload.old as any;
+            
+            // Payment confirmed
+            if (oldData?.payment_status !== 'paid' && newData.payment_status === 'paid') {
+              toast.success('¡Pago Confirmado!', {
+                description: 'Tu pago ha sido validado y tu pedido está en proceso.'
+              });
+            }
+            
+            // Status changes
+            if (oldData?.status !== newData.status) {
+              const statusMessages: Record<string, { title: string; desc: string }> = {
+                'shipped': { title: '📦 Pedido Enviado', desc: 'Tu pedido está en camino' },
+                'delivered': { title: '✅ Pedido Entregado', desc: '¡Tu pedido ha llegado a su destino!' },
+              };
+              
+              const msg = statusMessages[newData.status];
+              if (msg) {
+                toast.success(msg.title, { description: msg.desc });
+              }
+            }
+
+            // Logistics stage changes
+            if (oldData?.metadata?.logistics_stage !== newData.metadata?.logistics_stage) {
+              const stageMessages: Record<string, string> = {
+                'in_china': '📍 Tu pedido está en China',
+                'in_transit_usa': '✈️ Tu pedido está en tránsito hacia USA',
+                'in_haiti_hub': '🏢 Tu pedido llegó al Hub en Haití',
+                'ready_for_delivery': '🚚 Tu pedido está listo para entrega',
+              };
+              
+              const msg = stageMessages[newData.metadata?.logistics_stage];
+              if (msg) {
+                toast.info('Actualización de Envío', { description: msg });
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient]);
+
+  // PDF Generation handlers
+  const handlePrintThermalLabel = (order: BuyerOrder) => {
+    const shippingAddress = order.metadata?.shipping_address || {};
+    const hybridId = order.metadata?.hybrid_tracking_id || 
+      `OU-PAP-HUB-${order.total_quantity}-${order.id.slice(0, 8).toUpperCase()}`;
+    
+    generateThermalLabelPDF({
+      hybridTrackingId: hybridId,
+      customerName: user?.name || shippingAddress.full_name || 'Cliente B2B',
+      customerPhone: shippingAddress.phone || user?.email || '',
+      commune: shippingAddress.commune || 'N/A',
+      department: shippingAddress.department || 'N/A',
+      unitCount: order.total_quantity || 1,
+    });
+    
+    toast.success('Etiqueta generada', { description: 'Preparando impresión...' });
+  };
+
+  const handlePrintInvoice = (order: BuyerOrder) => {
+    const shippingAddress = order.metadata?.shipping_address || {};
+    
+    generateInvoicePDF({
+      id: order.id,
+      order_number: order.id.slice(0, 8).toUpperCase(),
+      customer_name: user?.name || shippingAddress.full_name || 'Cliente B2B',
+      customer_phone: shippingAddress.phone || '',
+      customer_address: shippingAddress.street || '',
+      department: shippingAddress.department,
+      commune: shippingAddress.commune,
+      items: (order.order_items_b2b || []).map(item => ({
+        sku: item.sku,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        precio_unitario: item.precio_unitario,
+        subtotal: item.subtotal,
+        color: item.sku?.split('-')[1],
+        size: item.sku?.split('-')[2],
+      })),
+      total_amount: order.total_amount,
+      payment_method: order.payment_method || 'N/A',
+      created_at: order.created_at,
+      hybrid_tracking_id: order.metadata?.hybrid_tracking_id,
+    });
+    
+    toast.success('Factura generada', { description: 'Preparando impresión...' });
+  };
 
   const getStatusBadge = (status: BuyerOrderStatus) => {
     const config = statusConfig[status];
@@ -448,6 +572,36 @@ const SellerMisComprasPage = () => {
                       )}
                     </CardContent>
                   </Card>
+                )}
+
+                {/* PDF Generation Actions */}
+                {['paid', 'shipped', 'delivered'].includes(selectedOrder.status) && (
+                  <div className="space-y-3">
+                    <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide flex items-center gap-2">
+                      <Printer className="h-4 w-4" />
+                      Documentos
+                    </h4>
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePrintThermalLabel(selectedOrder)}
+                        className="flex items-center gap-2"
+                      >
+                        <Tag className="h-4 w-4" />
+                        Etiqueta 4x6
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handlePrintInvoice(selectedOrder)}
+                        className="flex items-center gap-2"
+                      >
+                        <FileText className="h-4 w-4" />
+                        Factura
+                      </Button>
+                    </div>
+                  </div>
                 )}
 
                 {/* Actions */}
