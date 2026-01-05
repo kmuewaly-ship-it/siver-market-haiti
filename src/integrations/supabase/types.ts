@@ -1307,6 +1307,78 @@ export type Database = {
         }
         Relationships: []
       }
+      master_purchase_orders: {
+        Row: {
+          arrived_hub_at: string | null
+          arrived_usa_at: string | null
+          china_tracking_entered_at: string | null
+          china_tracking_number: string | null
+          closed_at: string | null
+          created_at: string | null
+          created_by: string | null
+          cycle_end_at: string | null
+          cycle_start_at: string
+          id: string
+          metadata: Json | null
+          notes: string | null
+          po_number: string
+          shipped_from_china_at: string | null
+          shipped_to_haiti_at: string | null
+          status: string
+          total_amount: number | null
+          total_items: number | null
+          total_orders: number | null
+          total_quantity: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          arrived_hub_at?: string | null
+          arrived_usa_at?: string | null
+          china_tracking_entered_at?: string | null
+          china_tracking_number?: string | null
+          closed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cycle_end_at?: string | null
+          cycle_start_at?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          po_number: string
+          shipped_from_china_at?: string | null
+          shipped_to_haiti_at?: string | null
+          status?: string
+          total_amount?: number | null
+          total_items?: number | null
+          total_orders?: number | null
+          total_quantity?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          arrived_hub_at?: string | null
+          arrived_usa_at?: string | null
+          china_tracking_entered_at?: string | null
+          china_tracking_number?: string | null
+          closed_at?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          cycle_end_at?: string | null
+          cycle_start_at?: string
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          po_number?: string
+          shipped_from_china_at?: string | null
+          shipped_to_haiti_at?: string | null
+          status?: string
+          total_amount?: number | null
+          total_items?: number | null
+          total_orders?: number | null
+          total_quantity?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       notifications: {
         Row: {
           created_at: string
@@ -1884,6 +1956,155 @@ export type Database = {
           value?: number
         }
         Relationships: []
+      }
+      po_order_links: {
+        Row: {
+          commune_code: string | null
+          created_at: string | null
+          current_status: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          customer_user_id: string | null
+          delivery_confirmed_at: string | null
+          department_code: string | null
+          hybrid_tracking_id: string | null
+          id: string
+          order_id: string
+          order_type: string
+          pickup_point_code: string | null
+          pickup_qr_code: string | null
+          pickup_qr_generated_at: string | null
+          po_id: string
+          previous_status: string | null
+          short_order_id: string | null
+          status_synced_at: string | null
+          unit_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          commune_code?: string | null
+          created_at?: string | null
+          current_status?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          delivery_confirmed_at?: string | null
+          department_code?: string | null
+          hybrid_tracking_id?: string | null
+          id?: string
+          order_id: string
+          order_type: string
+          pickup_point_code?: string | null
+          pickup_qr_code?: string | null
+          pickup_qr_generated_at?: string | null
+          po_id: string
+          previous_status?: string | null
+          short_order_id?: string | null
+          status_synced_at?: string | null
+          unit_count?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          commune_code?: string | null
+          created_at?: string | null
+          current_status?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          customer_user_id?: string | null
+          delivery_confirmed_at?: string | null
+          department_code?: string | null
+          hybrid_tracking_id?: string | null
+          id?: string
+          order_id?: string
+          order_type?: string
+          pickup_point_code?: string | null
+          pickup_qr_code?: string | null
+          pickup_qr_generated_at?: string | null
+          po_id?: string
+          previous_status?: string | null
+          short_order_id?: string | null
+          status_synced_at?: string | null
+          unit_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_order_links_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "master_purchase_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      po_picking_items: {
+        Row: {
+          bin_location: string | null
+          color: string | null
+          created_at: string | null
+          id: string
+          image_url: string | null
+          picked_at: string | null
+          picked_by: string | null
+          po_id: string
+          po_order_link_id: string
+          product_id: string | null
+          product_name: string
+          quantity: number
+          size: string | null
+          sku: string
+          variant_id: string | null
+        }
+        Insert: {
+          bin_location?: string | null
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          picked_at?: string | null
+          picked_by?: string | null
+          po_id: string
+          po_order_link_id: string
+          product_id?: string | null
+          product_name: string
+          quantity?: number
+          size?: string | null
+          sku: string
+          variant_id?: string | null
+        }
+        Update: {
+          bin_location?: string | null
+          color?: string | null
+          created_at?: string | null
+          id?: string
+          image_url?: string | null
+          picked_at?: string | null
+          picked_by?: string | null
+          po_id?: string
+          po_order_link_id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity?: number
+          size?: string | null
+          sku?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "po_picking_items_po_id_fkey"
+            columns: ["po_id"]
+            isOneToOne: false
+            referencedRelation: "master_purchase_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "po_picking_items_po_order_link_id_fkey"
+            columns: ["po_order_link_id"]
+            isOneToOne: false
+            referencedRelation: "po_order_links"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       price_settings: {
         Row: {
@@ -4771,6 +4992,21 @@ export type Database = {
       }
       generate_match_sale_number: { Args: never; Returns: string }
       generate_pickup_code: { Args: never; Returns: string }
+      generate_po_hybrid_tracking: {
+        Args: {
+          p_china_tracking: string
+          p_commune_code: string
+          p_dept_code: string
+          p_po_number: string
+          p_short_order_id: string
+        }
+        Returns: string
+      }
+      generate_po_number: { Args: never; Returns: string }
+      generate_po_pickup_qr: {
+        Args: { p_order_link_id: string }
+        Returns: string
+      }
       get_trending_products: {
         Args: { days_back?: number; limit_count?: number }
         Returns: {
@@ -4796,6 +5032,7 @@ export type Database = {
         Returns: boolean
       }
       is_seller: { Args: { _user_id: string }; Returns: boolean }
+      link_orders_to_po: { Args: { p_po_id: string }; Returns: Json }
       match_products: {
         Args: {
           match_count: number
@@ -4842,6 +5079,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      process_po_china_tracking: {
+        Args: { p_china_tracking: string; p_po_id: string }
+        Returns: Json
+      }
       process_siver_match_wallet_split: {
         Args: { p_sale_id: string }
         Returns: boolean
@@ -4852,6 +5093,10 @@ export type Database = {
           p_admin_notes?: string
           p_withdrawal_id: string
         }
+        Returns: Json
+      }
+      update_po_logistics_stage: {
+        Args: { p_new_status: string; p_po_id: string }
         Returns: Json
       }
     }
