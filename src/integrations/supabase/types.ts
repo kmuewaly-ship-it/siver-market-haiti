@@ -356,6 +356,20 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "b2b_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "b2b_cart_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       b2b_carts: {
@@ -617,6 +631,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_variants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "batch_inventory_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "batch_inventory_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
           },
         ]
       }
@@ -1205,6 +1233,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "inventory_movements_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "inventory_movements_seller_catalog_id_fkey"
             columns: ["seller_catalog_id"]
             isOneToOne: false
@@ -1431,6 +1473,20 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "order_items_b2b_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "order_items_b2b_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       order_refunds: {
@@ -1471,6 +1527,107 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "orders_b2b"
             referencedColumns: ["id"]
+          },
+        ]
+      }
+      order_stock_allocations: {
+        Row: {
+          allocation_status: string | null
+          created_at: string | null
+          id: string
+          order_id: string
+          order_type: string
+          product_id: string | null
+          quantity_from_haiti: number | null
+          quantity_from_transit: number | null
+          quantity_ordered: number
+          quantity_pending_purchase: number | null
+          sku: string
+          transit_stock_id: string | null
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          allocation_status?: string | null
+          created_at?: string | null
+          id?: string
+          order_id: string
+          order_type?: string
+          product_id?: string | null
+          quantity_from_haiti?: number | null
+          quantity_from_transit?: number | null
+          quantity_ordered: number
+          quantity_pending_purchase?: number | null
+          sku: string
+          transit_stock_id?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          allocation_status?: string | null
+          created_at?: string | null
+          id?: string
+          order_id?: string
+          order_type?: string
+          product_id?: string | null
+          quantity_from_haiti?: number | null
+          quantity_from_transit?: number | null
+          quantity_ordered?: number
+          quantity_pending_purchase?: number | null
+          sku?: string
+          transit_stock_id?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_stock_allocations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_stock_allocations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "order_stock_allocations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "order_stock_allocations_transit_stock_id_fkey"
+            columns: ["transit_stock_id"]
+            isOneToOne: false
+            referencedRelation: "stock_in_transit"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_stock_allocations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_stock_allocations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "order_stock_allocations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
           },
         ]
       }
@@ -1799,6 +1956,20 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_attribute_values_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_attribute_values_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       product_migration_log: {
@@ -1835,11 +2006,39 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "product_migration_log_new_variant_id_fkey"
+            columns: ["new_variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "product_migration_log_new_variant_id_fkey"
+            columns: ["new_variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
+          },
+          {
             foreignKeyName: "product_migration_log_original_product_id_fkey"
             columns: ["original_product_id"]
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_migration_log_original_product_id_fkey"
+            columns: ["original_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_migration_log_original_product_id_fkey"
+            columns: ["original_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -1878,6 +2077,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_price_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_price_history_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -1941,6 +2154,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_reviews_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -2029,6 +2256,20 @@ export type Database = {
             referencedRelation: "products"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_variants_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
         ]
       }
       product_views: {
@@ -2063,6 +2304,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "product_views_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -2182,6 +2437,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "products_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "products_parent_product_id_fkey"
+            columns: ["parent_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "products_proveedor_id_fkey"
             columns: ["proveedor_id"]
             isOneToOne: false
@@ -2219,6 +2488,175 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      purchase_consolidation_items: {
+        Row: {
+          color: string | null
+          consolidation_id: string
+          created_at: string | null
+          id: string
+          product_id: string | null
+          product_name: string
+          quantity_cart: number | null
+          quantity_confirmed: number | null
+          quantity_in_stock: number | null
+          quantity_in_transit: number | null
+          quantity_pending: number | null
+          quantity_to_order: number | null
+          size: string | null
+          sku: string
+          total_cost: number | null
+          unit_cost: number | null
+          variant_id: string | null
+        }
+        Insert: {
+          color?: string | null
+          consolidation_id: string
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          product_name: string
+          quantity_cart?: number | null
+          quantity_confirmed?: number | null
+          quantity_in_stock?: number | null
+          quantity_in_transit?: number | null
+          quantity_pending?: number | null
+          quantity_to_order?: number | null
+          size?: string | null
+          sku: string
+          total_cost?: number | null
+          unit_cost?: number | null
+          variant_id?: string | null
+        }
+        Update: {
+          color?: string | null
+          consolidation_id?: string
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          product_name?: string
+          quantity_cart?: number | null
+          quantity_confirmed?: number | null
+          quantity_in_stock?: number | null
+          quantity_in_transit?: number | null
+          quantity_pending?: number | null
+          quantity_to_order?: number | null
+          size?: string | null
+          sku?: string
+          total_cost?: number | null
+          unit_cost?: number | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_consolidation_items_consolidation_id_fkey"
+            columns: ["consolidation_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_consolidations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_consolidation_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_consolidation_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_consolidation_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "purchase_consolidation_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchase_consolidation_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "purchase_consolidation_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
+          },
+        ]
+      }
+      purchase_consolidations: {
+        Row: {
+          consolidation_number: string
+          created_at: string | null
+          created_by: string | null
+          estimated_cost: number | null
+          id: string
+          notes: string | null
+          ordered_at: string | null
+          received_at: string | null
+          status: string | null
+          submitted_at: string | null
+          supplier_id: string | null
+          total_items: number | null
+          total_quantity: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          consolidation_number: string
+          created_at?: string | null
+          created_by?: string | null
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          supplier_id?: string | null
+          total_items?: number | null
+          total_quantity?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          consolidation_number?: string
+          created_at?: string | null
+          created_by?: string | null
+          estimated_cost?: number | null
+          id?: string
+          notes?: string | null
+          ordered_at?: string | null
+          received_at?: string | null
+          status?: string | null
+          submitted_at?: string | null
+          supplier_id?: string | null
+          total_items?: number | null
+          total_quantity?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "purchase_consolidations_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       referral_codes: {
         Row: {
@@ -2384,6 +2822,20 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "products"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_catalog_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "seller_catalog_source_product_id_fkey"
+            columns: ["source_product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
           },
         ]
       }
@@ -2732,6 +3184,111 @@ export type Database = {
         }
         Relationships: []
       }
+      stock_in_transit: {
+        Row: {
+          batch_id: string | null
+          china_tracking_number: string | null
+          created_at: string | null
+          expected_arrival_date: string | null
+          id: string
+          notes: string | null
+          product_id: string | null
+          quantity: number
+          shipped_date: string | null
+          status: string | null
+          supplier_id: string | null
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          batch_id?: string | null
+          china_tracking_number?: string | null
+          created_at?: string | null
+          expected_arrival_date?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          shipped_date?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          batch_id?: string | null
+          china_tracking_number?: string | null
+          created_at?: string | null
+          expected_arrival_date?: string | null
+          id?: string
+          notes?: string | null
+          product_id?: string | null
+          quantity?: number
+          shipped_date?: string | null
+          status?: string | null
+          supplier_id?: string | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_in_transit_batch_id_fkey"
+            columns: ["batch_id"]
+            isOneToOne: false
+            referencedRelation: "b2b_batches"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_in_transit_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_in_transit_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_in_transit_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_in_transit_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_in_transit_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_in_transit_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "stock_in_transit_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
+          },
+        ]
+      }
       stock_reservations: {
         Row: {
           created_at: string | null
@@ -2788,6 +3345,20 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
             foreignKeyName: "stock_reservations_seller_catalog_id_fkey"
             columns: ["seller_catalog_id"]
             isOneToOne: false
@@ -2807,6 +3378,99 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "product_variants"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "stock_reservations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
+          },
+        ]
+      }
+      stock_rotation_tracking: {
+        Row: {
+          alert_sent_at: string | null
+          created_at: string | null
+          id: string
+          last_sale_date: string | null
+          product_id: string | null
+          stock_quantity: number | null
+          suggested_discount: number | null
+          updated_at: string | null
+          variant_id: string | null
+        }
+        Insert: {
+          alert_sent_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_sale_date?: string | null
+          product_id?: string | null
+          stock_quantity?: number | null
+          suggested_discount?: number | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Update: {
+          alert_sent_at?: string | null
+          created_at?: string | null
+          id?: string
+          last_sale_date?: string | null
+          product_id?: string | null
+          stock_quantity?: number | null
+          suggested_discount?: number | null
+          updated_at?: string | null
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "stock_rotation_tracking_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_rotation_tracking_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_rotation_tracking_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "stock_rotation_tracking_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "stock_rotation_tracking_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "stock_rotation_tracking_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
           },
         ]
       }
@@ -3120,6 +3784,20 @@ export type Database = {
             referencedRelation: "product_variants"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "variant_attribute_values_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "variant_attribute_values_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
+          },
         ]
       }
       wallet_transactions: {
@@ -3332,6 +4010,36 @@ export type Database = {
           },
         ]
       }
+      stock_balance_view: {
+        Row: {
+          available_balance: number | null
+          orders_pending: number | null
+          product_id: string | null
+          product_name: string | null
+          sku: string | null
+          stock_haiti: number | null
+          stock_in_transit: number | null
+          variant_id: string | null
+          variant_name: string | null
+        }
+        Relationships: []
+      }
+      stock_rotation_alerts: {
+        Row: {
+          alert_sent_at: string | null
+          days_without_sale: number | null
+          id: string | null
+          last_sale_date: string | null
+          product_id: string | null
+          product_name: string | null
+          sku: string | null
+          stock_quantity: number | null
+          suggested_discount: number | null
+          variant_id: string | null
+          variant_name: string | null
+        }
+        Relationships: []
+      }
       stores_public: {
         Row: {
           allow_comments: boolean | null
@@ -3415,6 +4123,7 @@ export type Database = {
     }
     Functions: {
       fn_expire_pending_orders: { Args: never; Returns: number }
+      generate_consolidation_number: { Args: never; Returns: string }
       generate_delivery_code: { Args: never; Returns: string }
       generate_hybrid_tracking_id: {
         Args: {

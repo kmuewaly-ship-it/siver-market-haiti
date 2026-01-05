@@ -58,6 +58,7 @@ const mainNavItems = [
 
 const analyticsItems = [
   { title: "Optimización Inventario", url: "/admin/cart-analytics", icon: BarChart3 },
+  { title: "Gestión Inventario", url: "/admin/inventory", icon: Package },
 ];
 
 const settingsItems = [

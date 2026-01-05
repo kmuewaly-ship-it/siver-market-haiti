@@ -9,6 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useOrders, OrderStatus, Order } from '@/hooks/useOrders';
+import { PDFGenerators } from '@/services/pdfGenerators';
 import { 
   Package, 
   Clock, 
@@ -21,7 +22,10 @@ import {
   DollarSign,
   ShoppingCart,
   AlertCircle,
-  MapPin
+  MapPin,
+  Printer,
+  FileText,
+  Tag
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -122,6 +126,50 @@ const AdminPedidos = () => {
       await cancelOrder.mutateAsync(orderId);
       setSelectedOrder(null);
     }
+  };
+
+  // Print invoice/delivery guide
+  const handlePrintInvoice = (order: Order) => {
+    const metadata = order.metadata as any;
+    const items = (order as any).order_items_b2b || [];
+    
+    PDFGenerators.generateInvoicePDF({
+      id: order.id,
+      order_number: order.id.slice(0, 8).toUpperCase(),
+      customer_name: order.profiles?.full_name || 'Cliente',
+      customer_phone: (order.metadata as any)?.shipping_address?.phone || '',
+      customer_address: metadata?.shipping_address?.street_address,
+      department: metadata?.shipping_address?.state,
+      commune: metadata?.shipping_address?.city,
+      items: items.map((item: any) => ({
+        sku: item.sku,
+        nombre: item.nombre,
+        cantidad: item.cantidad,
+        precio_unitario: item.precio_unitario,
+        subtotal: item.subtotal,
+        color: item.color,
+        size: item.size,
+        image: item.image,
+      })),
+      total_amount: order.total_amount,
+      payment_method: order.payment_method || undefined,
+      created_at: order.created_at,
+      hybrid_tracking_id: metadata?.hybrid_tracking_id,
+    });
+  };
+
+  // Print thermal label
+  const handlePrintLabel = (order: Order) => {
+    const metadata = order.metadata as any;
+    
+    PDFGenerators.generateThermalLabelPDF({
+      hybridTrackingId: metadata?.hybrid_tracking_id || `ORD-${order.id.slice(0, 8).toUpperCase()}`,
+      customerName: order.profiles?.full_name || 'Cliente',
+      customerPhone: metadata?.shipping_address?.phone || '',
+      commune: metadata?.shipping_address?.city || 'N/A',
+      department: metadata?.shipping_address?.state || 'N/A',
+      unitCount: order.total_quantity,
+    });
   };
 
   const getStatusBadge = (status: OrderStatus) => {
@@ -296,13 +344,32 @@ const AdminPedidos = () => {
                           {getStatusBadge(order.status as OrderStatus)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleOpenOrder(order)}
-                          >
-                            <Eye className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePrintLabel(order)}
+                              title="Imprimir Etiqueta"
+                            >
+                              <Tag className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handlePrintInvoice(order)}
+                              title="Imprimir Factura"
+                            >
+                              <FileText className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleOpenOrder(order)}
+                              title="Ver Detalle"
+                            >
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     ))
