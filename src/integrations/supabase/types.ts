@@ -717,6 +717,47 @@ export type Database = {
           },
         ]
       }
+      category_shipping_rates: {
+        Row: {
+          category_id: string
+          created_at: string | null
+          description: string | null
+          fixed_fee: number
+          id: string
+          is_active: boolean | null
+          percentage_fee: number
+          updated_at: string | null
+        }
+        Insert: {
+          category_id: string
+          created_at?: string | null
+          description?: string | null
+          fixed_fee?: number
+          id?: string
+          is_active?: boolean | null
+          percentage_fee?: number
+          updated_at?: string | null
+        }
+        Update: {
+          category_id?: string
+          created_at?: string | null
+          description?: string | null
+          fixed_fee?: number
+          id?: string
+          is_active?: boolean | null
+          percentage_fee?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "category_shipping_rates_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: true
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       commission_debts: {
         Row: {
           commission_amount: number
@@ -782,6 +823,56 @@ export type Database = {
             columns: ["wallet_id"]
             isOneToOne: false
             referencedRelation: "seller_wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      communes: {
+        Row: {
+          code: string
+          created_at: string | null
+          delivery_fee: number
+          department_id: string
+          extra_department_fee: number
+          id: string
+          is_active: boolean | null
+          name: string
+          operational_fee: number
+          rate_per_lb: number
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          delivery_fee?: number
+          department_id: string
+          extra_department_fee?: number
+          id?: string
+          is_active?: boolean | null
+          name: string
+          operational_fee?: number
+          rate_per_lb?: number
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          delivery_fee?: number
+          department_id?: string
+          extra_department_fee?: number
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          operational_fee?: number
+          rate_per_lb?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "communes_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
             referencedColumns: ["id"]
           },
         ]
@@ -881,6 +972,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      departments: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       discount_code_uses: {
         Row: {
@@ -1536,6 +1654,7 @@ export type Database = {
           name: string
           operating_hours: Json | null
           phone: string | null
+          point_code: string | null
           updated_at: string | null
         }
         Insert: {
@@ -1552,6 +1671,7 @@ export type Database = {
           name: string
           operating_hours?: Json | null
           phone?: string | null
+          point_code?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -1568,6 +1688,7 @@ export type Database = {
           name?: string
           operating_hours?: Json | null
           phone?: string | null
+          point_code?: string | null
           updated_at?: string | null
         }
         Relationships: [
@@ -2490,6 +2611,127 @@ export type Database = {
         }
         Relationships: []
       }
+      shipment_tracking: {
+        Row: {
+          category_fees: number | null
+          china_tracking_number: string
+          commune_id: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          department_id: string | null
+          hybrid_tracking_id: string
+          id: string
+          label_printed_at: string | null
+          order_id: string | null
+          order_type: string | null
+          pickup_point_id: string | null
+          reference_price: number | null
+          shipping_cost_china_usa: number | null
+          shipping_cost_usa_haiti: number | null
+          status: string | null
+          total_shipping_cost: number | null
+          unit_count: number
+          updated_at: string | null
+          weight_grams: number | null
+        }
+        Insert: {
+          category_fees?: number | null
+          china_tracking_number: string
+          commune_id?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          department_id?: string | null
+          hybrid_tracking_id: string
+          id?: string
+          label_printed_at?: string | null
+          order_id?: string | null
+          order_type?: string | null
+          pickup_point_id?: string | null
+          reference_price?: number | null
+          shipping_cost_china_usa?: number | null
+          shipping_cost_usa_haiti?: number | null
+          status?: string | null
+          total_shipping_cost?: number | null
+          unit_count?: number
+          updated_at?: string | null
+          weight_grams?: number | null
+        }
+        Update: {
+          category_fees?: number | null
+          china_tracking_number?: string
+          commune_id?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          department_id?: string | null
+          hybrid_tracking_id?: string
+          id?: string
+          label_printed_at?: string | null
+          order_id?: string | null
+          order_type?: string | null
+          pickup_point_id?: string | null
+          reference_price?: number | null
+          shipping_cost_china_usa?: number | null
+          shipping_cost_usa_haiti?: number | null
+          status?: string | null
+          total_shipping_cost?: number | null
+          unit_count?: number
+          updated_at?: string | null
+          weight_grams?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipment_tracking_commune_id_fkey"
+            columns: ["commune_id"]
+            isOneToOne: false
+            referencedRelation: "communes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tracking_department_id_fkey"
+            columns: ["department_id"]
+            isOneToOne: false
+            referencedRelation: "departments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipment_tracking_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      shipping_rates: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          key: string
+          updated_at: string | null
+          value: number
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key: string
+          updated_at?: string | null
+          value?: number
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          key?: string
+          updated_at?: string | null
+          value?: number
+        }
+        Relationships: []
+      }
       stock_reservations: {
         Row: {
           created_at: string | null
@@ -3174,6 +3416,16 @@ export type Database = {
     Functions: {
       fn_expire_pending_orders: { Args: never; Returns: number }
       generate_delivery_code: { Args: never; Returns: string }
+      generate_hybrid_tracking_id: {
+        Args: {
+          p_china_tracking: string
+          p_commune_code: string
+          p_dept_code: string
+          p_point_code: string
+          p_unit_count: number
+        }
+        Returns: string
+      }
       get_trending_products: {
         Args: { days_back?: number; limit_count?: number }
         Returns: {
