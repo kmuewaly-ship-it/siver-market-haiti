@@ -557,6 +557,89 @@ export const useOrders = () => {
     });
   };
 
+  // Update logistics stage for order
+  const updateLogisticsStage = useMutation({
+    mutationFn: async ({ 
+      orderId, 
+      logisticsStage,
+      chinaTracking 
+    }: { 
+      orderId: string; 
+      logisticsStage: string;
+      chinaTracking?: string;
+    }) => {
+      // Get current order to preserve metadata
+      const { data: currentOrder } = await supabase
+        .from('orders_b2b')
+        .select('metadata')
+        .eq('id', orderId)
+        .maybeSingle();
+      
+      const existingMetadata = (currentOrder?.metadata as Record<string, any>) || {};
+      
+      const { data, error } = await supabase
+        .from('orders_b2b')
+        .update({ 
+          updated_at: new Date().toISOString(),
+          metadata: {
+            ...existingMetadata,
+            logistics_stage: logisticsStage,
+            stage_updated_at: new Date().toISOString(),
+            ...(chinaTracking && { china_tracking: chinaTracking }),
+            ...(logisticsStage === 'payment_validated' && { payment_confirmed_at: new Date().toISOString() }),
+            ...(logisticsStage === 'in_china' && { shipped_from_china: true }),
+            ...(logisticsStage === 'in_transit_usa' && { in_transit_usa: true }),
+            ...(logisticsStage === 'in_haiti_hub' && { arrived_haiti: true }),
+            ...(logisticsStage === 'ready_for_delivery' && { ready_for_delivery: true }),
+          }
+        })
+        .eq('id', orderId)
+        .select()
+        .maybeSingle();
+      
+      if (error) throw error;
+      if (!data) throw new Error('Pedido no encontrado');
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['all-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['order'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+      toast({ title: 'Etapa logística actualizada' });
+    },
+    onError: (error: Error) => {
+      toast({ title: 'Error al actualizar etapa', description: error.message, variant: 'destructive' });
+    },
+  });
+
+  // Fetch paid orders for picking manifest (only payment_status = 'paid')
+  const usePaidOrdersForManifest = (chinaTracking?: string) => {
+    return useQuery({
+      queryKey: ['paid-orders-manifest', chinaTracking],
+      queryFn: async () => {
+        let query = supabase
+          .from('orders_b2b')
+          .select(`
+            *,
+            profiles!orders_b2b_seller_id_fkey (full_name, email),
+            buyer_profile:profiles!orders_b2b_buyer_id_fkey (full_name, email),
+            order_items_b2b (*)
+          `)
+          .eq('payment_status', 'paid')
+          .order('created_at', { ascending: false });
+
+        if (chinaTracking) {
+          query = query.contains('metadata', { china_tracking: chinaTracking });
+        }
+
+        const { data, error } = await query;
+        if (error) throw error;
+        return data as Order[];
+      },
+    });
+  };
+
   return {
     useSellerOrders,
     useSellerB2CSales,
@@ -564,8 +647,10 @@ export const useOrders = () => {
     useOrder,
     useOrderStats,
     useB2CSalesStats,
+    usePaidOrdersForManifest,
     updateOrderStatus,
     updateOrderTracking,
+    updateLogisticsStage,
     cancelOrder,
     cancelOrderWithRestore,
     confirmManualPayment,

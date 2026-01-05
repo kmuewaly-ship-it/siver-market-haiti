@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { useOrders, OrderStatus, Order } from '@/hooks/useOrders';
-import { PDFGenerators } from '@/services/pdfGenerators';
+import { PDFGenerators, generatePickingManifestPDF } from '@/services/pdfGenerators';
 import { 
   Package, 
   Clock, 
@@ -25,7 +25,12 @@ import {
   MapPin,
   Printer,
   FileText,
-  Tag
+  Tag,
+  Plane,
+  Warehouse,
+  Ship,
+  PackageCheck,
+  ClipboardList
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -38,6 +43,16 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; icon: Re
   cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
 };
 
+const logisticsStageOptions = [
+  { value: 'payment_pending', label: 'Pago Pendiente', icon: Clock },
+  { value: 'payment_validated', label: 'Pago Validado', icon: CheckCircle },
+  { value: 'in_china', label: 'En China', icon: Package },
+  { value: 'in_transit_usa', label: 'Tránsito USA', icon: Plane },
+  { value: 'in_haiti_hub', label: 'Hub Haití', icon: Warehouse },
+  { value: 'ready_for_delivery', label: 'Listo Entrega', icon: PackageCheck },
+  { value: 'delivered', label: 'Entregado', icon: CheckCircle },
+];
+
 const carrierOptions = [
   { value: 'DHL', label: 'DHL', url: 'https://www.dhl.com/en/express/tracking.html?AWB=' },
   { value: 'FedEx', label: 'FedEx', url: 'https://www.fedex.com/fedextrack/?trknbr=' },
@@ -48,12 +63,18 @@ const carrierOptions = [
 ];
 
 const AdminPedidos = () => {
-  const { useAllOrders, useOrderStats, updateOrderStatus, updateOrderTracking, cancelOrder } = useOrders();
+  const { useAllOrders, useOrderStats, usePaidOrdersForManifest, updateOrderStatus, updateOrderTracking, updateLogisticsStage, cancelOrder } = useOrders();
   
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<OrderStatus | ''>('');
+  const [logisticsStage, setLogisticsStage] = useState('');
+  const [chinaTracking, setChinaTracking] = useState('');
+  
+  // Manifest dialog state
+  const [showManifestDialog, setShowManifestDialog] = useState(false);
+  const [manifestChinaTracking, setManifestChinaTracking] = useState('');
   
   // Tracking form state
   const [trackingCarrier, setTrackingCarrier] = useState('');
@@ -63,6 +84,7 @@ const AdminPedidos = () => {
 
   const { data: orders, isLoading } = useAllOrders({ status: statusFilter, search: searchTerm });
   const { data: stats } = useOrderStats();
+  const { data: paidOrdersForManifest } = usePaidOrdersForManifest(manifestChinaTracking || undefined);
 
   const filteredOrders = orders?.filter(order => {
     if (!searchTerm) return true;
@@ -110,8 +132,11 @@ const AdminPedidos = () => {
   const handleOpenOrder = (order: Order) => {
     setSelectedOrder(order);
     setNewStatus(order.status as OrderStatus);
-    // Pre-fill tracking info if exists
+    // Pre-fill logistics stage
     const metadata = order.metadata as any;
+    setLogisticsStage(metadata?.logistics_stage || '');
+    setChinaTracking(metadata?.china_tracking || '');
+    // Pre-fill tracking info if exists
     if (metadata?.carrier) {
       const matchingCarrier = carrierOptions.find(c => c.value === metadata.carrier);
       setTrackingCarrier(matchingCarrier ? metadata.carrier : 'other');
@@ -119,6 +144,64 @@ const AdminPedidos = () => {
     }
     if (metadata?.tracking_number) setTrackingNumber(metadata.tracking_number);
     if (metadata?.estimated_delivery) setEstimatedDelivery(metadata.estimated_delivery);
+  };
+
+  const handleUpdateLogisticsStage = async () => {
+    if (selectedOrder && logisticsStage) {
+      await updateLogisticsStage.mutateAsync({ 
+        orderId: selectedOrder.id, 
+        logisticsStage,
+        chinaTracking: chinaTracking || undefined
+      });
+    }
+  };
+
+  // Generate Picking Manifest PDF
+  const handleGeneratePickingManifest = () => {
+    if (!paidOrdersForManifest || paidOrdersForManifest.length === 0) return;
+
+    const customers = paidOrdersForManifest.map(order => {
+      const metadata = order.metadata as any;
+      const items = order.order_items_b2b || [];
+      
+      // Group items by product name to consolidate variants
+      const groupedItems: Record<string, any> = {};
+      items.forEach((item: any) => {
+        const key = item.nombre;
+        if (!groupedItems[key]) {
+          groupedItems[key] = {
+            product_name: item.nombre,
+            image: metadata?.items_by_store?.[Object.keys(metadata?.items_by_store || {})[0]]?.items?.find((i: any) => i.sku === item.sku)?.image,
+            sku: item.sku.split('-')[0],
+            variants: []
+          };
+        }
+        groupedItems[key].variants.push({
+          color: item.color,
+          size: item.size,
+          quantity: item.cantidad
+        });
+      });
+
+      return {
+        customer_id: order.buyer_id || order.id,
+        customer_name: order.buyer_profile?.full_name || metadata?.shipping_address?.full_name || 'Cliente',
+        customer_phone: metadata?.shipping_address?.phone,
+        commune: metadata?.shipping_address?.city || 'N/A',
+        department: metadata?.shipping_address?.state || 'N/A',
+        internal_tracking_id: metadata?.hybrid_tracking_id || `SIV-${order.id.slice(0, 8).toUpperCase()}`,
+        items: Object.values(groupedItems),
+        total_units: order.total_quantity
+      };
+    });
+
+    generatePickingManifestPDF({
+      china_tracking: manifestChinaTracking || 'CONSOLIDADO',
+      arrival_date: new Date().toISOString(),
+      customers
+    });
+    
+    setShowManifestDialog(false);
   };
 
   const handleCancelOrder = async (orderId: string) => {

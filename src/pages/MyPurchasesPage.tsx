@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
@@ -16,7 +16,9 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
-import { Package, ShoppingBag, Truck, CheckCircle, XCircle, Clock, ExternalLink, ChevronRight, ArrowLeft, MapPin, Calendar, RefreshCw, AlertTriangle, Loader2, Ban, DollarSign } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useQueryClient } from "@tanstack/react-query";
+import { Package, ShoppingBag, Truck, CheckCircle, XCircle, Clock, ExternalLink, ChevronRight, ArrowLeft, MapPin, Calendar, RefreshCw, AlertTriangle, Loader2, Ban, DollarSign, Plane, Ship, Warehouse, PackageCheck } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 const refundStatusConfig: Record<RefundStatus, {
@@ -92,6 +94,32 @@ const statusConfig: Record<BuyerOrderStatus, {
     icon: <XCircle className="h-4 w-4" />,
     bgColor: "bg-red-100"
   }
+};
+
+// Logistics stages for tracking
+type LogisticsStage = 'payment_pending' | 'payment_validated' | 'in_china' | 'in_transit_usa' | 'in_haiti_hub' | 'ready_for_delivery' | 'delivered';
+
+const logisticsStages: { key: LogisticsStage; label: string; icon: React.ReactNode; description: string }[] = [
+  { key: 'payment_pending', label: 'Pago Pendiente', icon: <Clock className="h-4 w-4" />, description: 'Esperando confirmación de pago' },
+  { key: 'payment_validated', label: 'Pago Validado', icon: <CheckCircle className="h-4 w-4" />, description: 'Tu pago fue confirmado' },
+  { key: 'in_china', label: 'En China', icon: <Package className="h-4 w-4" />, description: 'Producto en almacén de origen' },
+  { key: 'in_transit_usa', label: 'Tránsito USA', icon: <Plane className="h-4 w-4" />, description: 'En camino a Estados Unidos' },
+  { key: 'in_haiti_hub', label: 'Hub Haití', icon: <Warehouse className="h-4 w-4" />, description: 'Llegó al centro de distribución' },
+  { key: 'ready_for_delivery', label: 'Listo para Entrega', icon: <PackageCheck className="h-4 w-4" />, description: 'Disponible para recoger/entregar' },
+  { key: 'delivered', label: 'Entregado', icon: <CheckCircle className="h-4 w-4" />, description: 'Pedido completado' },
+];
+
+const getLogisticsStage = (order: BuyerOrder): LogisticsStage => {
+  const metadata = order.metadata || {};
+  
+  if (order.status === 'delivered') return 'delivered';
+  if (metadata.logistics_stage) return metadata.logistics_stage as LogisticsStage;
+  if (metadata.ready_for_delivery) return 'ready_for_delivery';
+  if (metadata.arrived_haiti) return 'in_haiti_hub';
+  if (metadata.in_transit_usa || metadata.tracking_number) return 'in_transit_usa';
+  if (metadata.shipped_from_china) return 'in_china';
+  if (order.status === 'paid') return 'payment_validated';
+  return 'payment_pending';
 };
 const carrierUrls: Record<string, string> = {
   "DHL": "https://www.dhl.com/en/express/tracking.html?AWB=",
@@ -197,12 +225,78 @@ const OrderDetailDialog = ({
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
+          {/* Logistics Progress - NEW Real-time tracking */}
+          {order.status !== 'cancelled' && order.status !== 'draft' && (
+            <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2 text-blue-700">
+                  <Ship className="h-5 w-5" />
+                  Seguimiento en Tiempo Real
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="relative">
+                  {logisticsStages.map((stage, index) => {
+                    const currentStage = getLogisticsStage(order);
+                    const currentIndex = logisticsStages.findIndex(s => s.key === currentStage);
+                    const isCompleted = index <= currentIndex;
+                    const isCurrent = stage.key === currentStage;
+                    
+                    return (
+                      <div key={stage.key} className="flex items-start gap-3 mb-4 last:mb-0">
+                        <div className="relative flex flex-col items-center">
+                          <div className={`
+                            w-10 h-10 rounded-full flex items-center justify-center shrink-0 transition-all duration-300
+                            ${isCompleted 
+                              ? 'bg-blue-600 text-white shadow-lg' 
+                              : 'bg-gray-200 text-gray-400'
+                            }
+                            ${isCurrent ? 'ring-4 ring-blue-200 animate-pulse' : ''}
+                          `}>
+                            {stage.icon}
+                          </div>
+                          {index < logisticsStages.length - 1 && (
+                            <div className={`w-0.5 h-8 ${isCompleted ? 'bg-blue-600' : 'bg-gray-200'}`} />
+                          )}
+                        </div>
+                        <div className="flex-1 pt-1">
+                          <p className={`font-medium ${isCompleted ? 'text-blue-900' : 'text-gray-400'}`}>
+                            {stage.label}
+                          </p>
+                          <p className={`text-sm ${isCompleted ? 'text-blue-600' : 'text-gray-400'}`}>
+                            {stage.description}
+                          </p>
+                          {isCurrent && order.metadata?.stage_updated_at && (
+                            <p className="text-xs text-blue-500 mt-1">
+                              Actualizado: {format(new Date(order.metadata.stage_updated_at), "d MMM, HH:mm", { locale: es })}
+                            </p>
+                          )}
+                        </div>
+                        {isCompleted && (
+                          <CheckCircle className="h-5 w-5 text-green-500 shrink-0" />
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+                
+                {/* Payment validation timestamp */}
+                {order.metadata?.payment_confirmed_at && (
+                  <div className="mt-4 pt-4 border-t border-blue-200 flex items-center gap-2 text-sm text-blue-700">
+                    <CheckCircle className="h-4 w-4" />
+                    <span>Pago validado el {format(new Date(order.metadata.payment_confirmed_at), "d 'de' MMMM 'a las' HH:mm", { locale: es })}</span>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
+
           {/* Tracking Section */}
           {(order.status === 'shipped' || order.status === 'delivered') && trackingNumber && <Card className="bg-gradient-to-br from-purple-50 to-blue-50 border-purple-200">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2 text-purple-700">
                   <Truck className="h-5 w-5" />
-                  Seguimiento de Envío
+                  Guía de Envío
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
@@ -231,36 +325,7 @@ const OrderDetailDialog = ({
               </CardContent>
             </Card>}
 
-          {/* Order Timeline */}
-          <div className="space-y-3">
-            <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Estado del Pedido</h4>
-            <div className="relative">
-              {['placed', 'paid', 'shipped', 'delivered'].map((step, index) => {
-              const stepStatus = statusConfig[step as BuyerOrderStatus];
-              const isCompleted = ['placed', 'paid', 'shipped', 'delivered'].indexOf(order.status) >= index;
-              const isCurrent = order.status === step;
-              return <div key={step} className="flex items-center gap-3 mb-3 last:mb-0">
-                    <div className={`
-                      w-8 h-8 rounded-full flex items-center justify-center shrink-0
-                      ${isCompleted ? stepStatus.bgColor : 'bg-gray-100'}
-                      ${isCurrent ? 'ring-2 ring-offset-2 ring-primary' : ''}
-                    `}>
-                      <span className={isCompleted ? stepStatus.color : 'text-gray-400'}>
-                        {stepStatus.icon}
-                      </span>
-                    </div>
-                    <div className="flex-1">
-                      <p className={`font-medium ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
-                        {stepStatus.label}
-                      </p>
-                    </div>
-                    {isCompleted && <CheckCircle className="h-4 w-4 text-green-500" />}
-                  </div>;
-            })}
-            </div>
-          </div>
-
-          {/* Order Items */}
+          {/* Order Items - Moved the old timeline to items section */}
           <div className="space-y-3">
             <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">
               Productos ({order.order_items_b2b?.length || 0})
@@ -414,25 +479,91 @@ const CancelOrderDialog = ({
     </Dialog>;
 };
 const MyPurchasesPage = () => {
-  const {
-    user
-  } = useAuth();
+  const { user } = useAuth();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
-  const {
-    addItem
-  } = useCart();
+  const { toast } = useToast();
+  const { addItem } = useCart();
+  const queryClient = useQueryClient();
+  
   const [statusFilter, setStatusFilter] = useState<BuyerOrderStatus | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<BuyerOrder | null>(null);
   const [orderToCancel, setOrderToCancel] = useState<BuyerOrder | null>(null);
-  const {
-    data: orders,
-    isLoading
-  } = useBuyerOrders(statusFilter);
+  
+  const { data: orders, isLoading } = useBuyerOrders(statusFilter);
   const cancelOrderMutation = useCancelBuyerOrder();
+
+  // Real-time subscription for order updates
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel('buyer-orders-realtime')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'orders_b2b',
+          filter: `buyer_id=eq.${user.id}`
+        },
+        (payload) => {
+          console.log('Order update received:', payload);
+          
+          // Invalidate queries to refetch data
+          queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+          
+          // Update selected order if it's the one that changed
+          if (selectedOrder && payload.new && (payload.new as any).id === selectedOrder.id) {
+            const updatedOrder = payload.new as any;
+            setSelectedOrder(prev => prev ? {
+              ...prev,
+              status: updatedOrder.status,
+              payment_status: updatedOrder.payment_status,
+              metadata: updatedOrder.metadata,
+              updated_at: updatedOrder.updated_at,
+            } : null);
+          }
+          
+          // Show notification for important status changes
+          if (payload.eventType === 'UPDATE' && payload.new) {
+            const newOrder = payload.new as any;
+            const oldOrder = payload.old as any;
+            
+            if (newOrder.payment_status !== oldOrder?.payment_status) {
+              if (newOrder.payment_status === 'paid') {
+                toast({
+                  title: "✅ Pago Confirmado",
+                  description: `Tu pago para el pedido #${newOrder.id.slice(0, 8).toUpperCase()} ha sido validado.`,
+                });
+              }
+            }
+            
+            if (newOrder.metadata?.logistics_stage !== oldOrder?.metadata?.logistics_stage) {
+              const stage = newOrder.metadata?.logistics_stage;
+              const stageLabels: Record<string, string> = {
+                'in_china': '📦 Tu pedido está en China',
+                'in_transit_usa': '✈️ En tránsito hacia USA',
+                'in_haiti_hub': '🏢 Llegó al Hub de Haití',
+                'ready_for_delivery': '🎉 ¡Listo para entrega!',
+              };
+              
+              if (stage && stageLabels[stage]) {
+                toast({
+                  title: "Actualización de Envío",
+                  description: stageLabels[stage],
+                });
+              }
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, queryClient, selectedOrder, toast]);
   const handleReorder = (order: BuyerOrder) => {
     if (!order.order_items_b2b || order.order_items_b2b.length === 0) {
       toast({
