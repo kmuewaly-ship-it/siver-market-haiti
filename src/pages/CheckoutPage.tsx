@@ -12,6 +12,7 @@ import { B2CPaymentStateOverlay } from '@/components/checkout/B2CPaymentStateOve
 import { validateB2CCheckout, getFieldError, hasFieldError, CheckoutValidationError } from '@/services/checkoutValidation';
 import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
 import { LocationSelector } from '@/components/checkout/LocationSelector';
+import { useApplyDiscount, AppliedDiscount } from '@/hooks/useApplyDiscount';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -41,6 +42,8 @@ import {
   AlertCircle,
   Plane,
   Shield,
+  Tag,
+  X,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -59,6 +62,17 @@ const CheckoutPage = () => {
   const { activeOrder, isCartLocked, refreshActiveOrder } = useActiveB2COrder();
   const confirmPayment = useConfirmB2CPayment();
   const cancelOrder = useCancelB2COrder();
+  
+  // Discount code hook
+  const { 
+    isValidating: isValidatingDiscount, 
+    appliedDiscount, 
+    applyDiscount, 
+    removeDiscount,
+    recordDiscountUse,
+    checkCustomerDiscount,
+    setAppliedDiscount 
+  } = useApplyDiscount();
 
   // Redirect sellers/admins to B2B checkout
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
@@ -74,6 +88,7 @@ const CheckoutPage = () => {
   const [orderNotes, setOrderNotes] = useState('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [validationErrors, setValidationErrors] = useState<CheckoutValidationError[]>([]);
+  const [discountCode, setDiscountCode] = useState('');
   
   // Logistics state
   const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
@@ -172,7 +187,27 @@ const CheckoutPage = () => {
   }, [selectedCommune, totalWeightGrams, subtotal, shippingRates, communes, categoryRates, deliveryMethod, calculateShipping]);
   
   const shippingCost = shippingCalculation?.totalShippingCost || 0;
-  const totalWithShipping = subtotal + shippingCost;
+  const discountAmount = appliedDiscount?.discountAmount || 0;
+  const totalWithShipping = subtotal + shippingCost - discountAmount;
+
+  // Check for customer-specific discounts on mount
+  useEffect(() => {
+    const checkDiscount = async () => {
+      if (user && subtotal > 0 && !appliedDiscount) {
+        const customerDiscount = await checkCustomerDiscount(subtotal);
+        if (customerDiscount) {
+          setAppliedDiscount(customerDiscount);
+        }
+      }
+    };
+    checkDiscount();
+  }, [user, subtotal]);
+
+  const handleApplyDiscount = async () => {
+    if (!discountCode.trim()) return;
+    await applyDiscount(discountCode.trim(), subtotal);
+    setDiscountCode('');
+  };
 
   if (authLoading || cartLoading || addressesLoading || pickupPointsLoading) {
     return (
@@ -875,7 +910,69 @@ const CheckoutPage = () => {
                   </div>
                 )}
                 
-                <Separator />
+                {/* Discount Code Section */}
+                <div className="pt-3">
+                  {appliedDiscount ? (
+                    <div className="flex items-center justify-between bg-green-50 p-3 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-green-600" />
+                        <div>
+                          <p className="text-sm font-medium text-green-800">
+                            {appliedDiscount.code || 'Descuento Cliente'}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {appliedDiscount.discountType === 'percentage' 
+                              ? `${appliedDiscount.discountValue}% de descuento`
+                              : `$${appliedDiscount.discountValue.toFixed(2)} de descuento`
+                            }
+                          </p>
+                        </div>
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={removeDiscount}
+                        className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      <Label className="text-xs text-muted-foreground">Código de descuento</Label>
+                      <div className="flex gap-2">
+                        <Input
+                          value={discountCode}
+                          onChange={(e) => setDiscountCode(e.target.value.toUpperCase())}
+                          placeholder="Ingresa código"
+                          className="text-sm"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleApplyDiscount}
+                          disabled={isValidatingDiscount || !discountCode.trim()}
+                        >
+                          {isValidatingDiscount ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            'Aplicar'
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                
+                <Separator className="my-3" />
+                
+                {/* Show discount in summary */}
+                {appliedDiscount && (
+                  <div className="flex justify-between text-sm text-green-600">
+                    <span>Descuento</span>
+                    <span>-${discountAmount.toFixed(2)}</span>
+                  </div>
+                )}
                 
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
