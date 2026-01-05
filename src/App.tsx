@@ -46,6 +46,11 @@ const MarketplacePage = lazy(() => import("./pages/MarketplacePage"));
 const MyPurchasesPage = lazy(() => import("./pages/MyPurchasesPage"));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
 
+// Lazy loaded - Siver Match Pages (B2B2C Ecosystem)
+const SiverMatchHub = lazy(() => import("./pages/siver-match/SiverMatchHub"));
+const InvestorDashboard = lazy(() => import("./pages/siver-match/InvestorDashboard"));
+const GestorDashboard = lazy(() => import("./pages/siver-match/GestorDashboard"));
+
 // Lazy loaded - Admin Pages
 const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
 const AdminConciliacion = lazy(() => import("./pages/admin/AdminConciliacion"));
@@ -117,6 +122,11 @@ const AppContent = () => {
             <Route path="/favoritos" element={<LazyRoute><FavoritesPage /></LazyRoute>} />
             <Route path="/tendencias" element={<LazyRoute><TrendsPage /></LazyRoute>} />
             <Route path="/busqueda" element={<LazyRoute><SearchResultsPage /></LazyRoute>} />
+            
+            {/* ========== SIVER MATCH (B2B2C Ecosystem) ========== */}
+            <Route path="/siver-match" element={<LazyRoute><SiverMatchHub /></LazyRoute>} />
+            <Route path="/siver-match/investor" element={<LazyRoute><InvestorDashboard /></LazyRoute>} />
+            <Route path="/siver-match/gestor" element={<LazyRoute><GestorDashboard /></LazyRoute>} />
             
             {/* Auth Routes */}
             <Route path="/login" element={<LoginPage />} />
