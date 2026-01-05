@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link, Navigate } from 'react-router-dom';
 import GlobalHeader from '@/components/layout/GlobalHeader';
 import Footer from '@/components/layout/Footer';
@@ -10,6 +10,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useCreateB2COrder, useCompleteB2CCart, useActiveB2COrder, useConfirmB2CPayment, useCancelB2COrder } from '@/hooks/useB2COrders';
 import { B2CPaymentStateOverlay } from '@/components/checkout/B2CPaymentStateOverlay';
 import { validateB2CCheckout, getFieldError, hasFieldError, CheckoutValidationError } from '@/services/checkoutValidation';
+import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
+import { LocationSelector } from '@/components/checkout/LocationSelector';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -37,6 +39,8 @@ import {
   Truck,
   Store,
   AlertCircle,
+  Plane,
+  Shield,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -70,6 +74,23 @@ const CheckoutPage = () => {
   const [orderNotes, setOrderNotes] = useState('');
   const [showAddressDialog, setShowAddressDialog] = useState(false);
   const [validationErrors, setValidationErrors] = useState<CheckoutValidationError[]>([]);
+  
+  // Logistics state
+  const [selectedDepartment, setSelectedDepartment] = useState<string | null>(null);
+  const [selectedCommune, setSelectedCommune] = useState<string | null>(null);
+  
+  // Logistics hooks
+  const {
+    useCommunes,
+    useShippingRates,
+    useCategoryShippingRates,
+    calculateShipping,
+    getRateValue,
+  } = useLogisticsEngine();
+  
+  const { data: communes } = useCommunes(selectedDepartment || undefined);
+  const { data: shippingRates } = useShippingRates();
+  const { data: categoryRates } = useCategoryShippingRates();
 
   // Redirect after hooks are called
   if (isB2BUser && !authLoading) {
@@ -126,6 +147,32 @@ const CheckoutPage = () => {
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate total weight from items (assuming weight in grams is available)
+  const totalWeightGrams = items.reduce((sum, item) => {
+    // Use item weight if available, otherwise estimate 200g per item
+    const itemWeight = (item as any).weight_grams || 200;
+    return sum + (itemWeight * item.quantity);
+  }, 0);
+  
+  // Calculate shipping cost based on selected location
+  const shippingCalculation = useMemo(() => {
+    if (!selectedCommune || deliveryMethod !== 'address') {
+      return null;
+    }
+    
+    return calculateShipping({
+      weightGrams: totalWeightGrams,
+      referencePrice: subtotal,
+      communeId: selectedCommune,
+      rates: shippingRates,
+      communes: communes,
+      categoryRates: categoryRates,
+    });
+  }, [selectedCommune, totalWeightGrams, subtotal, shippingRates, communes, categoryRates, deliveryMethod, calculateShipping]);
+  
+  const shippingCost = shippingCalculation?.totalShippingCost || 0;
+  const totalWithShipping = subtotal + shippingCost;
 
   if (authLoading || cartLoading || addressesLoading || pickupPointsLoading) {
     return (
@@ -460,6 +507,65 @@ const CheckoutPage = () => {
               </RadioGroup>
             </Card>
 
+            {/* Location Selector - Department/Commune */}
+            {deliveryMethod === 'address' && (
+              <Card className="p-6">
+                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                  <MapPin className="h-5 w-5 text-[#071d7f]" />
+                  Zona de Entrega
+                </h2>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Selecciona tu departamento y comuna para calcular el costo de envío
+                </p>
+                <LocationSelector
+                  departmentId={selectedDepartment}
+                  communeId={selectedCommune}
+                  onDepartmentChange={setSelectedDepartment}
+                  onCommuneChange={setSelectedCommune}
+                />
+                
+                {/* Shipping cost preview */}
+                {shippingCalculation && (
+                  <div className="mt-4 p-4 bg-muted/50 rounded-lg space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-2">
+                        <Plane className="h-4 w-4 text-blue-500" />
+                        China → USA ({shippingCalculation.weightKg.toFixed(2)} kg)
+                      </span>
+                      <span>${shippingCalculation.chinaUsaCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="flex items-center gap-2">
+                        <Truck className="h-4 w-4 text-green-500" />
+                        USA → Haití ({shippingCalculation.weightLb.toFixed(2)} lb)
+                      </span>
+                      <span>${shippingCalculation.usaHaitiCost.toFixed(2)}</span>
+                    </div>
+                    {shippingCalculation.insuranceCost > 0 && (
+                      <div className="flex justify-between text-sm">
+                        <span className="flex items-center gap-2">
+                          <Shield className="h-4 w-4 text-purple-500" />
+                          Seguro
+                        </span>
+                        <span>${shippingCalculation.insuranceCost.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {(shippingCalculation.deliveryFee > 0 || shippingCalculation.operationalFee > 0) && (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Cargos locales</span>
+                        <span>${(shippingCalculation.deliveryFee + shippingCalculation.operationalFee).toFixed(2)}</span>
+                      </div>
+                    )}
+                    <Separator className="my-2" />
+                    <div className="flex justify-between font-semibold">
+                      <span>Total Envío</span>
+                      <span className="text-primary">${shippingCalculation.totalShippingCost.toFixed(2)}</span>
+                    </div>
+                  </div>
+                )}
+              </Card>
+            )}
+
             {/* Shipping Address */}
             {deliveryMethod === 'address' && (
               <Card className={`p-6 ${hasFieldError(validationErrors, 'selectedAddress') ? 'border-red-500 border-2' : ''}`}>
@@ -735,16 +841,45 @@ const CheckoutPage = () => {
                   <span className="text-muted-foreground">Subtotal ({totalItems} productos)</span>
                   <span>${subtotal.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Envío</span>
-                  <span className="text-green-600">Gratis</span>
-                </div>
+                
+                {/* Shipping cost breakdown */}
+                {shippingCalculation ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Envío (China → USA)</span>
+                      <span>${shippingCalculation.chinaUsaCost.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Envío (USA → Haití)</span>
+                      <span>${shippingCalculation.usaHaitiCost.toFixed(2)}</span>
+                    </div>
+                    {shippingCalculation.insuranceCost > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Seguro</span>
+                        <span>${shippingCalculation.insuranceCost.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {(shippingCalculation.deliveryFee + shippingCalculation.operationalFee) > 0 && (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Cargos locales</span>
+                        <span>${(shippingCalculation.deliveryFee + shippingCalculation.operationalFee).toFixed(2)}</span>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Envío</span>
+                    <span className="text-muted-foreground italic text-xs">
+                      {deliveryMethod === 'pickup' ? 'Retiro gratis' : 'Selecciona zona'}
+                    </span>
+                  </div>
+                )}
                 
                 <Separator />
                 
                 <div className="flex justify-between text-lg font-bold">
                   <span>Total</span>
-                  <span className="text-[#071d7f]">${subtotal.toFixed(2)}</span>
+                  <span className="text-[#071d7f]">${totalWithShipping.toFixed(2)}</span>
                 </div>
               </div>
 
@@ -768,7 +903,7 @@ const CheckoutPage = () => {
                 onClick={handlePlaceOrder}
                 disabled={
                   isProcessing || 
-                  (deliveryMethod === 'address' && (!selectedAddress || addresses.length === 0)) ||
+                  (deliveryMethod === 'address' && (!selectedAddress || addresses.length === 0 || !selectedCommune)) ||
                   (deliveryMethod === 'pickup' && (!selectedPickupPoint || pickupPoints.length === 0))
                 }
                 className="w-full mt-6 bg-[#071d7f] hover:bg-[#0a2a9f]"
