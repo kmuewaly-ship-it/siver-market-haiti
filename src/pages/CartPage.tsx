@@ -154,22 +154,29 @@ const CartPage = () => {
     return grouped;
   }, [items]);
 
-  // Get unique payment methods from all stores
+  // Get available payment methods based on store configurations
   const paymentMethods = useMemo(() => {
     const methods = new Set<string>();
     
+    // Default payment methods - Tarjetas (Stripe via admin), MonCash and NatCash
+    methods.add('Tarjetas');
+    
+    // Check if any store has MonCash or NatCash configured
     items.forEach(item => {
-      if (item.storeMetadata?.paymentMethods && Array.isArray(item.storeMetadata.paymentMethods)) {
-        item.storeMetadata.paymentMethods.forEach(method => {
-          methods.add(method);
-        });
+      if (item.storeMetadata?.moncash_info?.phone_number) {
+        methods.add('MonCash');
+      }
+      if (item.storeMetadata?.natcash_info?.phone_number) {
+        methods.add('NatCash');
+      }
+      if (item.storeMetadata?.bank_info?.account_number) {
+        methods.add('Transferencia');
       }
     });
 
-    // Default payment methods if none are defined - Always include Tarjetas, Transferencia, MonCash, NatCash
-    if (methods.size === 0) {
-      return ['Tarjetas', 'Transferencia', 'MonCash', 'NatCash'];
-    }
+    // Always include these as default options
+    methods.add('MonCash');
+    methods.add('NatCash');
 
     return Array.from(methods);
   }, [items]);

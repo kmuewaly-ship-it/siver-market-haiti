@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
@@ -84,16 +84,41 @@ const SellerAccountPage = () => {
   const [updatingBankInfo, setUpdatingBankInfo] = useState(false);
   const [moncashInfo, setMoncashInfo] = useState({
     phone_number: "",
-    name: "",
-    pin: ""
+    name: ""
   });
   const [updatingMoncash, setUpdatingMoncash] = useState(false);
   const [natcashInfo, setNatcashInfo] = useState({
     phone_number: "",
-    name: "",
-    pin: ""
+    name: ""
   });
   const [updatingNatcash, setUpdatingNatcash] = useState(false);
+  
+  // Load payment info from store metadata when store data is available
+  useEffect(() => {
+    if (store?.metadata) {
+      const metadata = store.metadata as Record<string, any>;
+      if (metadata.bank_info) {
+        setBankInfo({
+          bank_name: metadata.bank_info.bank_name || "",
+          account_type: metadata.bank_info.account_type || "",
+          account_number: metadata.bank_info.account_number || "",
+          account_holder: metadata.bank_info.account_holder || ""
+        });
+      }
+      if (metadata.moncash_info) {
+        setMoncashInfo({
+          phone_number: metadata.moncash_info.phone_number || "",
+          name: metadata.moncash_info.name || ""
+        });
+      }
+      if (metadata.natcash_info) {
+        setNatcashInfo({
+          phone_number: metadata.natcash_info.phone_number || "",
+          name: metadata.natcash_info.name || ""
+        });
+      }
+    }
+  }, [store]);
   const [showStoreDescription, setShowStoreDescription] = useState(false);
   
   // Hooks for orders
@@ -1103,18 +1128,6 @@ const SellerAccountPage = () => {
                               onChange={(e) => setMoncashInfo({...moncashInfo, name: e.target.value})}
                             />
                           </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="moncash-pin" className="text-sm font-medium">PIN de Seguridad (Opcional)</Label>
-                            <Input 
-                              id="moncash-pin" 
-                              placeholder="PIN de tu cuenta Moncash" 
-                              className="border-gray-300" 
-                              type="password"
-                              value={moncashInfo.pin}
-                              onChange={(e) => setMoncashInfo({...moncashInfo, pin: e.target.value})}
-                            />
-                            <p className="text-xs text-gray-500">Se almacenará de forma segura y encriptada</p>
-                          </div>
                           <Button 
                             onClick={handleUpdateMoncash}
                             disabled={updatingMoncash}
@@ -1172,18 +1185,6 @@ const SellerAccountPage = () => {
                               value={natcashInfo.name}
                               onChange={(e) => setNatcashInfo({...natcashInfo, name: e.target.value})}
                             />
-                          </div>
-                          <div className="space-y-2">
-                            <Label htmlFor="natcash-pin" className="text-sm font-medium">PIN de Seguridad (Opcional)</Label>
-                            <Input 
-                              id="natcash-pin" 
-                              placeholder="PIN de tu cuenta Natcash" 
-                              className="border-gray-300" 
-                              type="password"
-                              value={natcashInfo.pin}
-                              onChange={(e) => setNatcashInfo({...natcashInfo, pin: e.target.value})}
-                            />
-                            <p className="text-xs text-gray-500">Se almacenará de forma segura y encriptada</p>
                           </div>
                           <Button 
                             onClick={handleUpdateNatcash}

@@ -47,7 +47,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 
-type PaymentMethod = 'stripe' | 'moncash' | 'transfer';
+type PaymentMethod = 'stripe' | 'moncash' | 'natcash' | 'transfer';
 type DeliveryMethod = 'address' | 'pickup';
 
 const CheckoutPage = () => {
@@ -136,8 +136,16 @@ const CheckoutPage = () => {
       name: 'MonCash',
       description: 'Billetera digital haitiana',
       icon: Smartphone,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-50',
+      color: 'text-[#94111f]',
+      bgColor: 'bg-[#94111f]/10',
+    },
+    {
+      id: 'natcash' as PaymentMethod,
+      name: 'NatCash',
+      description: 'Billetera digital haitiana',
+      icon: Smartphone,
+      color: 'text-[#071d7f]',
+      bgColor: 'bg-[#071d7f]/10',
     },
     {
       id: 'transfer' as PaymentMethod,
@@ -149,15 +157,25 @@ const CheckoutPage = () => {
     },
   ];
 
-  const bankDetails = {
-    bank: 'Banco Nacional de Haití',
-    account: '001-234567-89',
-    beneficiary: 'Siver Market 509 SRL',
-  };
+  // Get seller payment info from cart items (use first store with payment info)
+  const sellerPaymentInfo = useMemo(() => {
+    for (const item of items) {
+      if (item.storeMetadata) {
+        return {
+          storeName: item.storeName || 'Vendedor',
+          moncash: item.storeMetadata.moncash_info,
+          natcash: item.storeMetadata.natcash_info,
+          bank: item.storeMetadata.bank_info,
+        };
+      }
+    }
+    return null;
+  }, [items]);
 
-  const moncashDetails = {
-    number: '+509 3XXX XXXX',
-    name: 'Siver Market 509',
+  // Helper to mask phone/account numbers
+  const maskNumber = (num: string | undefined) => {
+    if (!num) return '****';
+    return num.length > 4 ? '****' + num.slice(-4) : num;
   };
 
   const totalItems = items.reduce((acc, item) => acc + item.quantity, 0);
@@ -808,13 +826,13 @@ const CheckoutPage = () => {
               </div>
 
               {/* Payment Details */}
-              {paymentMethod === 'transfer' && (
+              {paymentMethod === 'transfer' && sellerPaymentInfo?.bank && (
                 <div className="mt-4 p-4 bg-green-50 rounded-lg">
-                  <h4 className="font-semibold text-green-800 mb-2">Datos Bancarios</h4>
+                  <h4 className="font-semibold text-green-800 mb-2">Datos Bancarios - {sellerPaymentInfo.storeName}</h4>
                   <div className="space-y-1 text-sm text-green-700">
-                    <p><span className="font-medium">Banco:</span> {bankDetails.bank}</p>
-                    <p><span className="font-medium">Cuenta:</span> {bankDetails.account}</p>
-                    <p><span className="font-medium">Beneficiario:</span> {bankDetails.beneficiary}</p>
+                    <p><span className="font-medium">Banco:</span> {sellerPaymentInfo.bank.bank_name || 'No configurado'}</p>
+                    <p><span className="font-medium">Cuenta:</span> {maskNumber(sellerPaymentInfo.bank.account_number)}</p>
+                    <p><span className="font-medium">Beneficiario:</span> {sellerPaymentInfo.bank.account_holder || 'No configurado'}</p>
                   </div>
                   <div className="mt-3">
                     <Label>Referencia de Transferencia *</Label>
@@ -832,11 +850,11 @@ const CheckoutPage = () => {
               )}
 
               {paymentMethod === 'moncash' && (
-                <div className="mt-4 p-4 bg-orange-50 rounded-lg">
-                  <h4 className="font-semibold text-orange-800 mb-2">Datos MonCash</h4>
-                  <div className="space-y-1 text-sm text-orange-700">
-                    <p><span className="font-medium">Número:</span> {moncashDetails.number}</p>
-                    <p><span className="font-medium">Nombre:</span> {moncashDetails.name}</p>
+                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#94111f20' }}>
+                  <h4 className="font-semibold mb-2" style={{ color: '#94111f' }}>Datos MonCash - {sellerPaymentInfo?.storeName || 'Vendedor'}</h4>
+                  <div className="space-y-1 text-sm" style={{ color: '#94111f' }}>
+                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo?.moncash?.phone_number || 'No configurado'}</p>
+                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo?.moncash?.name || 'No configurado'}</p>
                   </div>
                   <div className="mt-3">
                     <Label>Código de Transacción *</Label>
@@ -844,6 +862,28 @@ const CheckoutPage = () => {
                       value={paymentReference}
                       onChange={(e) => setPaymentReference(e.target.value)}
                       placeholder="Código de transacción MonCash"
+                      className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
+                    />
+                    {hasFieldError(validationErrors, 'paymentReference') && (
+                      <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === 'natcash' && (
+                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#071d7f20' }}>
+                  <h4 className="font-semibold mb-2" style={{ color: '#071d7f' }}>Datos NatCash - {sellerPaymentInfo?.storeName || 'Vendedor'}</h4>
+                  <div className="space-y-1 text-sm" style={{ color: '#071d7f' }}>
+                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo?.natcash?.phone_number || 'No configurado'}</p>
+                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo?.natcash?.name || 'No configurado'}</p>
+                  </div>
+                  <div className="mt-3">
+                    <Label>Código de Transacción *</Label>
+                    <Input
+                      value={paymentReference}
+                      onChange={(e) => setPaymentReference(e.target.value)}
+                      placeholder="Código de transacción NatCash"
                       className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
                     />
                     {hasFieldError(validationErrors, 'paymentReference') && (
