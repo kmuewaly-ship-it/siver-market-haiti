@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useStore, useStoreProducts, useStoreSales } from "@/hooks/useStore";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { PaymentMethodsDisplay, PaymentMethodsData } from "@/components/shared/PaymentMethodsDisplay";
 import {
   Star,
   MessageCircle,
@@ -340,6 +341,16 @@ const StoreProfilePage = () => {
               Ver Descripción
             </Button>
           </div>
+
+          {/* Payment Methods Section - from store metadata */}
+          {storeData?.metadata && (
+            <div className="mt-8 pt-8 border-t border-gray-200">
+              <PaymentMethodsDisplay 
+                paymentData={storeData.metadata as PaymentMethodsData}
+                title="Métodos de Pago Aceptados"
+              />
+            </div>
+          )}
         </div>
 
         {/* Products Section */}
