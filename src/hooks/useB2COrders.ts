@@ -20,7 +20,7 @@ export interface CreateB2COrderParams {
   items: B2COrderItem[];
   total_amount: number;
   total_quantity: number;
-  payment_method: 'stripe' | 'moncash' | 'transfer';
+  payment_method: 'stripe' | 'moncash' | 'natcash' | 'transfer';
   payment_reference?: string;
   notes?: string;
   shipping_address?: {

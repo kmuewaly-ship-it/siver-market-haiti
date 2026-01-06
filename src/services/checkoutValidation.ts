@@ -13,7 +13,7 @@ export interface B2CCheckoutData {
   selectedAddress: string | null;
   deliveryMethod: 'address' | 'pickup';
   selectedPickupPoint: string | null;
-  paymentMethod: 'stripe' | 'moncash' | 'transfer';
+  paymentMethod: 'stripe' | 'moncash' | 'natcash' | 'transfer';
   paymentReference?: string;
 }
 
@@ -22,7 +22,7 @@ export interface B2BCheckoutData {
   selectedAddress: string | null;
   deliveryMethod: 'address' | 'pickup';
   selectedPickupPoint: string | null;
-  paymentMethod: 'stripe' | 'moncash' | 'transfer';
+  paymentMethod: 'stripe' | 'moncash' | 'natcash' | 'transfer';
   paymentReference?: string;
 }
 
@@ -72,11 +72,12 @@ export const validateB2CCheckout = (data: B2CCheckoutData): CheckoutValidationEr
     });
   }
 
-  // Check payment reference for MonCash/Transfer
-  if ((data.paymentMethod === 'moncash' || data.paymentMethod === 'transfer') && !data.paymentReference?.trim()) {
+  // Check payment reference for MonCash/NatCash/Transfer
+  if ((data.paymentMethod === 'moncash' || data.paymentMethod === 'natcash' || data.paymentMethod === 'transfer') && !data.paymentReference?.trim()) {
+    const methodName = data.paymentMethod === 'moncash' ? 'MonCash' : data.paymentMethod === 'natcash' ? 'NatCash' : 'transferencia';
     errors.push({
       field: 'paymentReference',
-      message: `Ingresa tu referencia de ${data.paymentMethod === 'moncash' ? 'MonCash' : 'transferencia'}`,
+      message: `Ingresa tu referencia de ${methodName}`,
     });
   }
 
@@ -129,11 +130,12 @@ export const validateB2BCheckout = (data: B2BCheckoutData): CheckoutValidationEr
     });
   }
 
-  // Check payment reference for MonCash/Transfer
-  if ((data.paymentMethod === 'moncash' || data.paymentMethod === 'transfer') && !data.paymentReference?.trim()) {
+  // Check payment reference for MonCash/NatCash/Transfer
+  if ((data.paymentMethod === 'moncash' || data.paymentMethod === 'natcash' || data.paymentMethod === 'transfer') && !data.paymentReference?.trim()) {
+    const methodName = data.paymentMethod === 'moncash' ? 'MonCash' : data.paymentMethod === 'natcash' ? 'NatCash' : 'transferencia';
     errors.push({
       field: 'paymentReference',
-      message: `Ingresa tu referencia de ${data.paymentMethod === 'moncash' ? 'MonCash' : 'transferencia'}`,
+      message: `Ingresa tu referencia de ${methodName}`,
     });
   }
 

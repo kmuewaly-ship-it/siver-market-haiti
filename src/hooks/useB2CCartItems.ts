@@ -3,6 +3,23 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { useCartSync } from '@/hooks/useCartSync';
 
+export interface StorePaymentInfo {
+  bank_info?: {
+    bank_name?: string;
+    account_type?: string;
+    account_number?: string;
+    account_holder?: string;
+  };
+  moncash_info?: {
+    phone_number?: string;
+    name?: string;
+  };
+  natcash_info?: {
+    phone_number?: string;
+    name?: string;
+  };
+}
+
 export interface B2CCartItem {
   id: string;
   sellerCatalogId: string | null;
@@ -15,10 +32,7 @@ export interface B2CCartItem {
   storeId: string | null;
   storeName: string | null;
   storeWhatsapp: string | null;
-  storeMetadata?: {
-    paymentMethods?: string[];
-    [key: string]: any;
-  } | null;
+  storeMetadata?: StorePaymentInfo | null;
 }
 
 export const useB2CCartItems = () => {
@@ -82,20 +96,32 @@ export const useB2CCartItems = () => {
 
       console.log('Cart items loaded:', cartItems?.length || 0, 'items');
 
-      const formattedItems: B2CCartItem[] = (cartItems || []).map(item => ({
-        id: item.id,
-        sellerCatalogId: item.seller_catalog_id,
-        sku: item.sku,
-        name: item.nombre,
-        price: item.unit_price,
-        quantity: item.quantity,
-        totalPrice: item.total_price,
-        image: item.image,
-        storeId: item.store_id,
-        storeName: item.store_name,
-        storeWhatsapp: item.store_whatsapp,
-        storeMetadata: item.store ? item.store[0]?.metadata : null,
-      }));
+      const formattedItems: B2CCartItem[] = (cartItems || []).map(item => {
+        // Handle store metadata - may be object or array depending on query result
+        let metadata: StorePaymentInfo | null = null;
+        if (item.store) {
+          if (Array.isArray(item.store) && item.store[0]?.metadata) {
+            metadata = item.store[0].metadata as StorePaymentInfo;
+          } else if (typeof item.store === 'object' && 'metadata' in item.store) {
+            metadata = (item.store as any).metadata as StorePaymentInfo;
+          }
+        }
+
+        return {
+          id: item.id,
+          sellerCatalogId: item.seller_catalog_id,
+          sku: item.sku,
+          name: item.nombre,
+          price: item.unit_price,
+          quantity: item.quantity,
+          totalPrice: item.total_price,
+          image: item.image,
+          storeId: item.store_id,
+          storeName: item.store_name,
+          storeWhatsapp: item.store_whatsapp,
+          storeMetadata: metadata,
+        };
+      });
 
       setItems(formattedItems);
     } catch (err) {
