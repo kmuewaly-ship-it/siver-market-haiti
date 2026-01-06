@@ -10,6 +10,7 @@ import { useCompleteB2BCart } from '@/hooks/useBuyerOrders';
 import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
 import { validateB2BCheckout, getFieldError, hasFieldError, type CheckoutValidationError } from '@/services/checkoutValidation';
 import { useApplyDiscount, AppliedDiscount } from '@/hooks/useApplyDiscount';
+import { useAdminPaymentMethods } from '@/hooks/usePaymentMethods';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
@@ -58,6 +59,11 @@ const SellerCheckout = () => {
   const { addresses, isLoading: addressesLoading, createAddress } = useAddresses();
   const { pickupPoints, isLoading: pickupPointsLoading } = usePickupPoints();
   const completeCart = useCompleteB2BCart();
+  const { methods: adminPaymentMethods, isLoading: paymentMethodsLoading } = useAdminPaymentMethods();
+  
+  // Get admin payment details from database
+  const adminBankMethod = adminPaymentMethods.find(m => m.method_type === 'bank');
+  const adminMoncashMethod = adminPaymentMethods.find(m => m.method_type === 'moncash');
   
   // Discount code hook
   const { 
@@ -1096,23 +1102,23 @@ const SellerCheckout = () => {
                 )}
 
                 {/* Payment Instructions */}
-                {paymentMethod === 'transfer' && (
+                {paymentMethod === 'transfer' && adminBankMethod && (
                   <div className="mt-6 p-4 bg-muted rounded-lg">
                     <h3 className="font-semibold mb-3">Datos para Transferencia</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Banco:</span>
-                        <span className="font-medium">{bankDetails.bank}</span>
+                        <span className="font-medium">{adminBankMethod.bank_name}</span>
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Cuenta:</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium">{bankDetails.account}</span>
+                          <span className="font-mono font-medium">{adminBankMethod.account_number}</span>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-6 w-6 p-0"
-                            onClick={() => copyToClipboard(bankDetails.account)}
+                            onClick={() => copyToClipboard(adminBankMethod.account_number || '')}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -1120,29 +1126,31 @@ const SellerCheckout = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Beneficiario:</span>
-                        <span className="font-medium">{bankDetails.beneficiary}</span>
+                        <span className="font-medium">{adminBankMethod.account_holder}</span>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <span className="text-muted-foreground">SWIFT:</span>
-                        <span className="font-mono font-medium">{bankDetails.swift}</span>
-                      </div>
+                      {adminBankMethod.bank_swift && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-muted-foreground">SWIFT:</span>
+                          <span className="font-mono font-medium">{adminBankMethod.bank_swift}</span>
+                        </div>
+                      )}
                     </div>
                   </div>
                 )}
 
-                {paymentMethod === 'moncash' && (
-                  <div className="mt-6 p-4 bg-muted rounded-lg">
-                    <h3 className="font-semibold mb-3">Datos MonCash</h3>
+                {paymentMethod === 'moncash' && adminMoncashMethod && (
+                  <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: 'rgba(148, 17, 31, 0.1)' }}>
+                    <h3 className="font-semibold mb-3" style={{ color: '#94111f' }}>Datos MonCash</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Número:</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono font-medium">{moncashDetails.number}</span>
+                          <span className="font-mono font-medium">{adminMoncashMethod.phone_number}</span>
                           <Button
                             variant="ghost"
                             size="sm"
                             className="h-6 w-6 p-0"
-                            onClick={() => copyToClipboard(moncashDetails.number)}
+                            onClick={() => copyToClipboard(adminMoncashMethod.phone_number || '')}
                           >
                             <Copy className="h-3 w-3" />
                           </Button>
@@ -1150,7 +1158,7 @@ const SellerCheckout = () => {
                       </div>
                       <div className="flex items-center justify-between">
                         <span className="text-muted-foreground">Nombre:</span>
-                        <span className="font-medium">{moncashDetails.name}</span>
+                        <span className="font-medium">{adminMoncashMethod.holder_name}</span>
                       </div>
                     </div>
                   </div>

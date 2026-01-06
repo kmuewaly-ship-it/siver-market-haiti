@@ -1848,6 +1848,63 @@ export type Database = {
           },
         ]
       }
+      payment_methods: {
+        Row: {
+          account_holder: string | null
+          account_number: string | null
+          account_type: string | null
+          bank_name: string | null
+          bank_swift: string | null
+          created_at: string | null
+          display_name: string | null
+          holder_name: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          method_type: string
+          owner_id: string | null
+          owner_type: string
+          phone_number: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_holder?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          bank_name?: string | null
+          bank_swift?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          holder_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          method_type: string
+          owner_id?: string | null
+          owner_type: string
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_holder?: string | null
+          account_number?: string | null
+          account_type?: string | null
+          bank_name?: string | null
+          bank_swift?: string | null
+          created_at?: string | null
+          display_name?: string | null
+          holder_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          method_type?: string
+          owner_id?: string | null
+          owner_type?: string
+          phone_number?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       pending_quotes: {
         Row: {
           admin_notes: string | null
