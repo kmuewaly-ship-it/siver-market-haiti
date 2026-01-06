@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,19 +11,21 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign } from "lucide-react";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useB2BCartItems } from "@/hooks/useB2BCartItems";
+import { useB2BCartProductTotals } from "@/hooks/useB2BCartProductTotals";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { useMemo } from "react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { items, isLoading, refetch } = useB2BCartItems();
+  const { productsNotMeetingMOQ, isCartValid, productTotals } = useB2BCartProductTotals();
   const isMobile = useIsMobile();
   const [showClearCartDialog, setShowClearCartDialog] = useState(false);
   const [showRemoveItemDialog, setShowRemoveItemDialog] = useState(false);
@@ -243,7 +245,34 @@ const SellerCartPage = () => {
             // PC LAYOUT - Two columns
             <div className="grid grid-cols-3 gap-6">
               {/* Left Column - Items (2/3) */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-4">
+                {/* MOQ Warning Banner */}
+                {!isCartValid && productsNotMeetingMOQ.length > 0 && (
+                  <Alert variant="destructive" className="bg-amber-50 border-amber-200">
+                    <AlertTriangle className="h-4 w-4 text-amber-600" />
+                    <AlertDescription className="text-amber-800">
+                      <p className="font-semibold mb-2">Algunos productos no alcanzan el mínimo de pedido:</p>
+                      <ul className="space-y-1 text-sm">
+                        {productsNotMeetingMOQ.map(product => (
+                          <li key={product.productId} className="flex items-center gap-2">
+                            <span>• {product.productName}:</span>
+                            <span className="font-medium">
+                              {product.totalQuantity}/{product.moq} unidades
+                            </span>
+                            <span className="text-amber-600">
+                              (faltan {product.missingQuantity})
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                      <p className="text-xs mt-2 flex items-center gap-1">
+                        <Info className="w-3 h-3" />
+                        Puedes combinar diferentes tallas y colores del mismo producto para alcanzar el mínimo.
+                      </p>
+                    </AlertDescription>
+                  </Alert>
+                )}
+
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                   <div className="p-4 bg-gray-50 border-b border-gray-200">
                     <h2 className="font-bold text-lg text-gray-900">Productos ({items.length})</h2>
@@ -484,24 +513,43 @@ const SellerCartPage = () => {
                   </div>
 
                   {/* Checkout Button and Support */}
-                  <div className="p-4 flex gap-3 justify-center">
-                    <button
-                      onClick={handleWhatsAppContact}
-                      className="px-6 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 bg-transparent border border-gray-300"
-                      style={{ color: '#29892a' }}
-                      title="Contactar por WhatsApp"
-                    >
-                      <MessageCircle className="w-5 h-5" style={{ color: '#29892a' }} />
-                      WhatsApp
-                    </button>
-                    <Link
-                      to="/seller/checkout"
-                      className="px-6 py-3 rounded-lg font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
-                      style={{ backgroundColor: '#071d7f' }}
-                    >
-                      <ShoppingCart className="w-5 h-5" />
-                      Comprar ({totalQuantity})
-                    </Link>
+                  <div className="p-4 space-y-3">
+                    {!isCartValid && (
+                      <div className="text-xs text-amber-600 text-center bg-amber-50 p-2 rounded-lg border border-amber-200">
+                        <AlertTriangle className="w-3 h-3 inline mr-1" />
+                        Alcanza los mínimos para continuar
+                      </div>
+                    )}
+                    <div className="flex gap-3 justify-center">
+                      <button
+                        onClick={handleWhatsAppContact}
+                        className="px-6 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 bg-transparent border border-gray-300"
+                        style={{ color: '#29892a' }}
+                        title="Contactar por WhatsApp"
+                      >
+                        <MessageCircle className="w-5 h-5" style={{ color: '#29892a' }} />
+                        WhatsApp
+                      </button>
+                      {isCartValid ? (
+                        <Link
+                          to="/seller/checkout"
+                          className="px-6 py-3 rounded-lg font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
+                          style={{ backgroundColor: '#071d7f' }}
+                        >
+                          <ShoppingCart className="w-5 h-5" />
+                          Comprar ({totalQuantity})
+                        </Link>
+                      ) : (
+                        <button
+                          disabled
+                          className="px-6 py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+                          style={{ backgroundColor: '#071d7f' }}
+                        >
+                          <ShoppingCart className="w-5 h-5" />
+                          Comprar ({totalQuantity})
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
@@ -603,7 +651,14 @@ const SellerCartPage = () => {
 
         {/* Botones Fijos - Solo Mobile */}
         {items.length > 0 && isMobile && (
-          <div className="fixed left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 bottom-10 z-40 flex justify-center">
+          <div className="fixed left-0 right-0 bg-white border-t border-gray-200 px-4 py-2 bottom-10 z-40 flex flex-col gap-2">
+            {/* MOQ Warning for Mobile */}
+            {!isCartValid && (
+              <div className="text-xs text-amber-600 text-center bg-amber-50 p-2 rounded-lg border border-amber-200">
+                <AlertTriangle className="w-3 h-3 inline mr-1" />
+                {productsNotMeetingMOQ.length} producto(s) no alcanzan el mínimo
+              </div>
+            )}
             <div className="rounded-lg p-2 border border-gray-300 shadow-md w-full" style={{ backgroundColor: '#efefef' }}>
               <div className="flex gap-2 justify-between">
                 {/* Botón WhatsApp */}
@@ -618,14 +673,25 @@ const SellerCartPage = () => {
                 </button>
 
                 {/* Botón Comprar B2B */}
-                <Link
-                  to="/seller/checkout"
-                  className="px-4 py-2 rounded-lg font-semibold text-sm transition shadow-lg hover:opacity-90 flex items-center justify-center gap-1.5 text-white"
-                  style={{ backgroundColor: '#071d7f' }}
-                >
-                  <ShoppingCart className="w-4 h-4" />
-                  Comprar B2B ({totalQuantity})
-                </Link>
+                {isCartValid ? (
+                  <Link
+                    to="/seller/checkout"
+                    className="px-4 py-2 rounded-lg font-semibold text-sm transition shadow-lg hover:opacity-90 flex items-center justify-center gap-1.5 text-white"
+                    style={{ backgroundColor: '#071d7f' }}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    Comprar B2B ({totalQuantity})
+                  </Link>
+                ) : (
+                  <button
+                    disabled
+                    className="px-4 py-2 rounded-lg font-semibold text-sm flex items-center justify-center gap-1.5 text-white opacity-50 cursor-not-allowed"
+                    style={{ backgroundColor: '#071d7f' }}
+                  >
+                    <ShoppingCart className="w-4 h-4" />
+                    Comprar B2B ({totalQuantity})
+                  </button>
+                )}
               </div>
             </div>
           </div>
