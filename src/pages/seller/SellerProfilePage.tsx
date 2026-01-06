@@ -1,4 +1,4 @@
-﻿import { UserEditDialog } from "@/components/seller/UserEditDialog";
+import { UserEditDialog } from "@/components/seller/UserEditDialog";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { useStoreByOwner } from "@/hooks/useStore";
@@ -8,9 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { PaymentMethodsDisplay, PaymentMethodsData } from "@/components/shared/PaymentMethodsDisplay";
+import { usePaymentSettings } from "@/hooks/usePaymentSettings";
 import { 
   User, MapPin, Calendar, Shield, Mail, Phone, 
-  CheckCircle, Edit, ArrowLeft, FileText
+  CheckCircle, Edit, ArrowLeft, FileText, CreditCard
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
@@ -18,8 +20,22 @@ import { useState } from "react";
 const SellerProfilePage = () => {
   const { user } = useAuth();
   const { data: store } = useStoreByOwner(user?.id);
+  const { settings: adminPaymentSettings } = usePaymentSettings();
   const navigate = useNavigate();
   const [showProfileModal, setShowProfileModal] = useState(false);
+
+  // Convert admin payment settings to PaymentMethodsData format for sellers
+  const adminPaymentData: PaymentMethodsData = {
+    bank_info: {
+      bank_name: adminPaymentSettings.bankName,
+      account_number: adminPaymentSettings.bankAccount,
+      account_holder: adminPaymentSettings.bankBeneficiary,
+    },
+    moncash_info: {
+      phone_number: adminPaymentSettings.moncashNumber,
+      name: adminPaymentSettings.moncashName,
+    },
+  };
 
   // Helper for semi-complete name
   const getSemiCompleteName = (fullName: string) => {
@@ -196,6 +212,25 @@ const SellerProfilePage = () => {
                                     </div>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    {/* Admin Payment Methods - For sellers to know where to pay */}
+                    <Card className="shadow-lg border-none overflow-hidden">
+                        <CardHeader className="border-b bg-white px-8 py-6">
+                            <CardTitle className="text-xl font-bold text-[#071d7f] flex items-center gap-2">
+                                <CreditCard className="h-5 w-5" />
+                                Métodos de Pago (Plataforma)
+                            </CardTitle>
+                            <p className="text-sm text-gray-500 mt-1">
+                                Estos son los métodos de pago configurados por el administrador para realizar tus compras B2B.
+                            </p>
+                        </CardHeader>
+                        <CardContent className="p-8">
+                            <PaymentMethodsDisplay 
+                                paymentData={adminPaymentData}
+                                title="Datos de Pago"
+                            />
                         </CardContent>
                     </Card>
                 </div>

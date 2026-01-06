@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -22,31 +21,37 @@ const DEFAULT_SETTINGS: PaymentSettings = {
 
 export const usePaymentSettings = () => {
   const { data, isLoading, error } = useQuery({
-    queryKey: ['payment_settings'],
+    queryKey: ['platform_payment_settings'],
     staleTime: 1000 * 60 * 5, // 5 minutes cache
     queryFn: async () => {
+      // Get payment settings from platform_settings table
       const { data, error } = await supabase
-        .from('payment_settings')
-        .select('*')
-        .limit(1)
-        .single();
+        .from('platform_settings')
+        .select('key, value')
+        .in('key', ['bank_name', 'bank_account', 'bank_beneficiary', 'bank_swift', 'moncash_number', 'moncash_name']);
 
       if (error) {
         console.warn('Error loading payment settings from database, using defaults:', error);
         return DEFAULT_SETTINGS;
       }
 
-      if (!data) {
+      if (!data || data.length === 0) {
         return DEFAULT_SETTINGS;
       }
 
+      // Convert array of settings to object
+      const settingsMap = data.reduce((acc, item) => {
+        acc[item.key] = String(item.value);
+        return acc;
+      }, {} as Record<string, string>);
+
       return {
-        bankName: data.bank_name || DEFAULT_SETTINGS.bankName,
-        bankAccount: data.bank_account || DEFAULT_SETTINGS.bankAccount,
-        bankBeneficiary: data.bank_beneficiary || DEFAULT_SETTINGS.bankBeneficiary,
-        bankSwift: data.bank_swift || DEFAULT_SETTINGS.bankSwift,
-        moncashNumber: data.moncash_number || DEFAULT_SETTINGS.moncashNumber,
-        moncashName: data.moncash_name || DEFAULT_SETTINGS.moncashName,
+        bankName: settingsMap['bank_name'] || DEFAULT_SETTINGS.bankName,
+        bankAccount: settingsMap['bank_account'] || DEFAULT_SETTINGS.bankAccount,
+        bankBeneficiary: settingsMap['bank_beneficiary'] || DEFAULT_SETTINGS.bankBeneficiary,
+        bankSwift: settingsMap['bank_swift'] || DEFAULT_SETTINGS.bankSwift,
+        moncashNumber: settingsMap['moncash_number'] || DEFAULT_SETTINGS.moncashNumber,
+        moncashName: settingsMap['moncash_name'] || DEFAULT_SETTINGS.moncashName,
       };
     },
   });

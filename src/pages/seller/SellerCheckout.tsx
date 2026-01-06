@@ -304,6 +304,8 @@ const SellerCheckout = () => {
         postal_code: '',
         country: 'Haití',
         notes: '',
+        department_id: '',
+        commune_id: '',
       });
     } catch (error) {
       console.error('Error creating address:', error);
