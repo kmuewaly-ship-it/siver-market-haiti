@@ -7,6 +7,7 @@ import { useSellerCredits } from '@/hooks/useSellerCredits';
 import { useAddresses, Address } from '@/hooks/useAddresses';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { useCompleteB2BCart } from '@/hooks/useBuyerOrders';
+import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
 import { validateB2BCheckout, getFieldError, hasFieldError, type CheckoutValidationError } from '@/services/checkoutValidation';
 import { useApplyDiscount, AppliedDiscount } from '@/hooks/useApplyDiscount';
 import { SellerLayout } from '@/components/seller/SellerLayout';
@@ -188,7 +189,7 @@ const SellerCheckout = () => {
       return null;
     }
   };
-  
+
   // Shipping address states
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [showNewAddressForm, setShowNewAddressForm] = useState(false);
@@ -202,7 +203,20 @@ const SellerCheckout = () => {
     postal_code: '',
     country: 'Haití',
     notes: '',
+    department_id: '',
+    commune_id: '',
   });
+
+  // Get logistics engine for departments/communes
+  const logisticsEngine = useLogisticsEngine();
+  
+  // Get departments query
+  const departmentsQuery = logisticsEngine.useDepartments();
+  const departments = departmentsQuery.data || [];
+  
+  // Get communes based on selected department - always call the hook
+  const communesQuery = logisticsEngine.useCommunes(newAddress.department_id || undefined);
+  const communes = communesQuery.data || [];
 
   // Set default address on load
   useState(() => {
@@ -762,22 +776,52 @@ const SellerCheckout = () => {
                     
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="address_city">Ciudad *</Label>
-                        <Input
-                          id="address_city"
-                          placeholder="Ciudad"
-                          value={newAddress.city}
-                          onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                        />
+                        <Label htmlFor="address_department">Departamento *</Label>
+                        <select
+                          id="address_department"
+                          value={newAddress.department_id}
+                          onChange={(e) => {
+                            const deptId = e.target.value;
+                            setNewAddress({ 
+                              ...newAddress, 
+                              department_id: deptId,
+                              commune_id: '', // Reset commune when department changes
+                              state: departments.find(d => d.id === deptId)?.name || ''
+                            });
+                          }}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background"
+                        >
+                          <option value="">Seleccionar departamento...</option>
+                          {departments.map(dept => (
+                            <option key={dept.id} value={dept.id}>
+                              {dept.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="address_state">Departamento</Label>
-                        <Input
-                          id="address_state"
-                          placeholder="Departamento"
-                          value={newAddress.state}
-                          onChange={(e) => setNewAddress({ ...newAddress, state: e.target.value })}
-                        />
+                        <Label htmlFor="address_city">Comuna *</Label>
+                        <select
+                          id="address_city"
+                          value={newAddress.commune_id}
+                          onChange={(e) => {
+                            const commId = e.target.value;
+                            setNewAddress({
+                              ...newAddress,
+                              commune_id: commId,
+                              city: communes.find(c => c.id === commId)?.name || ''
+                            });
+                          }}
+                          disabled={!newAddress.department_id}
+                          className="w-full px-3 py-2 border border-border rounded-md bg-background disabled:opacity-50"
+                        >
+                          <option value="">Seleccionar comuna...</option>
+                          {communes.map(comm => (
+                            <option key={comm.id} value={comm.id}>
+                              {comm.name}
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="space-y-2">
                         <Label htmlFor="address_postal">Código postal</Label>
@@ -890,7 +934,7 @@ const SellerCheckout = () => {
                         <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                       </div>
                       <div className="flex-1">
-                        <p className="font-semibold">{item.name}</p>
+                        <p className="font-semibold line-clamp-1">{item.name}</p>
                         <p className="text-sm text-muted-foreground mb-1">
                         </p>
                         <div className="flex items-center gap-4 text-sm">
