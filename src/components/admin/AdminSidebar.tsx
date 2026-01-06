@@ -65,6 +65,7 @@ const settingsItems = [
   { title: "Logística", url: "/admin/logistics", icon: Truck },
   { title: "Puntos de Retiro", url: "/admin/pickup-points", icon: MapPin },
   { title: "Comisiones", url: "/admin/commissions", icon: Settings },
+  { title: "Métodos de Pago", url: "/admin/payment-methods", icon: CreditCard },
 ];
 
 const discountItems = [

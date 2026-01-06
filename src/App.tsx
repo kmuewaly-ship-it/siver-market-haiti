@@ -71,6 +71,7 @@ const AdminUserDiscounts = lazy(() => import("./pages/admin/AdminUserDiscounts")
 const AdminCartAnalytics = lazy(() => import("./pages/admin/AdminCartAnalytics"));
 const AdminLogisticsPage = lazy(() => import("./pages/admin/AdminLogisticsPage"));
 const AdminInventoryPage = lazy(() => import("./pages/admin/AdminInventoryPage"));
+const AdminPaymentMethodsPage = lazy(() => import("./pages/admin/AdminPaymentMethodsPage"));
 
 // Lazy loaded - Seller Pages
 const SellerAcquisicionLotes = lazy(() => import("./pages/seller/SellerAcquisicionLotes"));
@@ -289,6 +290,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
                   <LazyRoute><AdminInventoryPage /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/payment-methods" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
+                  <LazyRoute><AdminPaymentMethodsPage /></LazyRoute>
                 </ProtectedRoute>
               } 
             />
