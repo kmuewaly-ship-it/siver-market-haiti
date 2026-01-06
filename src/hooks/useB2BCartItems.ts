@@ -13,6 +13,9 @@ export interface B2BCartItem {
   cantidad: number;
   subtotal: number;
   image: string | null;
+  moq?: number; // Minimum order quantity from product
+  color?: string | null; // Variant color
+  size?: string | null; // Variant size
 }
 
 export const useB2BCartItems = () => {
@@ -42,7 +45,7 @@ export const useB2BCartItems = () => {
       // Query directly from b2b_cart_items with JOIN to b2b_carts
       const { data: cartItems, error: itemsError } = await supabase
         .from('b2b_cart_items')
-        .select('*, cart_id!inner(id, buyer_user_id, status), products:product_id(precio_sugerido_venta)')
+        .select('*, cart_id!inner(id, buyer_user_id, status), products:product_id(precio_sugerido_venta, moq, imagen_principal)')
         .eq('cart_id.buyer_user_id', user.id)
         .eq('cart_id.status', 'open')
         .order('created_at', { ascending: false });
@@ -55,10 +58,14 @@ export const useB2BCartItems = () => {
       console.log('B2B Cart items loaded:', cartItems?.length || 0, 'items');
 
       const formattedItems: B2BCartItem[] = (cartItems || []).map(item => {
-        // Extract precio_sugerido_venta from joined product
+        // Extract data from joined product
         let precioVenta = 0;
+        let moq = 1;
+        let productImage: string | null = null;
         if (item.products && typeof item.products === 'object') {
           precioVenta = (item.products as any).precio_sugerido_venta || 0;
+          moq = (item.products as any).moq || 1;
+          productImage = (item.products as any).imagen_principal || null;
         }
 
         return {
@@ -70,7 +77,10 @@ export const useB2BCartItems = () => {
           precioVenta: precioVenta,
           cantidad: item.quantity,
           subtotal: typeof item.total_price === 'string' ? parseFloat(item.total_price) : item.total_price,
-          image: null, // B2B table doesn't have image field, can be added later
+          image: productImage,
+          moq: moq,
+          color: item.color || null,
+          size: item.size || null,
         };
       });
 

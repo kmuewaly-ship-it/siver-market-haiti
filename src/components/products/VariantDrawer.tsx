@@ -7,7 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/auth';
 import { addItemB2C, addItemB2B } from '@/services/cartService';
 import { useToast } from '@/hooks/use-toast';
-import { X, TrendingUp, ImageIcon } from 'lucide-react';
+import { X, TrendingUp, ImageIcon, Info } from 'lucide-react';
+import { useB2BCartProductTotals } from '@/hooks/useB2BCartProductTotals';
 
 const VariantDrawer: React.FC = () => {
   const isMobile = useIsMobile();
@@ -21,6 +22,9 @@ const VariantDrawer: React.FC = () => {
   const { toast } = useToast();
 
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
+  
+  // Get cart product totals for MOQ validation at product level
+  const { getProductTotal, wouldMeetMOQ, getQuantityNeeded } = useB2BCartProductTotals();
 
   // Prevent body scroll when drawer open
   useEffect(() => {
@@ -57,12 +61,26 @@ const VariantDrawer: React.FC = () => {
     return { investment, estimatedRevenue, estimatedProfit, profitPercentage, profitPerUnit };
   }, [isB2BUser, product, totalQty]);
 
+  // Calculate product-level MOQ validation (cart + new selection)
+  const productId = product?.source_product_id || product?.id || '';
+  const productMoq = product?.moq || 1;
+  const cartProductTotal = getProductTotal(productId);
+  const currentCartQty = cartProductTotal?.totalQuantity || 0;
+  const combinedTotal = currentCartQty + totalQty;
+  const meetsMOQWithSelection = combinedTotal >= productMoq;
+  const quantityStillNeeded = Math.max(0, productMoq - combinedTotal);
+
   const handleConfirm = async () => {
     if (!product) return;
 
-    // Validate MOQ for B2B
-    if (isB2BUser && totalQty < (product.moq || 1)) {
-      toast({ title: 'Cantidad mínima', description: `El pedido debe ser al menos ${product.moq || 1} unidades.`, variant: 'destructive' });
+    // Validate MOQ at product level (cart total + new selection)
+    // Allow adding if combined total meets MOQ
+    if (isB2BUser && !meetsMOQWithSelection && totalQty > 0) {
+      toast({ 
+        title: 'Cantidad mínima no alcanzada', 
+        description: `Necesitas ${quantityStillNeeded} unidades más para alcanzar el mínimo de ${productMoq}. Puedes combinar diferentes tallas y colores.`, 
+        variant: 'destructive' 
+      });
       return;
     }
 
@@ -258,14 +276,38 @@ const VariantDrawer: React.FC = () => {
             <Button 
               onClick={handleConfirm} 
               className="h-10 px-4"
-              disabled={totalQty === 0 || (isB2BUser && totalQty < (product.moq || 1))}
+              disabled={totalQty === 0}
             >
               🛒 Comprar
             </Button>
           </div>
-          {isB2BUser && product.moq && product.moq > 1 && (
-            <div className="text-xs text-center text-muted-foreground">
-              MOQ: {product.moq} unidades mínimas
+          {/* Flexible MOQ messaging for B2B */}
+          {isB2BUser && productMoq > 1 && (
+            <div className="space-y-1.5">
+              {/* Show current cart total if exists */}
+              {currentCartQty > 0 && (
+                <div className="text-xs text-center text-muted-foreground bg-muted/50 rounded-md py-1">
+                  Ya tienes <span className="font-semibold text-foreground">{currentCartQty}</span> unidades en el carrito
+                </div>
+              )}
+              
+              {/* Show MOQ status */}
+              {meetsMOQWithSelection ? (
+                <div className="text-xs text-center text-green-600 flex items-center justify-center gap-1">
+                  <Info className="w-3 h-3" />
+                  ✓ Mínimo de {productMoq} unidades alcanzado
+                </div>
+              ) : (
+                <div className="text-xs text-center text-amber-600 flex items-center justify-center gap-1">
+                  <Info className="w-3 h-3" />
+                  Te faltan {quantityStillNeeded} unidades (Min: {productMoq})
+                </div>
+              )}
+              
+              {/* Combine variants message */}
+              <div className="text-[10px] text-center text-muted-foreground">
+                💡 Puedes combinar tallas y colores para llegar al mínimo
+              </div>
             </div>
           )}
         </div>
