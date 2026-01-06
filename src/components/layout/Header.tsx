@@ -149,7 +149,9 @@ const Header = ({
   const getSubcategories = (parentId) =>
     categories.filter((c) => c.parent_id === parentId);
 
-  const accountLink = (role === UserRole.SELLER && !isHomePage) ? "/seller/cuenta" : "/cuenta";
+  const accountLink = role === UserRole.SELLER ? "/seller/cuenta" : 
+                    role === UserRole.ADMIN ? "/admin/dashboard" : 
+                    "/cuenta";
 
   const handleCategoryClick = (category: any | null) => {
     const catId = category ? category.id : null;

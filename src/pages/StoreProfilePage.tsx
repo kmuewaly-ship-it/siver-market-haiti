@@ -4,6 +4,7 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
@@ -52,6 +53,7 @@ const StoreProfilePage = () => {
 
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Derived state
   const isLoading = isStoreLoading || isProductsLoading;
@@ -186,7 +188,10 @@ const StoreProfilePage = () => {
             {/* Logo & Main Info */}
             <div className="flex flex-col md:flex-row md:items-center gap-4 flex-1 mb-4 md:mb-0">
               {/* Logo */}
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-lg border-4 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center">
+              <div 
+                onClick={() => setShowProfileModal(true)}
+                className="w-24 h-24 md:w-32 md:h-32 rounded-lg border-4 border-white shadow-lg bg-white overflow-hidden flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity"
+              >
                   {store.logo ? (
                     <img
                         src={store.logo}
@@ -325,11 +330,15 @@ const StoreProfilePage = () => {
             </div>
           </div>
 
-          {/* Description */}
+          {/* Description Button */}
           <div className="mt-8 pt-8 border-t border-gray-200">
-            <p className="text-gray-600 whitespace-pre-line">
-                {store.description || "Sin descripción disponible."}
-            </p>
+            <Button 
+              onClick={() => setShowProfileModal(true)}
+              variant="outline"
+              className="w-full md:w-auto border-gray-300 text-[#071d7f] hover:bg-blue-50"
+            >
+              Ver Descripción
+            </Button>
           </div>
         </div>
 
@@ -510,6 +519,56 @@ const StoreProfilePage = () => {
         </div>
 
       </main>
+
+      {/* Profile Photo Modal */}
+      <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <div className="space-y-6">
+            {/* Photo Section */}
+            <div className="flex justify-center">
+              {store.logo ? (
+                <img
+                  src={store.logo}
+                  alt={store.name}
+                  className="max-h-96 rounded-lg shadow-lg object-cover"
+                />
+              ) : (
+                <div className="w-80 h-80 bg-gray-200 rounded-lg flex items-center justify-center">
+                  <span className="text-6xl font-bold text-gray-400">{store.name.substring(0, 2).toUpperCase()}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Divider */}
+            <div className="border-t border-gray-200"></div>
+
+            {/* Store Description */}
+            <div className="space-y-3">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <span>📝 Descripción de la Tienda</span>
+              </h3>
+              <p className="text-gray-600 leading-relaxed whitespace-pre-wrap">
+                {store.description || "No hay descripción configurada para esta tienda."}
+              </p>
+            </div>
+
+            {/* Store Info Grid */}
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t">
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Miembro desde</p>
+                <p className="text-gray-900 font-semibold">{store.joinDate}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-500 font-medium">Ubicación</p>
+                <p className="text-gray-900 font-semibold flex items-center gap-1">
+                  <MapPin className="h-4 w-4" />
+                  {store.location}
+                </p>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {!isMobile && <Footer />}
     </div>

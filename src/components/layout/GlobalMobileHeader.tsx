@@ -339,7 +339,9 @@ const GlobalMobileHeader = ({
   const showB2BStyle = isSellerOrAdmin && !showAsClient;
   const favoritesLink = showB2BStyle ? "/seller/favoritos" : "/favoritos";
   const cartLink = showB2BStyle ? "/seller/carrito" : "/carrito";
-  const accountLink = showB2BStyle ? "/seller/cuenta" : "/cuenta";
+  const accountLink = role === UserRole.SELLER ? "/seller/cuenta" : 
+                      role === UserRole.ADMIN ? "/admin/dashboard" : 
+                      "/cuenta";
   const accentColor = showB2BStyle ? "bg-blue-600" : "bg-[#071d7f]";
   const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-[#071d7f] hover:bg-[#071d7f]/90";
   return <header className="bg-[#ffdcdc] sticky top-0 z-40">

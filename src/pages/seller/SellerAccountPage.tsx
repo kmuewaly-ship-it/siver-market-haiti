@@ -51,6 +51,8 @@ const SellerAccountPage = () => {
   const [showEditStore, setShowEditStore] = useState(false);
   const [showEditProfilePhoto, setShowEditProfilePhoto] = useState(false);
   const [showEditInfo, setShowEditInfo] = useState(false);
+  const [editingDescription, setEditingDescription] = useState(false);
+  const [storeDescription, setStoreDescription] = useState(store?.description || "");
   const [showViewProfilePhoto, setShowViewProfilePhoto] = useState<'profile' | 'banner' | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -67,6 +69,32 @@ const SellerAccountPage = () => {
     promotionalEmails: false,
     whatsappNotifications: true
   });
+  const [storeSettings, setStoreSettings] = useState({
+    is_open: true,
+    allow_comments: true,
+    show_stock: false
+  });
+  const [updatingStoreSettings, setUpdatingStoreSettings] = useState(false);
+  const [bankInfo, setBankInfo] = useState({
+    bank_name: "",
+    account_type: "",
+    account_number: "",
+    account_holder: ""
+  });
+  const [updatingBankInfo, setUpdatingBankInfo] = useState(false);
+  const [moncashInfo, setMoncashInfo] = useState({
+    phone_number: "",
+    name: "",
+    pin: ""
+  });
+  const [updatingMoncash, setUpdatingMoncash] = useState(false);
+  const [natcashInfo, setNatcashInfo] = useState({
+    phone_number: "",
+    name: "",
+    pin: ""
+  });
+  const [updatingNatcash, setUpdatingNatcash] = useState(false);
+  const [showStoreDescription, setShowStoreDescription] = useState(false);
   
   // Hooks for orders
   const { data: orders, isLoading: ordersLoading } = useBuyerOrders(statusFilter === 'all' ? undefined : statusFilter);
@@ -181,6 +209,171 @@ const SellerAccountPage = () => {
     setShowNotifications(false);
   };
 
+  const handleUpdateStoreSettings = async () => {
+    if (!store?.id) return;
+    
+    setUpdatingStoreSettings(true);
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...store.metadata,
+            is_open: storeSettings.is_open,
+            allow_comments: storeSettings.allow_comments,
+            show_stock: storeSettings.show_stock
+          }
+        })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Configuración de tienda actualizada correctamente",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo actualizar la configuración",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingStoreSettings(false);
+    }
+  };
+
+  const handleUpdateBankInfo = async () => {
+    if (!store?.id) return;
+    
+    setUpdatingBankInfo(true);
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...store.metadata,
+            bank_info: bankInfo
+          }
+        })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Información bancaria guardada correctamente",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo guardar la información bancaria",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingBankInfo(false);
+    }
+  };
+
+  const handleUpdateMoncash = async () => {
+    if (!store?.id) return;
+    
+    setUpdatingMoncash(true);
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...store.metadata,
+            moncash_info: moncashInfo
+          }
+        })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Información Moncash guardada correctamente",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo guardar la información Moncash",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingMoncash(false);
+    }
+  };
+
+  const handleUpdateNatcash = async () => {
+    if (!store?.id) return;
+    
+    setUpdatingNatcash(true);
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({
+          metadata: {
+            ...store.metadata,
+            natcash_info: natcashInfo
+          }
+        })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Información Natcash guardada correctamente",
+      });
+
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo guardar la información Natcash",
+        variant: "destructive",
+      });
+    } finally {
+      setUpdatingNatcash(false);
+    }
+  };
+
+  const handleUpdateStoreDescription = async () => {
+    if (!store?.id) return;
+    
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({ description: storeDescription })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Descripción de tienda actualizada correctamente",
+      });
+
+      setEditingDescription(false);
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo guardar la descripción",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleCancelClick = (order: BuyerOrder) => {
     setSelectedOrder(order);
     setShowCancelDialog(true);
@@ -235,14 +428,6 @@ const SellerAccountPage = () => {
                     <span className="sm:hidden">Info</span>
                   </TabsTrigger>
                   <TabsTrigger 
-                    value="kyc" 
-                    className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
-                  >
-                    <Shield className="h-3 w-3 md:h-4 md:w-4" />
-                    <span className="hidden sm:inline">Seguridad</span>
-                    <span className="sm:hidden">KYC</span>
-                  </TabsTrigger>
-                  <TabsTrigger 
                     value="compras" 
                     className="flex flex-col items-center justify-center gap-0.5 text-[10px] md:text-xs px-1 md:px-1.5 py-0.5 md:py-1 rounded-none border-b-2 border-transparent data-[state=active]:border-b-[#071d7f] data-[state=active]:bg-[#071d7f] data-[state=active]:text-white data-[state=active]:px-0.5 md:data-[state=active]:px-1"
                   >
@@ -282,14 +467,17 @@ const SellerAccountPage = () => {
             <div className={`w-full px-4 md:px-6 ${isMobile ? 'pt-12' : ''}`}>
               <div className="container mx-auto">
               <TabsContent value="informacion" className={`${isMobile ? 'space-y-3 mt-0' : 'space-y-6 md:space-y-8 mt-6'}`}>
-                <div className="w-full max-w-2xl mx-auto">
+                <div className="w-full">
                   <Card className="shadow-lg border-none overflow-hidden">
                     {/* Header */}
-                    <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white pb-8">
+                    <CardHeader className="bg-gray-100 text-gray-900 pb-8">
                       <div className="flex items-start justify-between">
-                        <div className="flex items-center gap-4">
-                          <Avatar className="h-16 w-16 border-4 border-white">
-                            <AvatarImage src={user?.avatar_url || ""} />
+                        <div 
+                          className="flex items-center gap-4 cursor-pointer hover:opacity-80 transition-opacity"
+                          onClick={() => setShowEditProfilePhoto(true)}
+                        >
+                          <Avatar className="h-16 w-16 border-4 border-gray-300">
+                            <AvatarImage src={store?.logo || user?.avatar_url || ""} />
                             <AvatarFallback className="bg-blue-100 text-[#071d7f] font-bold text-lg">
                               {user?.name?.charAt(0)?.toUpperCase()}
                             </AvatarFallback>
@@ -305,7 +493,7 @@ const SellerAccountPage = () => {
                         </div>
                         <Button 
                           variant="outline" 
-                          className="bg-white text-[#071d7f] hover:bg-blue-50 border-white p-2"
+                          className="bg-gray-50 text-[#071d7f] hover:bg-gray-200 border-gray-300 p-2"
                           size="sm"
                           onClick={() => setShowEditInfo(true)}
                         >
@@ -322,25 +510,25 @@ const SellerAccountPage = () => {
                           Información de Contacto
                         </h3>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm">Correo Electrónico</span>
                             <span className="font-semibold text-gray-900">{user?.email}</span>
                           </div>
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm flex items-center gap-1">
                               <Phone className="h-4 w-4" />
                               Teléfono
                             </span>
                             <span className="font-semibold text-gray-900">+1 234 567 8900</span>
                           </div>
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm flex items-center gap-1">
                               <MessageCircle className="h-4 w-4 text-green-600" />
                               WhatsApp
                             </span>
                             <span className="font-semibold text-gray-900">+1 234 567 8900</span>
                           </div>
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm">Nombre Completo</span>
                             <span className="font-semibold text-gray-900">{user?.name || "N/A"}</span>
                           </div>
@@ -354,7 +542,7 @@ const SellerAccountPage = () => {
                           Información de la Cuenta
                         </h3>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm flex items-center gap-1">
                               <Calendar className="h-4 w-4" />
                               Miembro Desde
@@ -367,18 +555,18 @@ const SellerAccountPage = () => {
                               })}
                             </span>
                           </div>
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm flex items-center gap-1">
                               <CheckCircle className="h-4 w-4 text-green-600" />
                               Estado de Cuenta
                             </span>
                             <span className="font-semibold text-green-600">Activa ✓</span>
                           </div>
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm">ID de Usuario</span>
                             <span className="font-mono text-gray-900 text-xs font-semibold">{user?.id.slice(0, 8)}...</span>
                           </div>
-                          <div className="flex justify-between items-start py-3 border-b border-gray-100 last:border-b-0">
+                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm flex items-center gap-1">
                               <Store className="h-4 w-4" />
                               Tipo de Usuario
@@ -417,11 +605,6 @@ const SellerAccountPage = () => {
                     </CardContent>
                   </Card>
                 </div>
-              </TabsContent>
-
-              {/* KYC / Seguridad Tab */}
-              <TabsContent value="kyc" className="space-y-6 pt-8">
-                <KYCUploadForm />
               </TabsContent>
 
               {/* Mis Compras Tab */}
@@ -610,7 +793,7 @@ const SellerAccountPage = () => {
               <TabsContent value="tienda" className={`space-y-6 mt-0 ${!isMobile ? 'pt-8' : ''}`}>
                 {/* Store Header */}
                 <Card className="shadow-lg border-none overflow-hidden">
-                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white pb-8 relative">
+                  <CardHeader className="bg-gray-100 text-gray-900 pb-8 relative">
                     <button 
                       type="button"
                       className="absolute top-4 left-4 p-2 bg-[#071d7f] hover:bg-[#071d7f]/90 rounded-lg transition-colors z-10"
@@ -622,7 +805,7 @@ const SellerAccountPage = () => {
                     <div className="flex items-start justify-between">
                       <div 
                         className="flex items-center gap-4 flex-1 cursor-pointer"
-                        onClick={() => setShowViewProfilePhoto('profile')}
+                        onClick={() => setShowEditProfilePhoto(true)}
                       >
                         <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center overflow-hidden border-4 border-white hover:shadow-lg transition-shadow">
                           {store?.logo ? (
@@ -643,7 +826,25 @@ const SellerAccountPage = () => {
                               <Edit className="h-4 w-4 text-white" />
                             </button>
                           </div>
-                          <p className="text-blue-100 text-sm mt-1">{store?.description || "Descripción de tu tienda"}</p>
+                          {/* Collapsible Description */}
+                          <div className="mt-3 bg-white rounded-lg overflow-hidden">
+                            <button
+                              onClick={() => setShowStoreDescription(!showStoreDescription)}
+                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                            >
+                              <p className="text-black text-sm font-medium truncate text-left flex-1">
+                                {store?.description || "Descripción de tu tienda"}
+                              </p>
+                              <ChevronRight className={`h-4 w-4 text-gray-600 transition-transform ${showStoreDescription ? 'rotate-90' : ''}`} />
+                            </button>
+                            {showStoreDescription && (
+                              <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
+                                <p className="text-gray-700 text-sm whitespace-pre-wrap">
+                                  {store?.description || "Descripción de tu tienda"}
+                                </p>
+                              </div>
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -717,26 +918,48 @@ const SellerAccountPage = () => {
                           <div className="space-y-3">
                             <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                               <Label className="cursor-pointer flex items-center gap-2 flex-1">
-                                <Checkbox defaultChecked />
+                                <Checkbox 
+                                  checked={storeSettings.is_open}
+                                  onCheckedChange={(checked) => setStoreSettings({...storeSettings, is_open: checked === true})}
+                                />
                                 <span className="text-sm font-medium">Tienda Abierta</span>
                               </Label>
                             </div>
                             <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                               <Label className="cursor-pointer flex items-center gap-2 flex-1">
-                                <Checkbox defaultChecked />
+                                <Checkbox 
+                                  checked={storeSettings.allow_comments}
+                                  onCheckedChange={(checked) => setStoreSettings({...storeSettings, allow_comments: checked === true})}
+                                />
                                 <span className="text-sm font-medium">Permitir comentarios</span>
                               </Label>
                             </div>
                             <div className="flex items-center justify-between p-3 bg-white rounded-lg">
                               <Label className="cursor-pointer flex items-center gap-2 flex-1">
-                                <Checkbox />
+                                <Checkbox 
+                                  checked={storeSettings.show_stock}
+                                  onCheckedChange={(checked) => setStoreSettings({...storeSettings, show_stock: checked === true})}
+                                />
                                 <span className="text-sm font-medium">Mostrar stock</span>
                               </Label>
                             </div>
                           </div>
-                          <Button className="w-full bg-green-600 hover:bg-green-700">
-                            <CheckCircle className="h-4 w-4 mr-2" />
-                            Actualizar Configuración
+                          <Button 
+                            onClick={handleUpdateStoreSettings}
+                            disabled={updatingStoreSettings}
+                            className="w-full bg-green-600 hover:bg-green-700"
+                          >
+                            {updatingStoreSettings ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Actualizando...
+                              </>
+                            ) : (
+                              <>
+                                <CheckCircle className="h-4 w-4 mr-2" />
+                                Actualizar Configuración
+                              </>
+                            )}
                           </Button>
                         </div>
                       </AccordionContent>
@@ -781,11 +1004,21 @@ const SellerAccountPage = () => {
                           <div className="grid md:grid-cols-2 gap-4">
                             <div className="space-y-2">
                               <Label htmlFor="bank-name" className="text-sm font-medium">Banco</Label>
-                              <Input id="bank-name" placeholder="Nombre del banco" className="border-gray-300" />
+                              <Input 
+                                id="bank-name" 
+                                placeholder="Nombre del banco" 
+                                className="border-gray-300"
+                                value={bankInfo.bank_name}
+                                onChange={(e) => setBankInfo({...bankInfo, bank_name: e.target.value})}
+                              />
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="account-type" className="text-sm font-medium">Tipo de Cuenta</Label>
-                              <select className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm">
+                              <select 
+                                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm"
+                                value={bankInfo.account_type}
+                                onChange={(e) => setBankInfo({...bankInfo, account_type: e.target.value})}
+                              >
                                 <option>Seleccionar tipo</option>
                                 <option>Ahorros</option>
                                 <option>Corriente</option>
@@ -793,16 +1026,42 @@ const SellerAccountPage = () => {
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="account-number" className="text-sm font-medium">Número de Cuenta</Label>
-                              <Input id="account-number" placeholder="Número de cuenta" className="border-gray-300" type="password" />
+                              <Input 
+                                id="account-number" 
+                                placeholder="Número de cuenta" 
+                                className="border-gray-300" 
+                                type="password"
+                                value={bankInfo.account_number}
+                                onChange={(e) => setBankInfo({...bankInfo, account_number: e.target.value})}
+                              />
                             </div>
                             <div className="space-y-2">
                               <Label htmlFor="account-holder" className="text-sm font-medium">Titular de la Cuenta</Label>
-                              <Input id="account-holder" placeholder="Nombre del titular" className="border-gray-300" />
+                              <Input 
+                                id="account-holder" 
+                                placeholder="Nombre del titular" 
+                                className="border-gray-300"
+                                value={bankInfo.account_holder}
+                                onChange={(e) => setBankInfo({...bankInfo, account_holder: e.target.value})}
+                              />
                             </div>
                           </div>
-                          <Button className="w-full bg-purple-600 hover:bg-purple-700">
-                            <Save className="h-4 w-4 mr-2" />
-                            Guardar Información Bancaria
+                          <Button 
+                            onClick={handleUpdateBankInfo}
+                            disabled={updatingBankInfo}
+                            className="w-full bg-purple-600 hover:bg-purple-700"
+                          >
+                            {updatingBankInfo ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Guardando...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-2" />
+                                Guardar Información Bancaria
+                              </>
+                            )}
                           </Button>
                         </div>
                       </AccordionContent>
@@ -825,21 +1084,54 @@ const SellerAccountPage = () => {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="moncash-number" className="text-sm font-medium">Número de Teléfono Moncash</Label>
-                            <Input id="moncash-number" placeholder="+509 XXXX XXXX" className="border-gray-300" />
+                            <Input 
+                              id="moncash-number" 
+                              placeholder="+509 XXXX XXXX" 
+                              className="border-gray-300"
+                              value={moncashInfo.phone_number}
+                              onChange={(e) => setMoncashInfo({...moncashInfo, phone_number: e.target.value})}
+                            />
                             <p className="text-xs text-gray-500">Formato: +509 seguido del número de teléfono</p>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="moncash-name" className="text-sm font-medium">Nombre en Moncash</Label>
-                            <Input id="moncash-name" placeholder="Nombre asociado a tu cuenta" className="border-gray-300" />
+                            <Input 
+                              id="moncash-name" 
+                              placeholder="Nombre asociado a tu cuenta" 
+                              className="border-gray-300"
+                              value={moncashInfo.name}
+                              onChange={(e) => setMoncashInfo({...moncashInfo, name: e.target.value})}
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="moncash-pin" className="text-sm font-medium">PIN de Seguridad (Opcional)</Label>
-                            <Input id="moncash-pin" placeholder="PIN de tu cuenta Moncash" className="border-gray-300" type="password" />
+                            <Input 
+                              id="moncash-pin" 
+                              placeholder="PIN de tu cuenta Moncash" 
+                              className="border-gray-300" 
+                              type="password"
+                              value={moncashInfo.pin}
+                              onChange={(e) => setMoncashInfo({...moncashInfo, pin: e.target.value})}
+                            />
                             <p className="text-xs text-gray-500">Se almacenará de forma segura y encriptada</p>
                           </div>
-                          <Button className="w-full" style={{ backgroundColor: '#94111f' }}>
-                            <Save className="h-4 w-4 mr-2" />
-                            Guardar Información Moncash
+                          <Button 
+                            onClick={handleUpdateMoncash}
+                            disabled={updatingMoncash}
+                            className="w-full"
+                            style={{ backgroundColor: '#94111f' }}
+                          >
+                            {updatingMoncash ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Guardando...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-2" />
+                                Guardar Información Moncash
+                              </>
+                            )}
                           </Button>
                         </div>
                       </AccordionContent>
@@ -862,21 +1154,54 @@ const SellerAccountPage = () => {
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="natcash-number" className="text-sm font-medium">Número de Teléfono Natcash</Label>
-                            <Input id="natcash-number" placeholder="+509 XXXX XXXX" className="border-gray-300" />
+                            <Input 
+                              id="natcash-number" 
+                              placeholder="+509 XXXX XXXX" 
+                              className="border-gray-300"
+                              value={natcashInfo.phone_number}
+                              onChange={(e) => setNatcashInfo({...natcashInfo, phone_number: e.target.value})}
+                            />
                             <p className="text-xs text-gray-500">Formato: +509 seguido del número de teléfono</p>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="natcash-name" className="text-sm font-medium">Nombre en Natcash</Label>
-                            <Input id="natcash-name" placeholder="Nombre asociado a tu cuenta" className="border-gray-300" />
+                            <Input 
+                              id="natcash-name" 
+                              placeholder="Nombre asociado a tu cuenta" 
+                              className="border-gray-300"
+                              value={natcashInfo.name}
+                              onChange={(e) => setNatcashInfo({...natcashInfo, name: e.target.value})}
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="natcash-pin" className="text-sm font-medium">PIN de Seguridad (Opcional)</Label>
-                            <Input id="natcash-pin" placeholder="PIN de tu cuenta Natcash" className="border-gray-300" type="password" />
+                            <Input 
+                              id="natcash-pin" 
+                              placeholder="PIN de tu cuenta Natcash" 
+                              className="border-gray-300" 
+                              type="password"
+                              value={natcashInfo.pin}
+                              onChange={(e) => setNatcashInfo({...natcashInfo, pin: e.target.value})}
+                            />
                             <p className="text-xs text-gray-500">Se almacenará de forma segura y encriptada</p>
                           </div>
-                          <Button className="w-full" style={{ backgroundColor: '#071d7f' }}>
-                            <Save className="h-4 w-4 mr-2" />
-                            Guardar Información Natcash
+                          <Button 
+                            onClick={handleUpdateNatcash}
+                            disabled={updatingNatcash}
+                            className="w-full"
+                            style={{ backgroundColor: '#071d7f' }}
+                          >
+                            {updatingNatcash ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Guardando...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-2" />
+                                Guardar Información Natcash
+                              </>
+                            )}
                           </Button>
                         </div>
                       </AccordionContent>
@@ -886,7 +1211,7 @@ const SellerAccountPage = () => {
 
                 {/* Store Stats - Sticky Tabs */}
                 <Card className="shadow-lg border-none">
-                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white sticky top-40 z-30 py-3 px-4">
+                  <CardHeader className="bg-gray-100 text-gray-900 sticky top-40 z-30 py-3 px-4">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="text-base font-bold flex items-center gap-2">
                         <BarChart3 className="h-5 w-5" />
@@ -1051,7 +1376,7 @@ const SellerAccountPage = () => {
               {/* Pedidos Tab */}
               <TabsContent value="pedidos" className="space-y-6 mt-0">
                 <Card className="shadow-lg border-none">
-                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white">
+                  <CardHeader className="bg-gray-100 text-gray-900">
                     <h3 className="text-xl font-bold flex items-center gap-2">
                       <CreditCard className="h-5 w-5" />
                       Pedidos Recibidos
@@ -1068,11 +1393,15 @@ const SellerAccountPage = () => {
 
               {/* Configuración Tab */}
               <TabsContent value="configuracion" className="space-y-6 mt-0">
+                {/* KYC Upload Form */}
+                <KYCUploadForm />
+
+                {/* Control Panel Card */}
                 <Card className="shadow-lg border-none">
-                  <CardHeader className="bg-gradient-to-r from-[#071d7f] to-blue-600 text-white">
+                  <CardHeader className="bg-gray-100 text-gray-900">
                     <h3 className="text-xl font-bold flex items-center gap-2">
                       <Settings className="h-5 w-5" />
-                      Panel de Control
+                      Configuración de Cuenta
                     </h3>
                   </CardHeader>
                   <CardContent className="p-6">
@@ -1752,6 +2081,56 @@ const SellerAccountPage = () => {
                 />
               </label>
             </div>
+          </div>
+
+          {/* Store Description Section */}
+          <div className="space-y-2 border-t pt-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-semibold text-gray-900">Descripción de la Tienda</h3>
+              {!editingDescription && (
+                <button
+                  onClick={() => setEditingDescription(true)}
+                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                  title="Editar descripción"
+                >
+                  <Edit className="h-4 w-4 text-[#071d7f]" />
+                </button>
+              )}
+            </div>
+            
+            {editingDescription ? (
+              <div className="space-y-2">
+                <Textarea
+                  value={storeDescription}
+                  onChange={(e) => setStoreDescription(e.target.value)}
+                  placeholder="Cuéntale a tus clientes sobre tu tienda..."
+                  className="min-h-[100px] border-gray-300"
+                />
+                <div className="flex gap-2 justify-end">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setEditingDescription(false);
+                      setStoreDescription(store?.description || "");
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="bg-[#071d7f] hover:bg-[#071d7f]/90"
+                    onClick={handleUpdateStoreDescription}
+                  >
+                    Guardar
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <p className="text-sm text-gray-700 line-clamp-1 bg-gray-50 p-3 rounded-lg">
+                {storeDescription || "No hay descripción configurada"}
+              </p>
+            )}
           </div>
 
           <DialogFooter>

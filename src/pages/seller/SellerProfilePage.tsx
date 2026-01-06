@@ -7,16 +7,19 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   User, MapPin, Calendar, Shield, Mail, Phone, 
-  CheckCircle, Edit, ArrowLeft
+  CheckCircle, Edit, ArrowLeft, FileText
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState } from "react";
 
 const SellerProfilePage = () => {
   const { user } = useAuth();
   const { data: store } = useStoreByOwner(user?.id);
   const navigate = useNavigate();
+  const [showProfileModal, setShowProfileModal] = useState(false);
 
   // Helper for semi-complete name
   const getSemiCompleteName = (fullName: string) => {
@@ -40,9 +43,10 @@ const SellerProfilePage = () => {
 
             <div className="container mx-auto px-4 md:px-6 h-full flex items-end pb-6 md:pb-8 relative z-10">
                 <div className="flex flex-col md:flex-row md:items-end gap-6 w-full">
-                    <div className="relative">
+                    <div className="relative cursor-pointer" onClick={() => setShowProfileModal(true)}>
                         <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full blur opacity-30"></div>
-                            <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-2xl relative">
+                            <Avatar className="h-24 w-24 md:h-32 md:w-32 border-4 border-white shadow-2xl relative hover:opacity-80 transition-opacity cursor-pointer">
+                            {store?.logo && <AvatarImage src={store.logo} alt={store?.name} />}
                             <AvatarFallback className="text-4xl font-bold bg-white text-[#071d7f]">
                                 {user?.name?.substring(0, 2).toUpperCase()}
                             </AvatarFallback>
@@ -51,7 +55,7 @@ const SellerProfilePage = () => {
                     
                     <div className="mb-2 text-white flex-1">
                         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                            <div>
+                            <div className="flex-1">
                                 <h1 className="text-2xl md:text-4xl font-bold tracking-tight text-white drop-shadow-md">
                                     {user?.name}
                                 </h1>
@@ -59,6 +63,14 @@ const SellerProfilePage = () => {
                                     <Mail className="h-4 w-4" />
                                     {user?.email}
                                 </p>
+                                <Button
+                                    onClick={() => setShowProfileModal(true)}
+                                    variant="outline"
+                                    className="mt-3 bg-white/10 hover:bg-white/20 text-white border-white/30 hover:border-white/50"
+                                >
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    Ver Descripción
+                                </Button>
                             </div>
                             
                             <Button 
@@ -189,6 +201,47 @@ const SellerProfilePage = () => {
                 </div>
             </div>
         </div>
+
+        {/* Profile Photo and Description Modal */}
+        <Dialog open={showProfileModal} onOpenChange={setShowProfileModal}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Perfil de la Tienda</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-6">
+              {/* Photo Section */}
+              <div className="flex justify-center">
+                <div className="relative w-40 h-40">
+                  <div className="absolute -inset-1 bg-gradient-to-r from-blue-400 to-cyan-300 rounded-full blur opacity-30"></div>
+                  <Avatar className="w-40 h-40 border-4 border-white shadow-2xl relative">
+                    <AvatarFallback className="text-6xl font-bold bg-gradient-to-br from-blue-500 to-cyan-400 text-white">
+                      {user?.name?.substring(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </div>
+              </div>
+
+              {/* Store Info */}
+              <div className="text-center">
+                <h2 className="text-2xl font-bold text-gray-900">{user?.name}</h2>
+                <p className="text-gray-500 mt-1">{user?.email}</p>
+              </div>
+
+              {/* Description Section */}
+              <div className="border-t pt-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+                  <FileText className="h-5 w-5 text-[#071d7f]" />
+                  Descripción de la Tienda
+                </h3>
+                <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+                  <p className="text-gray-700 whitespace-pre-wrap leading-relaxed">
+                    {(store as any)?.description || "Sin descripción configurada"}
+                  </p>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </SellerLayout>
   );
