@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { usePaymentMethods, PaymentMethodInput, IntegrationMode } from '@/hooks/usePaymentMethods';
+import { Checkbox } from '@/components/ui/checkbox';
+import { usePaymentMethods, PaymentMethodInput } from '@/hooks/usePaymentMethods';
 import { Building2, Smartphone, CreditCard, Save, Loader2, Zap, Hand, AlertCircle, Key } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { Alert, AlertDescription } from '@/components/ui/alert';
@@ -29,26 +29,28 @@ export default function AdminPaymentMethodsPage() {
     is_active: true,
   });
 
-  // MonCash form state
+  // MonCash form state - now with dual mode support
   const moncashMethod = getMethodByType('moncash');
   const [moncashForm, setMoncashForm] = useState({
     phone_number: '',
     holder_name: '',
     is_active: true,
-    integration_mode: 'manual' as IntegrationMode,
+    manual_enabled: true,
+    automatic_enabled: false,
     // API credentials for automatic mode
     client_id: '',
     client_secret: '',
     business_key: '',
   });
 
-  // NatCash form state
+  // NatCash form state - now with dual mode support
   const natcashMethod = getMethodByType('natcash');
   const [natcashForm, setNatcashForm] = useState({
     phone_number: '',
     holder_name: '',
     is_active: true,
-    integration_mode: 'manual' as IntegrationMode,
+    manual_enabled: true,
+    automatic_enabled: false,
     // API credentials for automatic mode
     api_key: '',
     api_secret: '',
@@ -72,7 +74,8 @@ export default function AdminPaymentMethodsPage() {
         phone_number: moncashMethod.phone_number || '',
         holder_name: moncashMethod.holder_name || '',
         is_active: moncashMethod.is_active ?? true,
-        integration_mode: (moncashMethod.integration_mode as IntegrationMode) || 'manual',
+        manual_enabled: moncashMethod.manual_enabled ?? true,
+        automatic_enabled: moncashMethod.automatic_enabled ?? false,
         client_id: (meta.client_id as string) || '',
         client_secret: (meta.client_secret as string) || '',
         business_key: (meta.business_key as string) || '',
@@ -84,7 +87,8 @@ export default function AdminPaymentMethodsPage() {
         phone_number: natcashMethod.phone_number || '',
         holder_name: natcashMethod.holder_name || '',
         is_active: natcashMethod.is_active ?? true,
-        integration_mode: (natcashMethod.integration_mode as IntegrationMode) || 'manual',
+        manual_enabled: natcashMethod.manual_enabled ?? true,
+        automatic_enabled: natcashMethod.automatic_enabled ?? false,
         api_key: (meta.api_key as string) || '',
         api_secret: (meta.api_secret as string) || '',
       });
@@ -103,6 +107,16 @@ export default function AdminPaymentMethodsPage() {
   };
 
   const handleSaveMoncash = async () => {
+    // Validate: at least one mode must be enabled if active
+    if (moncashForm.is_active && !moncashForm.manual_enabled && !moncashForm.automatic_enabled) {
+      toast({
+        title: 'Error',
+        description: 'Debe habilitar al menos un modo (Manual o Automático)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSaving('moncash');
     const input: PaymentMethodInput = {
       method_type: 'moncash',
@@ -110,8 +124,9 @@ export default function AdminPaymentMethodsPage() {
       phone_number: moncashForm.phone_number,
       holder_name: moncashForm.holder_name,
       is_active: moncashForm.is_active,
-      integration_mode: moncashForm.integration_mode,
-      metadata: moncashForm.integration_mode === 'automatic' ? {
+      manual_enabled: moncashForm.manual_enabled,
+      automatic_enabled: moncashForm.automatic_enabled,
+      metadata: moncashForm.automatic_enabled ? {
         client_id: moncashForm.client_id,
         client_secret: moncashForm.client_secret,
         business_key: moncashForm.business_key,
@@ -123,6 +138,16 @@ export default function AdminPaymentMethodsPage() {
   };
 
   const handleSaveNatcash = async () => {
+    // Validate: at least one mode must be enabled if active
+    if (natcashForm.is_active && !natcashForm.manual_enabled && !natcashForm.automatic_enabled) {
+      toast({
+        title: 'Error',
+        description: 'Debe habilitar al menos un modo (Manual o Automático)',
+        variant: 'destructive',
+      });
+      return;
+    }
+
     setSaving('natcash');
     const input: PaymentMethodInput = {
       method_type: 'natcash',
@@ -130,8 +155,9 @@ export default function AdminPaymentMethodsPage() {
       phone_number: natcashForm.phone_number,
       holder_name: natcashForm.holder_name,
       is_active: natcashForm.is_active,
-      integration_mode: natcashForm.integration_mode,
-      metadata: natcashForm.integration_mode === 'automatic' ? {
+      manual_enabled: natcashForm.manual_enabled,
+      automatic_enabled: natcashForm.automatic_enabled,
+      metadata: natcashForm.automatic_enabled ? {
         api_key: natcashForm.api_key,
         api_secret: natcashForm.api_secret,
       } : {},
@@ -150,6 +176,22 @@ export default function AdminPaymentMethodsPage() {
       </AdminLayout>
     );
   }
+
+  // Helper to render mode badges
+  const renderModeBadges = (manual: boolean, automatic: boolean) => (
+    <div className="flex gap-1 flex-wrap">
+      {manual && (
+        <span className="inline-flex items-center text-xs text-muted-foreground">
+          <Hand className="h-3 w-3 mr-0.5" /> Manual
+        </span>
+      )}
+      {automatic && (
+        <span className="inline-flex items-center text-xs text-yellow-600">
+          <Zap className="h-3 w-3 mr-0.5" /> API
+        </span>
+      )}
+    </div>
+  );
 
   return (
     <AdminLayout 
@@ -191,20 +233,11 @@ export default function AdminPaymentMethodsPage() {
                     <p className="font-medium">MonCash</p>
                     <p className="text-sm text-muted-foreground">
                       {moncashMethod ? 'Configurado' : 'Sin configurar'}
-                      {moncashMethod && (
-                        <span className="ml-2">
-                          {moncashMethod.integration_mode === 'automatic' ? (
-                            <span className="inline-flex items-center text-yellow-600">
-                              <Zap className="h-3 w-3 mr-0.5" /> API
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center text-muted-foreground">
-                              <Hand className="h-3 w-3 mr-0.5" /> Manual
-                            </span>
-                          )}
-                        </span>
-                      )}
                     </p>
+                    {moncashMethod && renderModeBadges(
+                      moncashMethod.manual_enabled,
+                      moncashMethod.automatic_enabled
+                    )}
                   </div>
                 </div>
                 <Badge variant={moncashMethod?.is_active ? 'default' : 'secondary'}>
@@ -225,20 +258,11 @@ export default function AdminPaymentMethodsPage() {
                     <p className="font-medium">NatCash</p>
                     <p className="text-sm text-muted-foreground">
                       {natcashMethod ? 'Configurado' : 'Sin configurar'}
-                      {natcashMethod && (
-                        <span className="ml-2">
-                          {natcashMethod.integration_mode === 'automatic' ? (
-                            <span className="inline-flex items-center text-yellow-600">
-                              <Zap className="h-3 w-3 mr-0.5" /> API
-                            </span>
-                          ) : (
-                            <span className="inline-flex items-center text-muted-foreground">
-                              <Hand className="h-3 w-3 mr-0.5" /> Manual
-                            </span>
-                          )}
-                        </span>
-                      )}
                     </p>
+                    {natcashMethod && renderModeBadges(
+                      natcashMethod.manual_enabled,
+                      natcashMethod.automatic_enabled
+                    )}
                   </div>
                 </div>
                 <Badge variant={natcashMethod?.is_active ? 'default' : 'secondary'}>
@@ -364,7 +388,7 @@ export default function AdminPaymentMethodsPage() {
                   MonCash
                 </CardTitle>
                 <CardDescription>
-                  Configure los datos de MonCash para recibir pagos móviles
+                  Configure los datos de MonCash para recibir pagos móviles. Puede habilitar ambos modos para que el cliente elija.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -376,39 +400,54 @@ export default function AdminPaymentMethodsPage() {
                   <Label>Método activo</Label>
                 </div>
 
-                {/* Integration Mode Selection */}
-                <div className="space-y-3">
-                  <Label className="text-base font-medium">Modo de Integración</Label>
-                  <RadioGroup
-                    value={moncashForm.integration_mode}
-                    onValueChange={(v) => setMoncashForm({ ...moncashForm, integration_mode: v as IntegrationMode })}
-                    className="grid gap-3"
-                  >
-                    <div className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="manual" id="moncash-manual" className="mt-1" />
+                {/* Dual Mode Selection */}
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                  <Label className="text-base font-medium">Modos de Pago Disponibles</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Habilite los modos que desea ofrecer. El cliente podrá elegir al momento de pagar.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    {/* Manual Mode */}
+                    <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                      <Checkbox
+                        id="moncash-manual"
+                        checked={moncashForm.manual_enabled}
+                        onCheckedChange={(checked) => 
+                          setMoncashForm({ ...moncashForm, manual_enabled: checked as boolean })
+                        }
+                      />
                       <div className="flex-1">
                         <Label htmlFor="moncash-manual" className="flex items-center gap-2 cursor-pointer">
                           <Hand className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Manual</span>
+                          <span className="font-medium">Pago Manual</span>
                         </Label>
                         <p className="text-sm text-muted-foreground mt-1">
                           El cliente paga y proporciona referencia. Admin confirma manualmente.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="automatic" id="moncash-automatic" className="mt-1" />
+
+                    {/* Automatic Mode */}
+                    <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                      <Checkbox
+                        id="moncash-automatic"
+                        checked={moncashForm.automatic_enabled}
+                        onCheckedChange={(checked) => 
+                          setMoncashForm({ ...moncashForm, automatic_enabled: checked as boolean })
+                        }
+                      />
                       <div className="flex-1">
                         <Label htmlFor="moncash-automatic" className="flex items-center gap-2 cursor-pointer">
                           <Zap className="h-4 w-4 text-yellow-500" />
-                          <span className="font-medium">Automático (API)</span>
+                          <span className="font-medium">Pago Automático (API)</span>
                         </Label>
                         <p className="text-sm text-muted-foreground mt-1">
                           Integración con API de MonCash. Verificación automática de pagos.
                         </p>
                       </div>
                     </div>
-                  </RadioGroup>
+                  </div>
                 </div>
 
                 {/* Basic Info - Always shown */}
@@ -433,9 +472,9 @@ export default function AdminPaymentMethodsPage() {
                   </div>
                 </div>
 
-                {/* API Credentials - Only shown for automatic mode */}
-                {moncashForm.integration_mode === 'automatic' && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                {/* API Credentials - Only shown when automatic is enabled */}
+                {moncashForm.automatic_enabled && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-yellow-50/50 border-yellow-200">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Key className="h-4 w-4" />
                       Credenciales API de MonCash
@@ -507,7 +546,7 @@ export default function AdminPaymentMethodsPage() {
                   NatCash
                 </CardTitle>
                 <CardDescription>
-                  Configure los datos de NatCash para recibir pagos móviles
+                  Configure los datos de NatCash para recibir pagos móviles. Puede habilitar ambos modos para que el cliente elija.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -519,39 +558,54 @@ export default function AdminPaymentMethodsPage() {
                   <Label>Método activo</Label>
                 </div>
 
-                {/* Integration Mode Selection */}
-                <div className="space-y-3">
-                  <Label className="text-base font-medium">Modo de Integración</Label>
-                  <RadioGroup
-                    value={natcashForm.integration_mode}
-                    onValueChange={(v) => setNatcashForm({ ...natcashForm, integration_mode: v as IntegrationMode })}
-                    className="grid gap-3"
-                  >
-                    <div className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="manual" id="natcash-manual" className="mt-1" />
+                {/* Dual Mode Selection */}
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                  <Label className="text-base font-medium">Modos de Pago Disponibles</Label>
+                  <p className="text-sm text-muted-foreground">
+                    Habilite los modos que desea ofrecer. El cliente podrá elegir al momento de pagar.
+                  </p>
+                  
+                  <div className="space-y-3">
+                    {/* Manual Mode */}
+                    <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                      <Checkbox
+                        id="natcash-manual"
+                        checked={natcashForm.manual_enabled}
+                        onCheckedChange={(checked) => 
+                          setNatcashForm({ ...natcashForm, manual_enabled: checked as boolean })
+                        }
+                      />
                       <div className="flex-1">
                         <Label htmlFor="natcash-manual" className="flex items-center gap-2 cursor-pointer">
                           <Hand className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Manual</span>
+                          <span className="font-medium">Pago Manual</span>
                         </Label>
                         <p className="text-sm text-muted-foreground mt-1">
                           El cliente paga y proporciona referencia. Admin confirma manualmente.
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-start space-x-3 p-3 border rounded-lg cursor-pointer hover:bg-muted/50">
-                      <RadioGroupItem value="automatic" id="natcash-automatic" className="mt-1" />
+
+                    {/* Automatic Mode */}
+                    <div className="flex items-start space-x-3 p-3 border rounded-lg hover:bg-muted/50">
+                      <Checkbox
+                        id="natcash-automatic"
+                        checked={natcashForm.automatic_enabled}
+                        onCheckedChange={(checked) => 
+                          setNatcashForm({ ...natcashForm, automatic_enabled: checked as boolean })
+                        }
+                      />
                       <div className="flex-1">
                         <Label htmlFor="natcash-automatic" className="flex items-center gap-2 cursor-pointer">
                           <Zap className="h-4 w-4 text-yellow-500" />
-                          <span className="font-medium">Automático (API)</span>
+                          <span className="font-medium">Pago Automático (API)</span>
                         </Label>
                         <p className="text-sm text-muted-foreground mt-1">
                           Integración con API de NatCash (si disponible). Verificación automática de pagos.
                         </p>
                       </div>
                     </div>
-                  </RadioGroup>
+                  </div>
                 </div>
 
                 {/* Basic Info - Always shown */}
@@ -576,9 +630,9 @@ export default function AdminPaymentMethodsPage() {
                   </div>
                 </div>
 
-                {/* API Credentials - Only shown for automatic mode */}
-                {natcashForm.integration_mode === 'automatic' && (
-                  <div className="space-y-4 p-4 border rounded-lg bg-muted/30">
+                {/* API Credentials - Only shown when automatic is enabled */}
+                {natcashForm.automatic_enabled && (
+                  <div className="space-y-4 p-4 border rounded-lg bg-blue-50/50 border-blue-200">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Key className="h-4 w-4" />
                       Credenciales API de NatCash
@@ -642,9 +696,9 @@ export default function AdminPaymentMethodsPage() {
               <div>
                 <h4 className="font-medium mb-1">Sobre los métodos de pago</h4>
                 <p className="text-sm text-muted-foreground">
-                  Los métodos de pago configurados aquí se mostrarán a los sellers (B2B) cuando realicen 
-                  pedidos en la plataforma. Los sellers verán estos datos para poder realizar sus pagos.
-                  Los pagos con tarjeta se procesan automáticamente a través de Stripe.
+                  Los métodos de pago configurados aquí se mostrarán a los sellers (B2B) y clientes (B2C) cuando realicen 
+                  compras en la plataforma. Cuando habilita ambos modos (Manual y Automático), el cliente puede elegir 
+                  cómo prefiere pagar. Los pagos con tarjeta se procesan automáticamente a través de Stripe.
                 </p>
               </div>
             </div>

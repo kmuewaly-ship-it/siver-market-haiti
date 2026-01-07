@@ -1853,14 +1853,15 @@ export type Database = {
           account_holder: string | null
           account_number: string | null
           account_type: string | null
+          automatic_enabled: boolean | null
           bank_name: string | null
           bank_swift: string | null
           created_at: string | null
           display_name: string | null
           holder_name: string | null
           id: string
-          integration_mode: string | null
           is_active: boolean | null
+          manual_enabled: boolean | null
           metadata: Json | null
           method_type: string
           owner_id: string | null
@@ -1872,14 +1873,15 @@ export type Database = {
           account_holder?: string | null
           account_number?: string | null
           account_type?: string | null
+          automatic_enabled?: boolean | null
           bank_name?: string | null
           bank_swift?: string | null
           created_at?: string | null
           display_name?: string | null
           holder_name?: string | null
           id?: string
-          integration_mode?: string | null
           is_active?: boolean | null
+          manual_enabled?: boolean | null
           metadata?: Json | null
           method_type: string
           owner_id?: string | null
@@ -1891,14 +1893,15 @@ export type Database = {
           account_holder?: string | null
           account_number?: string | null
           account_type?: string | null
+          automatic_enabled?: boolean | null
           bank_name?: string | null
           bank_swift?: string | null
           created_at?: string | null
           display_name?: string | null
           holder_name?: string | null
           id?: string
-          integration_mode?: string | null
           is_active?: boolean | null
+          manual_enabled?: boolean | null
           metadata?: Json | null
           method_type?: string
           owner_id?: string | null

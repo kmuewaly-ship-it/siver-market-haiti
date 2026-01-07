@@ -49,6 +49,7 @@ import {
 import { toast } from 'sonner';
 
 type PaymentMethod = 'stripe' | 'moncash' | 'natcash' | 'transfer';
+type PaymentMode = 'manual' | 'automatic';
 type DeliveryMethod = 'address' | 'pickup';
 
 const CheckoutPage = () => {
@@ -82,6 +83,7 @@ const CheckoutPage = () => {
   const [selectedAddress, setSelectedAddress] = useState<string | null>(null);
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string | null>(null);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('stripe');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('manual');
   const [isProcessing, setIsProcessing] = useState(false);
   const [orderPlaced, setOrderPlaced] = useState(false);
   const [orderId, setOrderId] = useState<string | null>(null);
