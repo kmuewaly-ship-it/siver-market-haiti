@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { useB2BCartItems } from '@/hooks/useB2BCartItems';
+import { useCartSelectionStore } from '@/stores/useCartSelectionStore';
 import { useKYC } from '@/hooks/useKYC';
 import { useSellerCredits } from '@/hooks/useSellerCredits';
 import { useAddresses, Address } from '@/hooks/useAddresses';
@@ -53,7 +54,14 @@ type DeliveryMethod = 'address' | 'pickup';
 const SellerCheckout = () => {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { items, isLoading: cartLoading } = useB2BCartItems();
+  const { items: allItems, isLoading: cartLoading } = useB2BCartItems();
+  const { b2bSelectedIds } = useCartSelectionStore();
+  
+  // Filter only selected items for checkout
+  const items = useMemo(() => 
+    allItems.filter(item => b2bSelectedIds.has(item.id)), 
+    [allItems, b2bSelectedIds]
+  );
   const { isVerified } = useKYC();
   const { credit, availableCredit, hasActiveCredit, calculateMaxCreditForCart } = useSellerCredits();
   const { addresses, isLoading: addressesLoading, createAddress } = useAddresses();

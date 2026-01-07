@@ -4,6 +4,7 @@ import GlobalHeader from '@/components/layout/GlobalHeader';
 import Footer from '@/components/layout/Footer';
 import { useAuth } from '@/hooks/useAuth';
 import { useB2CCartItems } from '@/hooks/useB2CCartItems';
+import { useCartSelectionStore } from '@/stores/useCartSelectionStore';
 import { useAddresses, Address } from '@/hooks/useAddresses';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { useIsMobile } from '@/hooks/use-mobile';
@@ -55,7 +56,14 @@ type DeliveryMethod = 'address' | 'pickup';
 const CheckoutPage = () => {
   const navigate = useNavigate();
   const { user, role, isLoading: authLoading } = useAuth();
-  const { items, isLoading: cartLoading } = useB2CCartItems();
+  const { items: allItems, isLoading: cartLoading } = useB2CCartItems();
+  const { b2cSelectedIds } = useCartSelectionStore();
+  
+  // Filter only selected items for checkout
+  const items = useMemo(() => 
+    allItems.filter(item => b2cSelectedIds.has(item.id)), 
+    [allItems, b2cSelectedIds]
+  );
   const { addresses, isLoading: addressesLoading } = useAddresses();
   const { pickupPoints, isLoading: pickupPointsLoading } = usePickupPoints();
   const isMobile = useIsMobile();
