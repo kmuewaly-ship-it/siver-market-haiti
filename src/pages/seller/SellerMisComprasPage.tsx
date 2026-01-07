@@ -608,12 +608,26 @@ const SellerMisComprasPage = () => {
                   </h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
                     {selectedOrder.order_items_b2b?.map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
-                        <div className="flex-1">
-                          <p className="font-medium text-sm">{item.nombre}</p>
+                      <div key={item.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
+                        {/* Product Image */}
+                        <div className="w-12 h-12 rounded-md bg-muted overflow-hidden flex-shrink-0">
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.nombre}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <Package className="h-5 w-5 text-muted-foreground/50" />
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm line-clamp-1">{item.nombre}</p>
                           <p className="text-xs text-muted-foreground">Cant: {item.cantidad}</p>
                         </div>
-                        <p className="font-semibold">${item.subtotal.toLocaleString()}</p>
+                        <p className="font-semibold flex-shrink-0">${item.subtotal.toLocaleString()}</p>
                       </div>
                     ))}
                   </div>
