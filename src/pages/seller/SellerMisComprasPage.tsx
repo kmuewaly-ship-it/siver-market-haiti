@@ -368,8 +368,18 @@ const SellerMisComprasPage = () => {
                   <CardContent className="p-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                       <div className="flex items-start gap-4 flex-1">
-                        <div className={`p-3 rounded-xl ${status.bgColor} ${status.color} shrink-0`}>
-                          <Icon className="h-5 w-5" />
+                        <div className="w-14 h-14 rounded-xl bg-muted overflow-hidden shrink-0">
+                          {order.order_items_b2b?.[0]?.image ? (
+                            <img 
+                              src={order.order_items_b2b[0].image} 
+                              alt={order.order_items_b2b[0].nombre}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className={`w-full h-full flex items-center justify-center ${status.bgColor}`}>
+                              <Icon className={`h-5 w-5 ${status.color}`} />
+                            </div>
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
