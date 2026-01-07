@@ -15,7 +15,7 @@ interface VariantSelectorProps {
   basePrice: number;
   baseImage?: string;
   isB2B?: boolean;
-  onSelectionChange?: (selections: VariantSelection[], totalQty: number, totalPrice: number) => void;
+  onSelectionChange?: (selections: VariantSelection[], totalQty: number, totalPrice: number, selectedVariant?: ProductVariant | null, isValid?: boolean, validationErrors?: string[]) => void;
   onVariantImageChange?: (imageUrl: string | null) => void;
 }
 
@@ -227,15 +227,50 @@ const VariantSelector = ({
     return sum + price * qty;
   }, 0) || 0;
 
-  // Notify parent of changes
+  // Validation: check if all required attribute types are selected
+  const validationState = useMemo(() => {
+    if (!hasEAVAttributes || orderedAttributeTypes.length === 0) {
+      // No EAV attributes - valid if we have quantity
+      return { isValid: totalQty > 0, errors: totalQty === 0 ? ['Selecciona una cantidad'] : [] };
+    }
+
+    const errors: string[] = [];
+    
+    // Check that all attribute types have a selection
+    orderedAttributeTypes.forEach(attrType => {
+      if (!selectedAttributes[attrType]) {
+        const displayName = attrDisplayNames[attrType] || 
+                           attrDisplayNames[attrType.toLowerCase()] || 
+                           ATTRIBUTE_CONFIG[attrType.toLowerCase()]?.displayName || 
+                           attrType;
+        errors.push(`Selecciona ${displayName}`);
+      }
+    });
+
+    // If all attributes are selected, check quantity
+    if (errors.length === 0 && totalQty === 0) {
+      errors.push('Selecciona una cantidad');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }, [hasEAVAttributes, orderedAttributeTypes, selectedAttributes, attrDisplayNames, totalQty]);
+
+  // Notify parent of changes including validation state
   useEffect(() => {
     if (onSelectionChangeRef.current && variants) {
       const selectionsList = Object.entries(selections)
         .filter(([_, qty]) => qty > 0)
         .map(([variantId, quantity]) => ({ variantId, quantity }));
-      onSelectionChangeRef.current(selectionsList, totalQty, totalPrice);
+      onSelectionChangeRef.current(
+        selectionsList, 
+        totalQty, 
+        totalPrice, 
+        matchingVariant, 
+        validationState.isValid, 
+        validationState.errors
+      );
     }
-  }, [selections, totalQty, totalPrice, variants]);
+  }, [selections, totalQty, totalPrice, variants, matchingVariant, validationState]);
 
   const updateQuantity = (variantId: string, delta: number, variant: ProductVariant) => {
     setSelections((prev) => {
@@ -325,11 +360,23 @@ const VariantSelector = ({
             return null;
           }
 
+          // Check if this attribute is missing (for visual error indication)
+          const isMissing = !selectedValue && validationState.errors.some(e => 
+            e.toLowerCase().includes(displayName.toLowerCase())
+          );
+
           return (
-            <div key={attrType} className="p-3 bg-muted/30 rounded-lg border border-border/50">
+            <div key={attrType} className={cn(
+              "p-3 rounded-lg border",
+              isMissing ? "bg-destructive/5 border-destructive/30" : "bg-muted/30 border-border/50"
+            )}>
               <div className="flex items-center justify-between mb-2">
-                <h4 className="text-xs font-semibold text-foreground uppercase tracking-wide">
+                <h4 className={cn(
+                  "text-xs font-semibold uppercase tracking-wide",
+                  isMissing ? "text-destructive" : "text-foreground"
+                )}>
                   {displayName}
+                  {isMissing && <span className="ml-1 text-destructive">*</span>}
                 </h4>
                 {selectedValue && (
                   <Badge variant="secondary" className="text-[10px] font-normal capitalize ml-2">

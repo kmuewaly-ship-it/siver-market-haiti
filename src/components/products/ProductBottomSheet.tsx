@@ -107,6 +107,10 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
   const [isAdding, setIsAdding] = useState(false);
   const [variantImage, setVariantImage] = useState<string | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<any>(null);
+  const [isVariantValid, setIsVariantValid] = useState(false);
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [showValidationError, setShowValidationError] = useState(false);
 
   const isSeller = user?.role === UserRole.SELLER;
   
@@ -118,6 +122,10 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       setQuantity(product?.variants && product.variants.length > 0 ? 0 : 1);
       setSelections([]);
       setVariantImage(null);
+      setSelectedVariant(null);
+      setIsVariantValid(false);
+      setValidationErrors([]);
+      setShowValidationError(false);
       console.log('[ProductBottomSheet] Product opened:', {
         name: product.name,
         hasVariants: !!product.variants,
@@ -219,11 +227,23 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
             baseImage={product?.image}
             isB2B={isSeller}
             onVariantImageChange={(img) => setVariantImage(img)}
-            onSelectionChange={(list, totalQty) => {
+            onSelectionChange={(list, totalQty, _totalPrice, variant, isValid, errors) => {
               setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity })));
               setQuantity(totalQty > 0 ? totalQty : (isSeller ? moq : 1));
+              setSelectedVariant(variant);
+              setIsVariantValid(isValid ?? false);
+              setValidationErrors(errors ?? []);
+              if (isValid) setShowValidationError(false);
             }}
           />
+          {/* Validation errors */}
+          {showValidationError && validationErrors.length > 0 && (
+            <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+              <p className="text-xs font-medium text-destructive">
+                {validationErrors[0]}
+              </p>
+            </div>
+          )}
         </div>
 
         {/* B2B Business Panel - compact for mobile */}
@@ -285,6 +305,13 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       return;
     }
 
+    // Validate variant selection if product has variants
+    if (!isVariantValid && validationErrors.length > 0) {
+      setShowValidationError(true);
+      toast.error(validationErrors[0]);
+      return;
+    }
+
     // Validate user is logged in
     if (!user?.id) {
       console.log('User not authenticated, redirecting to login');
@@ -299,11 +326,20 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
       // Check if we have grouped B2B variant selections
       const hasGroupedVariants = product?.variants && product.variants.length > 0 && selections.length > 0;
       
+      // Use selected variant info for cart item name
+      const variantLabel = selectedVariant 
+        ? Object.values(selectedVariant.attribute_combination || {}).filter(Boolean).join(' / ')
+        : '';
+      const variantSku = selectedVariant?.sku || product.sku;
+      const variantPrice = selectedVariant?.price ?? priceB2B;
+      const variantImage = selectedVariant?.images?.[0] || product.image;
+      
       if (hasGroupedVariants) {
         // B2B grouped variants - use selections from VariantSelectorB2B
         const nonZeroSelections = selections.filter((s: any) => s.quantity > 0);
         if (nonZeroSelections.length === 0) {
-          onClose();
+          toast.error('Selecciona al menos una variante');
+          setIsAdding(false);
           return;
         }
 
@@ -361,40 +397,47 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
           toast.success(`Añadido al carrito (${nonZero.reduce((s, x) => s + x.quantity, 0)} unidades)`);
         }
       } else {
-        // Single product without variations
+        // Single product or product with selected variant (EAV variants)
+        const finalSku = selectedVariant?.sku || variantSku;
+        const finalName = variantLabel 
+          ? `${product.name} - ${variantLabel}` 
+          : product.name;
+        const finalPrice = selectedVariant?.price ?? variantPrice;
+        const finalImage = variantImage || product.image;
+        
         if (isSeller) {
-          // B2B
+          // B2B with or without variant
           await addItemB2B({
             userId: user.id,
-            sku: product.sku,
-            name: product.name,
-            priceB2B: product.priceB2B || product.price || 0,
+            sku: finalSku,
+            name: finalName,
+            priceB2B: finalPrice,
             quantity: quantity,
-            image: product.image,
+            image: finalImage,
           });
           toast.success(`Agregado al carrito B2B: ${quantity} unidades`);
         } else {
-          // B2C
-          console.log('[B2C Add] Starting B2C add to cart with product:', {
-            sku: product.sku,
-            name: product.name,
+          // B2C with or without variant
+          console.log('[B2C Add] Starting B2C add to cart:', {
+            sku: finalSku,
+            name: finalName,
             price: product.price,
             quantity,
-            storeId: product.storeId,
-            storeName: product.storeName,
-            storeWhatsapp: product.storeWhatsapp,
+            variant: selectedVariant,
           });
           
           await addItemB2C({
             userId: user.id,
-            sku: product.sku,
-            name: product.name,
-            price: product.price || 0,
+            sku: finalSku,
+            name: finalName,
+            price: selectedVariant?.price ?? product.price ?? 0,
             quantity: quantity,
-            image: product.image,
+            image: finalImage,
             storeId: product.storeId || '',
             storeName: product.storeName || 'Marketplace',
-            storeWhatsapp: product.storeWhatsapp || '',            sellerCatalogId: product.sellerCatalogId,          });
+            storeWhatsapp: product.storeWhatsapp || '',
+            sellerCatalogId: product.sellerCatalogId,
+          });
           console.log('[B2C Add] Successfully added to cart');
           toast.success(`Añadido al carrito (${quantity} unidades)`);
         }
@@ -449,11 +492,23 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                       basePrice={isSeller ? (product?.priceB2B || product?.price || 0) : (product?.price || 0)}
                       baseImage={product?.image}
                       isB2B={isSeller}
-                      onSelectionChange={(list, totalQty) => {
+                      onSelectionChange={(list, totalQty, _totalPrice, variant, isValid, errors) => {
                         setSelections(list.map(s => ({ variantId: s.variantId, quantity: s.quantity, label: '' })));
                         setQuantity(totalQty > 0 ? totalQty : (isSeller ? moq : 1));
+                        setSelectedVariant(variant);
+                        setIsVariantValid(isValid ?? false);
+                        setValidationErrors(errors ?? []);
+                        if (isValid) setShowValidationError(false);
                       }}
                     />
+                    {/* Validation errors */}
+                    {showValidationError && validationErrors.length > 0 && (
+                      <div className="mt-2 p-2 bg-destructive/10 border border-destructive/20 rounded-lg">
+                        <p className="text-xs font-medium text-destructive">
+                          {validationErrors[0]}
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {isSeller && (
