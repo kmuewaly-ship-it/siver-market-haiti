@@ -249,65 +249,53 @@ const SellerMisComprasPage = () => {
           <p className="text-muted-foreground">Historial y seguimiento de tus compras mayoristas</p>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Stats Cards - Compact */}
+        <div className="grid grid-cols-6 gap-2">
           <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Total</CardTitle>
-              <Package className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-foreground">{stats.total}</div>
+            <CardContent className="p-2 text-center">
+              <Package className="h-3 w-3 text-primary mx-auto mb-1" />
+              <div className="text-lg font-bold text-foreground">{stats.total}</div>
+              <p className="text-[9px] text-muted-foreground">Total</p>
             </CardContent>
           </Card>
           
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Pendientes</CardTitle>
-              <Clock className="h-4 w-4 text-blue-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-blue-500">{stats.pending}</div>
+          <Card className="bg-blue-50 border-blue-200">
+            <CardContent className="p-2 text-center">
+              <Clock className="h-3 w-3 text-blue-500 mx-auto mb-1" />
+              <div className="text-lg font-bold text-blue-500">{stats.pending}</div>
+              <p className="text-[9px] text-muted-foreground">Pendiente</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Pagados</CardTitle>
-              <CheckCircle className="h-4 w-4 text-amber-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-amber-500">{stats.paid}</div>
+          <Card className="bg-amber-50 border-amber-200">
+            <CardContent className="p-2 text-center">
+              <CheckCircle className="h-3 w-3 text-amber-500 mx-auto mb-1" />
+              <div className="text-lg font-bold text-amber-500">{stats.paid}</div>
+              <p className="text-[9px] text-muted-foreground">Pagados</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">En Camino</CardTitle>
-              <Truck className="h-4 w-4 text-purple-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-purple-500">{stats.shipped}</div>
+          <Card className="bg-purple-50 border-purple-200">
+            <CardContent className="p-2 text-center">
+              <Truck className="h-3 w-3 text-purple-500 mx-auto mb-1" />
+              <div className="text-lg font-bold text-purple-500">{stats.shipped}</div>
+              <p className="text-[9px] text-muted-foreground">Camino</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Entregados</CardTitle>
-              <CheckCircle className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-green-500">{stats.delivered}</div>
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-2 text-center">
+              <CheckCircle className="h-3 w-3 text-green-500 mx-auto mb-1" />
+              <div className="text-lg font-bold text-green-500">{stats.delivered}</div>
+              <p className="text-[9px] text-muted-foreground">Entregado</p>
             </CardContent>
           </Card>
 
-          <Card className="bg-card border-border">
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-xs font-medium text-muted-foreground">Total Pagado</CardTitle>
-              <DollarSign className="h-4 w-4 text-green-500" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-xl font-bold text-green-500">${stats.totalAmount.toFixed(2)}</div>
+          <Card className="bg-green-50 border-green-200">
+            <CardContent className="p-2 text-center">
+              <DollarSign className="h-3 w-3 text-green-600 mx-auto mb-1" />
+              <div className="text-lg font-bold text-green-600">${stats.totalAmount.toFixed(0)}</div>
+              <p className="text-[9px] text-muted-foreground">Total $</p>
             </CardContent>
           </Card>
         </div>
