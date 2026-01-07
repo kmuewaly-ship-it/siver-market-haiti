@@ -227,6 +227,22 @@ const VariantSelector = ({
     return sum + price * qty;
   }, 0) || 0;
 
+  // Get the best display name for an attribute type
+  const getAttributeDisplayName = useCallback((attrType: string): string => {
+    // 1. First try exact match from database
+    if (attrDisplayNames[attrType]) return attrDisplayNames[attrType];
+    
+    // 2. Try lowercase match
+    const lowerType = attrType.toLowerCase();
+    if (attrDisplayNames[lowerType]) return attrDisplayNames[lowerType];
+    
+    // 3. Try from ATTRIBUTE_CONFIG
+    if (ATTRIBUTE_CONFIG[lowerType]?.displayName) return ATTRIBUTE_CONFIG[lowerType].displayName;
+    
+    // 4. Capitalize the original attribute type as fallback
+    return attrType.charAt(0).toUpperCase() + attrType.slice(1);
+  }, [attrDisplayNames]);
+
   // Validation: check if all required attribute types are selected
   const validationState = useMemo(() => {
     if (!hasEAVAttributes || orderedAttributeTypes.length === 0) {
@@ -239,10 +255,7 @@ const VariantSelector = ({
     // Check that all attribute types have a selection
     orderedAttributeTypes.forEach(attrType => {
       if (!selectedAttributes[attrType]) {
-        const displayName = attrDisplayNames[attrType] || 
-                           attrDisplayNames[attrType.toLowerCase()] || 
-                           ATTRIBUTE_CONFIG[attrType.toLowerCase()]?.displayName || 
-                           attrType;
+        const displayName = getAttributeDisplayName(attrType);
         errors.push(`Selecciona ${displayName}`);
       }
     });
@@ -253,7 +266,7 @@ const VariantSelector = ({
     }
 
     return { isValid: errors.length === 0, errors };
-  }, [hasEAVAttributes, orderedAttributeTypes, selectedAttributes, attrDisplayNames, totalQty]);
+  }, [hasEAVAttributes, orderedAttributeTypes, selectedAttributes, getAttributeDisplayName, totalQty]);
 
   // Notify parent of changes including validation state
   useEffect(() => {
