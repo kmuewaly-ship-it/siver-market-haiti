@@ -771,11 +771,13 @@ const SellerAccountPage = () => {
 
                 {/* Filter Tabs */}
                 <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as BuyerOrderStatus | 'all')}>
-                  <TabsList className="grid grid-cols-4 gap-1 h-auto">
-                    <TabsTrigger value="all" className="text-xs py-1.5">Todos</TabsTrigger>
-                    <TabsTrigger value="paid" className="text-xs py-1.5">Pagados</TabsTrigger>
-                    <TabsTrigger value="shipped" className="text-xs py-1.5">Enviados</TabsTrigger>
-                    <TabsTrigger value="delivered" className="text-xs py-1.5">Entregados</TabsTrigger>
+                  <TabsList className="flex w-full overflow-x-auto gap-1 justify-start" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+                    <TabsTrigger value="all" className="text-xs shrink-0">Todos</TabsTrigger>
+                    <TabsTrigger value="placed" className="text-xs shrink-0">Pendientes</TabsTrigger>
+                    <TabsTrigger value="paid" className="text-xs shrink-0">Pagados</TabsTrigger>
+                    <TabsTrigger value="shipped" className="text-xs shrink-0">En Camino</TabsTrigger>
+                    <TabsTrigger value="delivered" className="text-xs shrink-0">Entregados</TabsTrigger>
+                    <TabsTrigger value="cancelled" className="text-xs shrink-0">Cancelados</TabsTrigger>
                   </TabsList>
                 </Tabs>
 
