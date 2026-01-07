@@ -297,7 +297,7 @@ const SellerMisComprasPage = () => {
         <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as BuyerOrderStatus | 'all')}>
-              <TabsList className="flex w-full overflow-x-auto gap-1 justify-start">
+              <TabsList className="flex w-full overflow-x-auto gap-1 justify-start scrollbar-hide" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
                 <TabsTrigger value="all" className="text-xs shrink-0">Todos</TabsTrigger>
                 <TabsTrigger value="placed" className="text-xs shrink-0">Pendientes</TabsTrigger>
                 <TabsTrigger value="paid" className="text-xs shrink-0">Pagados</TabsTrigger>
