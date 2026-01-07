@@ -13,7 +13,7 @@ import { validateB2CCheckout, getFieldError, hasFieldError, CheckoutValidationEr
 import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
 import { LocationSelector } from '@/components/checkout/LocationSelector';
 import { useApplyDiscount, AppliedDiscount } from '@/hooks/useApplyDiscount';
-import { useStorePaymentMethodsReadOnly } from '@/hooks/usePaymentMethods';
+import { useStorePaymentMethodsReadOnly, useAdminPaymentMethodsReadOnly } from '@/hooks/usePaymentMethods';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -123,6 +123,7 @@ const CheckoutPage = () => {
     }
   }, [addresses, selectedAddress]);
 
+
   const selectedAddressData = addresses.find(a => a.id === selectedAddress);
 
   const paymentMethods = [
@@ -175,7 +176,7 @@ const CheckoutPage = () => {
     return 'Vendedor';
   }, [items]);
 
-  // Fetch payment methods from database
+  // Fetch SELLER payment methods (for manual payments - direct to seller)
   const { 
     bankMethod: storeBank,
     moncashMethod: storeMoncash,
@@ -183,7 +184,42 @@ const CheckoutPage = () => {
     isLoading: paymentMethodsLoading 
   } = useStorePaymentMethodsReadOnly(firstStoreId);
 
-  // Build seller payment info from database
+  // Fetch ADMIN payment methods (for automatic payments - via platform API)
+  const {
+    moncashMethod: adminMoncash,
+    natcashMethod: adminNatcash,
+    isLoading: adminPaymentMethodsLoading
+  } = useAdminPaymentMethodsReadOnly();
+
+  // Check if automatic payment is available for each method
+  const moncashAutoAvailable = adminMoncash?.automatic_enabled && adminMoncash?.is_active;
+  const natcashAutoAvailable = adminNatcash?.automatic_enabled && adminNatcash?.is_active;
+  
+  // Check if manual payment is available (seller has configured their payment details)
+  const moncashManualAvailable = !!storeMoncash?.phone_number;
+  const natcashManualAvailable = !!storeNatcash?.phone_number;
+
+  // Auto-select payment mode based on availability when payment method changes
+  useEffect(() => {
+    if (paymentMethod === 'moncash') {
+      if (moncashAutoAvailable && !moncashManualAvailable) {
+        setPaymentMode('automatic');
+      } else if (!moncashAutoAvailable && moncashManualAvailable) {
+        setPaymentMode('manual');
+      }
+    } else if (paymentMethod === 'natcash') {
+      if (natcashAutoAvailable && !natcashManualAvailable) {
+        setPaymentMode('automatic');
+      } else if (!natcashAutoAvailable && natcashManualAvailable) {
+        setPaymentMode('manual');
+      }
+    } else {
+      // For other methods, default to manual
+      setPaymentMode('manual');
+    }
+  }, [paymentMethod, moncashAutoAvailable, moncashManualAvailable, natcashAutoAvailable, natcashManualAvailable]);
+
+  // Build seller payment info from database (for manual payments)
   const sellerPaymentInfo = useMemo(() => {
     return {
       storeName: firstStoreName,
@@ -888,59 +924,203 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              {paymentMethod === 'moncash' && sellerPaymentInfo?.moncash && (
-                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#94111f20' }}>
-                  <h4 className="font-semibold mb-2" style={{ color: '#94111f' }}>Datos MonCash - {sellerPaymentInfo.storeName}</h4>
-                  <div className="space-y-1 text-sm" style={{ color: '#94111f' }}>
-                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo.moncash.phone_number || 'No configurado'}</p>
-                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo.moncash.name || 'No configurado'}</p>
-                  </div>
-                  <div className="mt-3">
-                    <Label>Código de Transacción *</Label>
-                    <Input
-                      value={paymentReference}
-                      onChange={(e) => setPaymentReference(e.target.value)}
-                      placeholder="Código de transacción MonCash"
-                      className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
-                    />
-                    {hasFieldError(validationErrors, 'paymentReference') && (
-                      <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
-                    )}
-                  </div>
+              {/* MonCash Payment Section */}
+              {paymentMethod === 'moncash' && (
+                <div className="mt-4 space-y-4">
+                  {/* Mode selector when both available */}
+                  {moncashAutoAvailable && moncashManualAvailable && (
+                    <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                      <Label className="font-medium">¿Cómo desea pagar?</Label>
+                      <div className="grid gap-2">
+                        <div 
+                          className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer ${
+                            paymentMode === 'automatic' ? 'border-yellow-400 bg-yellow-50/50' : ''
+                          }`}
+                          onClick={() => setPaymentMode('automatic')}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            paymentMode === 'automatic' ? 'border-yellow-500 bg-yellow-500' : 'border-muted-foreground'
+                          }`}>
+                            {paymentMode === 'automatic' && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-medium flex items-center gap-2">
+                              <Smartphone className="h-4 w-4 text-yellow-500" />
+                              Pago Automático
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              Pago instantáneo vía API, confirmación automática
+                            </p>
+                          </div>
+                        </div>
+                        <div 
+                          className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer ${
+                            paymentMode === 'manual' ? 'border-gray-400 bg-gray-50/50' : ''
+                          }`}
+                          onClick={() => setPaymentMode('manual')}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            paymentMode === 'manual' ? 'border-gray-500 bg-gray-500' : 'border-muted-foreground'
+                          }`}>
+                            {paymentMode === 'manual' && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-medium">Pago Manual al Vendedor</span>
+                            <p className="text-xs text-muted-foreground">
+                              Pague directamente al vendedor y proporcione el código
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Automatic mode - API payment */}
+                  {paymentMode === 'automatic' && moncashAutoAvailable && (
+                    <div className="p-4 rounded-lg border-2 border-yellow-300 bg-yellow-50/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Smartphone className="h-5 w-5 text-[#94111f]" />
+                        <h4 className="font-semibold text-[#94111f]">Pago Automático MonCash</h4>
+                      </div>
+                      <p className="text-sm text-yellow-700">
+                        Al confirmar, será redirigido a MonCash para completar el pago de forma segura.
+                        La confirmación será automática una vez procesado.
+                      </p>
+                    </div>
+                  )}
+
+                  {/* Manual mode - seller details */}
+                  {paymentMode === 'manual' && moncashManualAvailable && sellerPaymentInfo?.moncash && (
+                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#94111f20' }}>
+                      <h4 className="font-semibold mb-2" style={{ color: '#94111f' }}>
+                        Datos MonCash - {sellerPaymentInfo.storeName}
+                      </h4>
+                      <div className="space-y-1 text-sm" style={{ color: '#94111f' }}>
+                        <p><span className="font-medium">Número:</span> {sellerPaymentInfo.moncash.phone_number || 'No configurado'}</p>
+                        <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo.moncash.name || 'No configurado'}</p>
+                      </div>
+                      <div className="mt-3">
+                        <Label>Código de Transacción *</Label>
+                        <Input
+                          value={paymentReference}
+                          onChange={(e) => setPaymentReference(e.target.value)}
+                          placeholder="Código de transacción MonCash"
+                          className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
+                        />
+                        {hasFieldError(validationErrors, 'paymentReference') && (
+                          <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* Neither available */}
+                  {!moncashAutoAvailable && !moncashManualAvailable && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-700">MonCash no está disponible para este vendedor.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
-              {paymentMethod === 'moncash' && !sellerPaymentInfo?.moncash && (
-                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-700">El vendedor no ha configurado MonCash.</p>
-                </div>
-              )}
+              {/* NatCash Payment Section */}
+              {paymentMethod === 'natcash' && (
+                <div className="mt-4 space-y-4">
+                  {/* Mode selector when both available */}
+                  {natcashAutoAvailable && natcashManualAvailable && (
+                    <div className="p-4 bg-muted/30 rounded-lg space-y-3">
+                      <Label className="font-medium">¿Cómo desea pagar?</Label>
+                      <div className="grid gap-2">
+                        <div 
+                          className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer ${
+                            paymentMode === 'automatic' ? 'border-yellow-400 bg-yellow-50/50' : ''
+                          }`}
+                          onClick={() => setPaymentMode('automatic')}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            paymentMode === 'automatic' ? 'border-yellow-500 bg-yellow-500' : 'border-muted-foreground'
+                          }`}>
+                            {paymentMode === 'automatic' && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-medium flex items-center gap-2">
+                              <Smartphone className="h-4 w-4 text-yellow-500" />
+                              Pago Automático
+                            </span>
+                            <p className="text-xs text-muted-foreground">
+                              Pago instantáneo vía API, confirmación automática
+                            </p>
+                          </div>
+                        </div>
+                        <div 
+                          className={`flex items-center space-x-3 p-3 border rounded-lg cursor-pointer ${
+                            paymentMode === 'manual' ? 'border-gray-400 bg-gray-50/50' : ''
+                          }`}
+                          onClick={() => setPaymentMode('manual')}
+                        >
+                          <div className={`w-4 h-4 rounded-full border-2 flex items-center justify-center ${
+                            paymentMode === 'manual' ? 'border-gray-500 bg-gray-500' : 'border-muted-foreground'
+                          }`}>
+                            {paymentMode === 'manual' && <Check className="h-3 w-3 text-white" />}
+                          </div>
+                          <div className="flex-1">
+                            <span className="font-medium">Pago Manual al Vendedor</span>
+                            <p className="text-xs text-muted-foreground">
+                              Pague directamente al vendedor y proporcione el código
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
-              {paymentMethod === 'natcash' && sellerPaymentInfo?.natcash && (
-                <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#071d7f20' }}>
-                  <h4 className="font-semibold mb-2" style={{ color: '#071d7f' }}>Datos NatCash - {sellerPaymentInfo.storeName}</h4>
-                  <div className="space-y-1 text-sm" style={{ color: '#071d7f' }}>
-                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo.natcash.phone_number || 'No configurado'}</p>
-                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo.natcash.name || 'No configurado'}</p>
-                  </div>
-                  <div className="mt-3">
-                    <Label>Código de Transacción *</Label>
-                    <Input
-                      value={paymentReference}
-                      onChange={(e) => setPaymentReference(e.target.value)}
-                      placeholder="Código de transacción NatCash"
-                      className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
-                    />
-                    {hasFieldError(validationErrors, 'paymentReference') && (
-                      <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
-                    )}
-                  </div>
-                </div>
-              )}
+                  {/* Automatic mode - API payment */}
+                  {paymentMode === 'automatic' && natcashAutoAvailable && (
+                    <div className="p-4 rounded-lg border-2 border-yellow-300 bg-yellow-50/50">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Smartphone className="h-5 w-5 text-[#071d7f]" />
+                        <h4 className="font-semibold text-[#071d7f]">Pago Automático NatCash</h4>
+                      </div>
+                      <p className="text-sm text-yellow-700">
+                        Al confirmar, será redirigido a NatCash para completar el pago de forma segura.
+                        La confirmación será automática una vez procesado.
+                      </p>
+                    </div>
+                  )}
 
-              {paymentMethod === 'natcash' && !sellerPaymentInfo?.natcash && (
-                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-                  <p className="text-sm text-yellow-700">El vendedor no ha configurado NatCash.</p>
+                  {/* Manual mode - seller details */}
+                  {paymentMode === 'manual' && natcashManualAvailable && sellerPaymentInfo?.natcash && (
+                    <div className="p-4 rounded-lg" style={{ backgroundColor: '#071d7f20' }}>
+                      <h4 className="font-semibold mb-2" style={{ color: '#071d7f' }}>
+                        Datos NatCash - {sellerPaymentInfo.storeName}
+                      </h4>
+                      <div className="space-y-1 text-sm" style={{ color: '#071d7f' }}>
+                        <p><span className="font-medium">Número:</span> {sellerPaymentInfo.natcash.phone_number || 'No configurado'}</p>
+                        <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo.natcash.name || 'No configurado'}</p>
+                      </div>
+                      <div className="mt-3">
+                        <Label>Código de Transacción *</Label>
+                        <Input
+                          value={paymentReference}
+                          onChange={(e) => setPaymentReference(e.target.value)}
+                          placeholder="Código de transacción NatCash"
+                          className={`mt-1 ${hasFieldError(validationErrors, 'paymentReference') ? 'border-red-500' : ''}`}
+                        />
+                        {hasFieldError(validationErrors, 'paymentReference') && (
+                          <p className="text-sm text-red-600 mt-1">{getFieldError(validationErrors, 'paymentReference')}</p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+
+                  {/* Neither available */}
+                  {!natcashAutoAvailable && !natcashManualAvailable && (
+                    <div className="p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                      <p className="text-sm text-yellow-700">NatCash no está disponible para este vendedor.</p>
+                    </div>
+                  )}
                 </div>
               )}
 
