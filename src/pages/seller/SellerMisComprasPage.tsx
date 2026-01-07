@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
-import { useBuyerB2BOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from '@/hooks/useBuyerOrders';
+import { useBuyerB2BOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus, BuyerOrderItem } from '@/hooks/useBuyerOrders';
 import { usePackageTracking } from '@/hooks/usePackageTracking';
 import { TrackingWidget } from '@/components/tracking/TrackingWidget';
 import { useOrdersPOInfo, OrderPOInfo } from '@/hooks/useOrderPOInfo';
@@ -79,6 +79,7 @@ const SellerMisComprasPage = () => {
   const queryClient = useQueryClient();
   const [statusFilter, setStatusFilter] = useState<BuyerOrderStatus | 'all'>('all');
   const [selectedOrder, setSelectedOrder] = useState<BuyerOrder | null>(null);
+  const [selectedItem, setSelectedItem] = useState<BuyerOrderItem | null>(null);
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancelReason, setCancelReason] = useState('');
   const [requestRefund, setRequestRefund] = useState(false);
@@ -607,44 +608,51 @@ const SellerMisComprasPage = () => {
                     Productos ({selectedOrder.order_items_b2b?.length || 0})
                   </h4>
                   <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {selectedOrder.order_items_b2b?.map((item) => (
-                      <div key={item.id} className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg">
-                        {/* Product Image */}
-                        <div className="w-12 h-12 rounded-md bg-muted overflow-hidden flex-shrink-0">
-                          {item.image ? (
-                            <img 
-                              src={item.image} 
-                              alt={item.nombre}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="h-5 w-5 text-muted-foreground/50" />
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="font-medium text-sm line-clamp-1">{item.nombre}</p>
-                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
-                            {/* Extract variant info from SKU (format: BASE-COLOR-SIZE) */}
-                            {item.sku && item.sku.includes('-') && (
-                              <>
-                                {item.sku.split('-')[1] && (
-                                  <span className="bg-muted px-1.5 py-0.5 rounded">{item.sku.split('-')[1]}</span>
-                                )}
-                                {item.sku.split('-')[2] && (
-                                  <span className="bg-muted px-1.5 py-0.5 rounded">{item.sku.split('-')[2]}</span>
-                                )}
-                              </>
+                    {selectedOrder.order_items_b2b?.map((item) => {
+                      // Extract variant info from SKU
+                      const skuParts = item.sku?.split('-') || [];
+                      const color = skuParts[1] || null;
+                      const size = skuParts[2] || null;
+                      
+                      return (
+                        <div 
+                          key={item.id} 
+                          className="flex items-center gap-3 p-3 bg-muted/30 rounded-lg cursor-pointer hover:bg-muted/50 transition-colors"
+                          onClick={() => setSelectedItem(item)}
+                        >
+                          {/* Product Image */}
+                          <div className="w-12 h-12 rounded-md bg-muted overflow-hidden flex-shrink-0">
+                            {item.image ? (
+                              <img 
+                                src={item.image} 
+                                alt={item.nombre}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center">
+                                <Package className="h-5 w-5 text-muted-foreground/50" />
+                              </div>
                             )}
                           </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-sm line-clamp-1">{item.nombre}</p>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                              {color && (
+                                <span className="bg-muted px-1.5 py-0.5 rounded capitalize">{color}</span>
+                              )}
+                              {size && (
+                                <span className="bg-muted px-1.5 py-0.5 rounded uppercase">{size}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right flex-shrink-0">
+                            <p className="font-semibold">${item.subtotal.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">× {item.cantidad} uds</p>
+                          </div>
+                          <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                         </div>
-                        <div className="text-right flex-shrink-0">
-                          <p className="font-semibold">${item.subtotal.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">× {item.cantidad} uds</p>
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
 
@@ -795,6 +803,87 @@ const SellerMisComprasPage = () => {
               Confirmar Cancelación
             </Button>
           </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Item Detail Modal */}
+      <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
+        <DialogContent className="max-w-md">
+          {selectedItem && (() => {
+            const skuParts = selectedItem.sku?.split('-') || [];
+            const skuBase = skuParts[0] || selectedItem.sku;
+            const color = skuParts[1] || null;
+            const size = skuParts[2] || null;
+            
+            return (
+              <>
+                <DialogHeader>
+                  <DialogTitle className="text-lg">Detalle del Producto</DialogTitle>
+                </DialogHeader>
+                
+                <div className="space-y-4">
+                  {/* Product Image - Large */}
+                  <div className="aspect-square w-full max-w-[280px] mx-auto rounded-lg bg-muted overflow-hidden">
+                    {selectedItem.image ? (
+                      <img 
+                        src={selectedItem.image} 
+                        alt={selectedItem.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Package className="h-16 w-16 text-muted-foreground/30" />
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Product Name */}
+                  <div>
+                    <h3 className="font-semibold text-base leading-tight">{selectedItem.nombre}</h3>
+                    <p className="text-xs text-muted-foreground mt-1">SKU: {skuBase}</p>
+                  </div>
+                  
+                  {/* Variant Details */}
+                  <div className="grid grid-cols-2 gap-3">
+                    {color && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Color</p>
+                        <p className="font-semibold capitalize">{color}</p>
+                      </div>
+                    )}
+                    {size && (
+                      <div className="bg-muted/50 rounded-lg p-3">
+                        <p className="text-xs text-muted-foreground mb-1">Talla</p>
+                        <p className="font-semibold uppercase">{size}</p>
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Quantity and Price */}
+                  <div className="border-t pt-4 space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Cantidad comprada</span>
+                      <span className="font-semibold text-lg">{selectedItem.cantidad} unidades</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-muted-foreground">Precio unitario</span>
+                      <span className="font-medium">${selectedItem.precio_unitario.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-lg">
+                      <span className="font-semibold">Subtotal</span>
+                      <span className="font-bold text-primary">${selectedItem.subtotal.toFixed(2)}</span>
+                    </div>
+                  </div>
+                </div>
+                
+                <DialogFooter>
+                  <Button variant="outline" onClick={() => setSelectedItem(null)}>
+                    Cerrar
+                  </Button>
+                </DialogFooter>
+              </>
+            );
+          })()}
         </DialogContent>
       </Dialog>
     </SellerLayout>
