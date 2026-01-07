@@ -16,6 +16,7 @@ export interface BuyerOrderItem {
   precio_unitario: number;
   descuento_percent: number | null;
   subtotal: number;
+  image?: string | null;
 }
 
 export interface BuyerOrder {
@@ -123,7 +124,7 @@ export const useBuyerB2BOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
         .from('orders_b2b')
         .select(`
           *,
-          order_items_b2b (*),
+          order_items_b2b (*, products:product_id(imagen_principal)),
           seller_profile:profiles!orders_b2b_seller_id_fkey (full_name, email)
         `)
         .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
@@ -132,7 +133,17 @@ export const useBuyerB2BOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
 
       if (error) throw error;
 
-      let filteredData = data as BuyerOrder[];
+      // Map items to include image from product
+      const ordersWithImages = (data || []).map(order => ({
+        ...order,
+        order_items_b2b: (order.order_items_b2b || []).map((item: any) => ({
+          ...item,
+          image: item.products?.imagen_principal || null,
+          products: undefined, // Remove nested products object
+        }))
+      }));
+
+      let filteredData = ordersWithImages as BuyerOrder[];
 
       if (statusFilter && statusFilter !== 'all') {
         filteredData = filteredData.filter(order => order.status === statusFilter);
