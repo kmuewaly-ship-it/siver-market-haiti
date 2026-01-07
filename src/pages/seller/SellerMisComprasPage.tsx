@@ -365,10 +365,10 @@ const SellerMisComprasPage = () => {
                   }`}
                   onClick={() => setSelectedOrder(order)}
                 >
-                  <CardContent className="p-4">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div className="flex items-start gap-4 flex-1">
-                        <div className="w-14 h-14 rounded-xl bg-muted overflow-hidden shrink-0">
+                  <CardContent className="p-3 md:p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        <div className="w-10 h-10 md:w-14 md:h-14 rounded-lg bg-muted overflow-hidden shrink-0">
                           {order.order_items_b2b?.[0]?.image ? (
                             <img 
                               src={order.order_items_b2b[0].image} 
@@ -377,44 +377,28 @@ const SellerMisComprasPage = () => {
                             />
                           ) : (
                             <div className={`w-full h-full flex items-center justify-center ${status.bgColor}`}>
-                              <Icon className={`h-5 w-5 ${status.color}`} />
+                              <Icon className={`h-4 w-4 md:h-5 md:w-5 ${status.color}`} />
                             </div>
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <span className="font-semibold">Pedido #{order.id.slice(0, 8).toUpperCase()}</span>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <span className="font-semibold text-sm md:text-base">#{order.id.slice(0, 6).toUpperCase()}</span>
                             {getStatusBadge(order.status)}
-                            <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
-                              <Boxes className="h-3 w-3 mr-1" />
-                              B2B
-                            </Badge>
                           </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {format(new Date(order.created_at), "d 'de' MMMM, yyyy", { locale: es })}
+                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                            {order.order_items_b2b?.length || 0} prod. • {order.total_quantity} uds
+                            {poInfo && ` • PO: ${poInfo.po_number}`}
                           </p>
-                          <p className="text-sm text-muted-foreground">
-                            {order.order_items_b2b?.length || 0} productos • {order.total_quantity} unidades
-                          </p>
-                          {/* Show PO info if linked */}
-                          {poInfo && (
-                            <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1">
-                              <Package className="h-3 w-3" />
-                              PO: {poInfo.po_number}
-                              {poInfo.hybrid_tracking_id && (
-                                <span className="ml-2 font-mono">{poInfo.hybrid_tracking_id}</span>
-                              )}
-                            </p>
-                          )}
                         </div>
                       </div>
                       
-                      <div className="flex items-center justify-between md:justify-end gap-4">
+                      <div className="flex items-center gap-2 shrink-0">
                         <div className="text-right">
-                          <p className="font-bold text-lg">${order.total_amount.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground">{order.currency}</p>
+                          <p className="font-bold text-sm md:text-lg">${order.total_amount.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground hidden md:block">{order.currency}</p>
                         </div>
-                        <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                        <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                       </div>
                     </div>
 
