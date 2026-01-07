@@ -730,186 +730,48 @@ const SellerAccountPage = () => {
                 </div>
               </TabsContent>
 
-              {/* Mis Compras Tab */}
+              {/* Mis Compras Tab - Redirect to dedicated page */}
               <TabsContent value="compras" className="space-y-6 pt-8">
-                {/* Stats Cards - Individual Cards in Grid */}
-                <div className="grid grid-cols-6 gap-3">
-                  {/* Pendientes Card */}
-                  <Card className="bg-blue-50 border-blue-200">
-                    <CardContent className="p-3 flex flex-col items-center justify-center">
-                      <div className="flex flex-col items-center gap-0.5 mb-1">
-                        <Clock className="h-4 w-4 text-blue-500" />
-                        <span className="text-[9px] font-medium text-muted-foreground text-center">Pendiente</span>
+                <Card className="p-8 text-center">
+                  <div className="max-w-md mx-auto space-y-4">
+                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
+                      <ShoppingCart className="h-8 w-8 text-primary" />
+                    </div>
+                    <h3 className="text-xl font-semibold">Mis Compras B2B</h3>
+                    <p className="text-muted-foreground">
+                      Gestiona tus pedidos, ve el estado de envío, genera facturas y más.
+                    </p>
+                    
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-3 py-4">
+                      <div className="bg-amber-50 rounded-lg p-3">
+                        <p className="text-2xl font-bold text-amber-600">
+                          {orders?.filter(o => o.status === 'paid').length || 0}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Pagados</p>
                       </div>
-                      <div className="text-lg font-bold text-blue-500">
-                        {orders?.filter(o => o.status === 'placed').length || 0}
+                      <div className="bg-purple-50 rounded-lg p-3">
+                        <p className="text-2xl font-bold text-purple-600">
+                          {orders?.filter(o => o.status === 'shipped').length || 0}
+                        </p>
+                        <p className="text-xs text-muted-foreground">En Camino</p>
                       </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Pagados Card */}
-                  <Card className="bg-amber-50 border-amber-200">
-                    <CardContent className="p-3 flex flex-col items-center justify-center">
-                      <div className="flex flex-col items-center gap-0.5 mb-1">
-                        <CheckCircle className="h-4 w-4 text-amber-500" />
-                        <span className="text-[9px] font-medium text-muted-foreground text-center">Pagados</span>
+                      <div className="bg-green-50 rounded-lg p-3">
+                        <p className="text-2xl font-bold text-green-600">
+                          {orders?.filter(o => o.status === 'delivered').length || 0}
+                        </p>
+                        <p className="text-xs text-muted-foreground">Entregados</p>
                       </div>
-                      <div className="text-lg font-bold text-amber-500">
-                        {orders?.filter(o => o.status === 'paid').length || 0}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* En Camino Card */}
-                  <Card className="bg-purple-50 border-purple-200">
-                    <CardContent className="p-3 flex flex-col items-center justify-center">
-                      <div className="flex flex-col items-center gap-0.5 mb-1">
-                        <Truck className="h-4 w-4 text-purple-500" />
-                        <span className="text-[9px] font-medium text-muted-foreground text-center">Camino</span>
-                      </div>
-                      <div className="text-lg font-bold text-purple-500">
-                        {orders?.filter(o => o.status === 'shipped').length || 0}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Entregados Card */}
-                  <Card className="bg-green-50 border-green-200">
-                    <CardContent className="p-3 flex flex-col items-center justify-center">
-                      <div className="flex flex-col items-center gap-0.5 mb-1">
-                        <CheckCircle className="h-4 w-4 text-green-500" />
-                        <span className="text-[9px] font-medium text-muted-foreground text-center">Entregado</span>
-                      </div>
-                      <div className="text-lg font-bold text-green-500">
-                        {orders?.filter(o => o.status === 'delivered').length || 0}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Cancelados Card */}
-                  <Card className="bg-red-50 border-red-200">
-                    <CardContent className="p-3 flex flex-col items-center justify-center">
-                      <div className="flex flex-col items-center gap-0.5 mb-1">
-                        <XCircle className="h-4 w-4 text-red-500" />
-                        <span className="text-[9px] font-medium text-muted-foreground text-center">Cancelado</span>
-                      </div>
-                      <div className="text-lg font-bold text-red-500">
-                        {orders?.filter(o => o.status === 'cancelled').length || 0}
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  {/* Total Pagado Card */}
-                  <Card className="bg-gradient-to-br from-green-50 to-emerald-50 border-green-200">
-                    <CardContent className="p-3 flex flex-col items-center justify-center">
-                      <div className="flex flex-col items-center gap-0.5 mb-1">
-                        <DollarSign className="h-4 w-4 text-green-600" />
-                        <span className="text-[9px] font-medium text-muted-foreground text-center">Total Pago</span>
-                      </div>
-                      <div className="text-lg font-bold text-green-600">
-                        ${(orders?.filter(o => ['paid', 'shipped', 'delivered'].includes(o.status))
-                          .reduce((sum, o) => sum + o.total_amount, 0) || 0).toFixed(2)}
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Filters */}
-                <Card className="bg-card border-border">
-                  <CardContent className="pt-6">
-                    <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as BuyerOrderStatus | 'all')}>
-                      <TabsList className="grid grid-cols-4 md:grid-cols-7 gap-1">
-                        <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
-                        <TabsTrigger value="placed" className="text-xs">Pendientes</TabsTrigger>
-                        <TabsTrigger value="paid" className="text-xs">Pagados</TabsTrigger>
-                        <TabsTrigger value="shipped" className="text-xs">En Camino</TabsTrigger>
-                        <TabsTrigger value="delivered" className="text-xs hidden md:block">Entregados</TabsTrigger>
-                        <TabsTrigger value="cancelled" className="text-xs hidden md:block">Cancelados</TabsTrigger>
-                      </TabsList>
-                    </Tabs>
-                  </CardContent>
+                    </div>
+                    
+                    <Button asChild size="lg" className="w-full">
+                      <Link to="/seller/mis-compras">
+                        Ver Todas Mis Compras
+                        <ChevronRight className="h-4 w-4 ml-2" />
+                      </Link>
+                    </Button>
+                  </div>
                 </Card>
-
-                {/* Orders List */}
-                <div className="space-y-4">
-                  {ordersLoading ? (
-                    <Card className="p-8">
-                      <div className="flex items-center justify-center">
-                        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                      </div>
-                    </Card>
-                  ) : orders && orders.length === 0 ? (
-                    <Card className="p-8 text-center">
-                      <ShoppingCart className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <h3 className="text-lg font-semibold mb-2">No tienes compras aún</h3>
-                      <p className="text-muted-foreground mb-4">Explora el catálogo B2B y realiza tu primera compra</p>
-                      <Button asChild>
-                        <Link to="/seller/adquisicion-lotes">Ir al Catálogo B2B</Link>
-                      </Button>
-                    </Card>
-                  ) : orders && orders.length > 0 ? (
-                    orders.map((order) => {
-                      const status = statusConfig[order.status];
-                      const Icon = status.icon;
-                      const trackingNumber = order.metadata?.tracking_number;
-                      const carrier = order.metadata?.carrier;
-                      
-                      return (
-                        <Card 
-                          key={order.id} 
-                          className={`cursor-pointer hover:shadow-lg transition-all duration-300 border-l-4 ${
-                            order.status === 'shipped' ? 'border-l-purple-500' : 
-                            order.status === 'delivered' ? 'border-l-green-500' : 
-                            order.status === 'paid' ? 'border-l-amber-500' : 
-                            order.status === 'placed' ? 'border-l-blue-500' : 
-                            order.status === 'cancelled' ? 'border-l-red-500' : 'border-l-gray-300'
-                          }`}
-                          onClick={() => setSelectedOrder(order)}
-                        >
-                          <CardContent className="p-4">
-                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                              <div className="flex items-start gap-4 flex-1">
-                                <div className={`p-3 rounded-xl ${status.bgColor} ${status.color} shrink-0`}>
-                                  <Icon className="h-5 w-5" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap">
-                                    <span className="font-semibold">Pedido #{order.id.slice(0, 8).toUpperCase()}</span>
-                                    {getStatusBadge(order.status)}
-                                  </div>
-                                  <p className="text-sm text-muted-foreground mt-1">
-                                    {format(new Date(order.created_at), "d 'de' MMMM, yyyy", { locale: es })}
-                                  </p>
-                                  <p className="text-sm text-muted-foreground">
-                                    {order.order_items_b2b?.length || 0} productos • {order.total_quantity} unidades
-                                  </p>
-                                </div>
-                              </div>
-                              
-                              <div className="flex items-center justify-between md:justify-end gap-4">
-                                <div className="text-right">
-                                  <p className="font-bold text-lg">${order.total_amount.toLocaleString()}</p>
-                                  <p className="text-xs text-muted-foreground">{order.currency}</p>
-                                </div>
-                                <ChevronRight className="h-5 w-5 text-muted-foreground" />
-                              </div>
-                            </div>
-
-                            {/* Tracking Info */}
-                            {order.status === 'shipped' && trackingNumber && (
-                              <div className="mt-4 pt-4 border-t flex items-center gap-2 text-sm">
-                                <Truck className="h-4 w-4 text-purple-600" />
-                                <span className="text-muted-foreground">Rastreo:</span>
-                                <span className="font-medium text-purple-600">{trackingNumber}</span>
-                                {carrier && <span className="text-muted-foreground">({carrier})</span>}
-                              </div>
-                            )}
-                          </CardContent>
-                        </Card>
-                      );
-                    })
-                  ) : null}
-                </div>
               </TabsContent>
 
               {/* Mi Tienda Tab */}
