@@ -806,14 +806,22 @@ const SellerMisComprasPage = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Item Detail Modal */}
+      {/* Item Detail Modal - Shows all variants of the same product */}
       <Dialog open={!!selectedItem} onOpenChange={(open) => !open && setSelectedItem(null)}>
-        <DialogContent className="max-w-md">
-          {selectedItem && (() => {
-            const skuParts = selectedItem.sku?.split('-') || [];
-            const skuBase = skuParts[0] || selectedItem.sku;
-            const color = skuParts[1] || null;
-            const size = skuParts[2] || null;
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          {selectedItem && selectedOrder && (() => {
+            // Get the base SKU (first part before variants)
+            const selectedSkuBase = selectedItem.sku?.split('-')[0] || selectedItem.sku;
+            
+            // Find all items with the same base SKU (same product, different variants)
+            const allVariants = selectedOrder.order_items_b2b?.filter(item => {
+              const itemSkuBase = item.sku?.split('-')[0] || item.sku;
+              return itemSkuBase === selectedSkuBase;
+            }) || [selectedItem];
+            
+            // Calculate totals for all variants
+            const totalQuantity = allVariants.reduce((sum, item) => sum + item.cantidad, 0);
+            const totalSubtotal = allVariants.reduce((sum, item) => sum + item.subtotal, 0);
             
             return (
               <>
@@ -823,7 +831,7 @@ const SellerMisComprasPage = () => {
                 
                 <div className="space-y-4">
                   {/* Product Image - Large */}
-                  <div className="aspect-square w-full max-w-[280px] mx-auto rounded-lg bg-muted overflow-hidden">
+                  <div className="aspect-square w-full max-w-[200px] mx-auto rounded-lg bg-muted overflow-hidden">
                     {selectedItem.image ? (
                       <img 
                         src={selectedItem.image} 
@@ -838,40 +846,65 @@ const SellerMisComprasPage = () => {
                   </div>
                   
                   {/* Product Name */}
-                  <div>
+                  <div className="text-center">
                     <h3 className="font-semibold text-base leading-tight">{selectedItem.nombre}</h3>
-                    <p className="text-xs text-muted-foreground mt-1">SKU: {skuBase}</p>
+                    <p className="text-xs text-muted-foreground mt-1">SKU Base: {selectedSkuBase}</p>
                   </div>
                   
-                  {/* Variant Details */}
-                  <div className="grid grid-cols-2 gap-3">
-                    {color && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground mb-1">Color</p>
-                        <p className="font-semibold capitalize">{color}</p>
-                      </div>
-                    )}
-                    {size && (
-                      <div className="bg-muted/50 rounded-lg p-3">
-                        <p className="text-xs text-muted-foreground mb-1">Talla</p>
-                        <p className="font-semibold uppercase">{size}</p>
-                      </div>
-                    )}
+                  {/* All Variants Purchased */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-sm text-muted-foreground uppercase tracking-wide">
+                      Variantes Compradas ({allVariants.length})
+                    </h4>
+                    <div className="space-y-2 max-h-48 overflow-y-auto">
+                      {allVariants.map((variant) => {
+                        const skuParts = variant.sku?.split('-') || [];
+                        const color = skuParts[1] || null;
+                        const size = skuParts[2] || null;
+                        
+                        return (
+                          <div 
+                            key={variant.id} 
+                            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+                          >
+                            <div className="flex items-center gap-2">
+                              {color && (
+                                <span className="bg-primary/10 text-primary px-2 py-1 rounded text-xs font-medium capitalize">
+                                  {color}
+                                </span>
+                              )}
+                              {size && (
+                                <span className="bg-secondary/50 px-2 py-1 rounded text-xs font-medium uppercase">
+                                  {size}
+                                </span>
+                              )}
+                              {!color && !size && (
+                                <span className="text-xs text-muted-foreground">Sin variantes</span>
+                              )}
+                            </div>
+                            <div className="text-right">
+                              <p className="font-semibold text-sm">{variant.cantidad} uds</p>
+                              <p className="text-xs text-muted-foreground">${variant.precio_unitario.toFixed(2)} c/u</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
                   </div>
                   
-                  {/* Quantity and Price */}
+                  {/* Totals */}
                   <div className="border-t pt-4 space-y-2">
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Cantidad comprada</span>
-                      <span className="font-semibold text-lg">{selectedItem.cantidad} unidades</span>
+                      <span className="text-muted-foreground">Total variantes</span>
+                      <span className="font-medium">{allVariants.length}</span>
                     </div>
                     <div className="flex justify-between items-center">
-                      <span className="text-muted-foreground">Precio unitario</span>
-                      <span className="font-medium">${selectedItem.precio_unitario.toFixed(2)}</span>
+                      <span className="text-muted-foreground">Total unidades</span>
+                      <span className="font-semibold text-lg">{totalQuantity} uds</span>
                     </div>
                     <div className="flex justify-between items-center text-lg">
                       <span className="font-semibold">Subtotal</span>
-                      <span className="font-bold text-primary">${selectedItem.subtotal.toFixed(2)}</span>
+                      <span className="font-bold text-primary">${totalSubtotal.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
