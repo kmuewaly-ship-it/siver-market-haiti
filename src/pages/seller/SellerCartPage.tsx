@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -11,7 +11,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info } from "lucide-react";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 import { useB2BCartProductTotals } from "@/hooks/useB2BCartProductTotals";
@@ -20,6 +20,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { useCartSelectionStore } from "@/stores/useCartSelectionStore";
+import { Checkbox } from "@/components/ui/checkbox";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
@@ -31,17 +33,40 @@ const SellerCartPage = () => {
   const [showRemoveItemDialog, setShowRemoveItemDialog] = useState(false);
   const [itemToRemove, setItemToRemove] = useState<{ id: string; name: string } | null>(null);
 
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
-  const totalQuantity = items.reduce((sum, item) => sum + item.cantidad, 0);
+  // Cart selection store
+  const { 
+    b2bSelectedIds, 
+    toggleB2BItem, 
+    selectAllB2B, 
+    deselectAllB2B, 
+    isB2BItemSelected 
+  } = useCartSelectionStore();
 
-  // Calculate profit analysis
+  // Auto-select all items when cart loads for the first time
+  useEffect(() => {
+    if (items.length > 0 && b2bSelectedIds.size === 0) {
+      selectAllB2B(items.map(i => i.id));
+    }
+  }, [items, b2bSelectedIds.size, selectAllB2B]);
+
+  // Calculate totals based on selected items
+  const selectedItems = useMemo(() => 
+    items.filter(item => b2bSelectedIds.has(item.id)), 
+    [items, b2bSelectedIds]
+  );
+  const subtotal = selectedItems.reduce((sum, item) => sum + item.subtotal, 0);
+  const totalQuantity = selectedItems.reduce((sum, item) => sum + item.cantidad, 0);
+  const allSelected = items.length > 0 && items.every(item => b2bSelectedIds.has(item.id));
+  const someSelected = selectedItems.length > 0;
+
+  // Calculate profit analysis for SELECTED items only
   const profitAnalysis = useMemo(() => {
     let totalInversion = 0; // Total cost (precio B2B * cantidad)
     let totalVenta = 0;      // Total retail (precio de venta * cantidad)
     let ganancia = 0;        // Profit (totalVenta - totalInversion)
     let margen = 0;          // Profit margin percentage
 
-    items.forEach(item => {
+    selectedItems.forEach(item => {
       const costoItem = item.precioB2B * item.cantidad;
       const precioVenta = item.precioVenta || item.precioB2B; // Fallback to B2B price if no retail price
       const ventaItem = precioVenta * item.cantidad;
@@ -59,7 +84,7 @@ const SellerCartPage = () => {
       ganancia: ganancia,
       margen: margen
     };
-  }, [items]);
+  }, [selectedItems]);
 
   // Get unique payment methods - Default to Tarjetas, Transferencia, MonCash, NatCash
   const paymentMethods = useMemo(() => {
@@ -275,18 +300,48 @@ const SellerCartPage = () => {
 
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
                   <div className="p-4 bg-gray-50 border-b border-gray-200">
-                    <h2 className="font-bold text-lg text-gray-900">Productos ({items.length})</h2>
-                    <p className="text-xs text-gray-600 mt-1">Cantidad: {totalQuantity}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Checkbox 
+                          checked={allSelected} 
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              selectAllB2B(items.map(i => i.id));
+                            } else {
+                              deselectAllB2B();
+                            }
+                          }}
+                          className="data-[state=checked]:bg-[#071d7f] data-[state=checked]:border-[#071d7f]"
+                        />
+                        <h2 className="font-bold text-lg text-gray-900">Productos ({items.length})</h2>
+                      </div>
+                      <span className="text-sm text-gray-600">
+                        {selectedItems.length} de {items.length} seleccionados
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1 ml-7">Cantidad seleccionada: {totalQuantity}</p>
                   </div>
 
                   <div className="p-3 space-y-2">
-                    {items.map((item) => (
+                    {items.map((item) => {
+                      const isSelected = b2bSelectedIds.has(item.id);
+                      return (
                       <div
                         key={item.id}
-                        onClick={() => navigate(`/producto/${item.sku}`)}
-                        className="border border-gray-200 rounded-lg p-3 hover:shadow-md transition bg-white cursor-pointer"
+                        className={`border rounded-lg p-3 hover:shadow-md transition bg-white cursor-pointer ${
+                          isSelected ? 'border-[#071d7f] bg-blue-50/30' : 'border-gray-200'
+                        }`}
                       >
                         <div className="flex gap-3">
+                          {/* Checkbox */}
+                          <div className="flex items-center">
+                            <Checkbox 
+                              checked={isSelected}
+                              onCheckedChange={() => toggleB2BItem(item.id)}
+                              onClick={(e) => e.stopPropagation()}
+                              className="data-[state=checked]:bg-[#071d7f] data-[state=checked]:border-[#071d7f]"
+                            />
+                          </div>
                           {/* Product Image */}
                           <div className="w-18 h-18 flex-shrink-0 rounded-md bg-muted overflow-hidden" style={{ width: '72px', height: '72px' }}>
                             {item.image ? (
@@ -362,7 +417,8 @@ const SellerCartPage = () => {
                           </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -530,7 +586,7 @@ const SellerCartPage = () => {
                         <MessageCircle className="w-5 h-5" style={{ color: '#29892a' }} />
                         WhatsApp
                       </button>
-                      {isCartValid ? (
+                      {isCartValid && someSelected ? (
                         <Link
                           to="/seller/checkout"
                           className="px-6 py-3 rounded-lg font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
@@ -546,7 +602,7 @@ const SellerCartPage = () => {
                           style={{ backgroundColor: '#071d7f' }}
                         >
                           <ShoppingCart className="w-5 h-5" />
-                          Comprar ({totalQuantity})
+                          {!someSelected ? 'Selecciona productos' : `Comprar (${totalQuantity})`}
                         </button>
                       )}
                     </div>
@@ -560,14 +616,45 @@ const SellerCartPage = () => {
               {/* Items */}
               {items.length > 0 && (
                 <div className="border border-gray-200 rounded-lg overflow-hidden">
+                  {/* Selection Header Mobile */}
+                  <div className="p-2 bg-gray-50 border-b border-gray-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Checkbox 
+                        checked={allSelected} 
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            selectAllB2B(items.map(i => i.id));
+                          } else {
+                            deselectAllB2B();
+                          }
+                        }}
+                        className="data-[state=checked]:bg-[#071d7f] data-[state=checked]:border-[#071d7f]"
+                      />
+                      <span className="text-sm font-medium text-gray-700">Seleccionar todos</span>
+                    </div>
+                    <span className="text-xs text-gray-500">
+                      {selectedItems.length}/{items.length}
+                    </span>
+                  </div>
                   <div className="p-1 space-y-0 bg-white" style={{ backgroundColor: '#d9d9d9' }}>
-                    {items.map((item) => (
+                    {items.map((item) => {
+                      const isSelected = b2bSelectedIds.has(item.id);
+                      return (
                       <div
                         key={item.id}
-                        onClick={() => navigate(`/producto/${item.sku}`)}
-                        className="border-b border-gray-200 last:border-b-0 p-1 hover:bg-gray-100 transition flex gap-2 cursor-pointer"
-                        style={{ backgroundColor: 'white' }}
+                        className={`border-b border-gray-200 last:border-b-0 p-1 hover:bg-gray-100 transition flex gap-2 ${
+                          isSelected ? 'bg-blue-50' : 'bg-white'
+                        }`}
                       >
+                        {/* Checkbox */}
+                        <div className="flex items-center pl-1">
+                          <Checkbox 
+                            checked={isSelected}
+                            onCheckedChange={() => toggleB2BItem(item.id)}
+                            onClick={(e) => e.stopPropagation()}
+                            className="data-[state=checked]:bg-[#071d7f] data-[state=checked]:border-[#071d7f]"
+                          />
+                        </div>
                         {/* Product Image */}
                         <div className="flex-shrink-0 rounded-md bg-muted overflow-hidden" style={{ width: '70px', height: '70px' }}>
                           {item.image ? (
@@ -641,7 +728,8 @@ const SellerCartPage = () => {
                             </div>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 </div>
               )}
@@ -673,7 +761,7 @@ const SellerCartPage = () => {
                 </button>
 
                 {/* Botón Comprar B2B */}
-                {isCartValid ? (
+                {isCartValid && someSelected ? (
                   <Link
                     to="/seller/checkout"
                     className="px-4 py-2 rounded-lg font-semibold text-sm transition shadow-lg hover:opacity-90 flex items-center justify-center gap-1.5 text-white"
@@ -689,7 +777,7 @@ const SellerCartPage = () => {
                     style={{ backgroundColor: '#071d7f' }}
                   >
                     <ShoppingCart className="w-4 h-4" />
-                    Comprar B2B ({totalQuantity})
+                    {!someSelected ? 'Selecciona' : `Comprar (${totalQuantity})`}
                   </button>
                 )}
               </div>
