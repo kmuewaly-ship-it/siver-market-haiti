@@ -108,6 +108,7 @@ export const useBuyerOrder = (orderId: string) => {
 };
 
 // Hook for B2B orders where seller is the buyer (seller purchases from other sellers)
+// This includes orders where user is buyer_id OR seller_id (for B2B self-purchases)
 export const useBuyerB2BOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
   const { user } = useAuth();
 
@@ -116,6 +117,8 @@ export const useBuyerB2BOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
     queryFn: async () => {
       if (!user?.id) return [];
 
+      // Get orders where user is the buyer OR the seller (for B2B purchases)
+      // Using OR filter for buyer_id and seller_id
       const { data, error } = await supabase
         .from('orders_b2b')
         .select(`
@@ -123,8 +126,8 @@ export const useBuyerB2BOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
           order_items_b2b (*),
           seller_profile:profiles!orders_b2b_seller_id_fkey (full_name, email)
         `)
-        .eq('buyer_id', user.id)
-        .filter('metadata->order_type', 'eq', 'b2b')
+        .or(`buyer_id.eq.${user.id},seller_id.eq.${user.id}`)
+        .neq('status', 'draft') // Exclude drafts
         .order('created_at', { ascending: false });
 
       if (error) throw error;
