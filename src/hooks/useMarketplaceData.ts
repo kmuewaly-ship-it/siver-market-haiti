@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useSectionSetting } from "./useMarketplaceSectionSettings";
 
 // Types
 export interface MarketplaceProduct {
@@ -69,10 +70,16 @@ const transformProduct = (item: any): MarketplaceProduct => {
 /**
  * Hook para productos destacados - productos con mayor stock o más recientes
  */
-export const useFeaturedProducts = (limit = 10) => {
+export const useFeaturedProducts = (defaultLimit = 10) => {
+  const { data: sectionConfig } = useSectionSetting('featured_products');
+  const limit = sectionConfig?.item_limit ?? defaultLimit;
+  const isEnabled = sectionConfig?.is_enabled ?? true;
+
   return useQuery({
-    queryKey: ["marketplace-featured", limit],
+    queryKey: ["marketplace-featured", limit, isEnabled],
     queryFn: async (): Promise<MarketplaceProduct[]> => {
+      if (!isEnabled) return [];
+
       const { data, error } = await supabase
         .from("seller_catalog")
         .select(`
@@ -103,12 +110,16 @@ export const useFeaturedProducts = (limit = 10) => {
 /**
  * Hook para productos más vendidos - basado en órdenes B2C completadas
  */
-export const useBestSellers = (limit = 10) => {
+export const useBestSellers = (defaultLimit = 10) => {
+  const { data: sectionConfig } = useSectionSetting('best_sellers');
+  const limit = sectionConfig?.item_limit ?? defaultLimit;
+  const isEnabled = sectionConfig?.is_enabled ?? true;
+
   return useQuery({
-    queryKey: ["marketplace-bestsellers", limit],
+    queryKey: ["marketplace-bestsellers", limit, isEnabled],
     queryFn: async (): Promise<MarketplaceProduct[]> => {
-      // First try to get products from b2c_cart_items with completed orders
-      // If no sales data, fallback to products with highest stock (popular items)
+      if (!isEnabled) return [];
+
       const { data: catalogData, error } = await supabase
         .from("seller_catalog")
         .select(`
@@ -138,10 +149,16 @@ export const useBestSellers = (limit = 10) => {
 /**
  * Hook para productos nuevos - los más recientes
  */
-export const useNewArrivals = (limit = 10) => {
+export const useNewArrivals = (defaultLimit = 10) => {
+  const { data: sectionConfig } = useSectionSetting('new_arrivals');
+  const limit = sectionConfig?.item_limit ?? defaultLimit;
+  const isEnabled = sectionConfig?.is_enabled ?? true;
+
   return useQuery({
-    queryKey: ["marketplace-new-arrivals", limit],
+    queryKey: ["marketplace-new-arrivals", limit, isEnabled],
     queryFn: async (): Promise<MarketplaceProduct[]> => {
+      if (!isEnabled) return [];
+
       const { data, error } = await supabase
         .from("seller_catalog")
         .select(`
@@ -169,12 +186,18 @@ export const useNewArrivals = (limit = 10) => {
 };
 
 /**
- * Hook para ofertas - productos con descuento (precio_costo > precio_venta)
+ * Hook para ofertas - productos con descuento
  */
-export const useDeals = (limit = 10) => {
+export const useDeals = (defaultLimit = 10) => {
+  const { data: sectionConfig } = useSectionSetting('deals');
+  const limit = sectionConfig?.item_limit ?? defaultLimit;
+  const isEnabled = sectionConfig?.is_enabled ?? true;
+
   return useQuery({
-    queryKey: ["marketplace-deals", limit],
+    queryKey: ["marketplace-deals", limit, isEnabled],
     queryFn: async (): Promise<MarketplaceProduct[]> => {
+      if (!isEnabled) return [];
+
       const { data, error } = await supabase
         .from("seller_catalog")
         .select(`
@@ -195,7 +218,6 @@ export const useDeals = (limit = 10) => {
         return [];
       }
 
-      // Filter to show products with lower price as "deals"
       return (data || []).map(transformProduct);
     },
     staleTime: 5 * 60 * 1000,
@@ -205,10 +227,15 @@ export const useDeals = (limit = 10) => {
 /**
  * Hook para tiendas destacadas
  */
-export const useTopStores = (limit = 6) => {
+export const useTopStores = (defaultLimit = 6) => {
+  const { data: sectionConfig } = useSectionSetting('top_stores');
+  const limit = sectionConfig?.item_limit ?? defaultLimit;
+  const isEnabled = sectionConfig?.is_enabled ?? true;
   return useQuery({
-    queryKey: ["marketplace-top-stores", limit],
+    queryKey: ["marketplace-top-stores", limit, isEnabled],
     queryFn: async (): Promise<TopStore[]> => {
+      if (!isEnabled) return [];
+
       const { data, error } = await supabase
         .from("stores")
         .select(`

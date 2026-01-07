@@ -1349,6 +1349,51 @@ export type Database = {
         }
         Relationships: []
       }
+      marketplace_section_settings: {
+        Row: {
+          created_at: string
+          custom_config: Json | null
+          description: string | null
+          display_mode: string | null
+          id: string
+          is_enabled: boolean
+          item_limit: number
+          section_key: string
+          sort_order: number
+          target_audience: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          custom_config?: Json | null
+          description?: string | null
+          display_mode?: string | null
+          id?: string
+          is_enabled?: boolean
+          item_limit?: number
+          section_key: string
+          sort_order?: number
+          target_audience?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          custom_config?: Json | null
+          description?: string | null
+          display_mode?: string | null
+          id?: string
+          is_enabled?: boolean
+          item_limit?: number
+          section_key?: string
+          sort_order?: number
+          target_audience?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       master_purchase_orders: {
         Row: {
           arrived_hub_at: string | null
