@@ -2,8 +2,6 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
-export type IntegrationMode = 'manual' | 'automatic';
-
 export interface PaymentMethod {
   id: string;
   owner_type: 'admin' | 'seller' | 'store';
@@ -11,7 +9,9 @@ export interface PaymentMethod {
   method_type: 'bank' | 'moncash' | 'natcash' | 'stripe';
   is_active: boolean;
   display_name: string | null;
-  integration_mode: IntegrationMode;
+  // Dual mode support - admin can enable both modes
+  manual_enabled: boolean;
+  automatic_enabled: boolean;
   // Bank fields
   bank_name: string | null;
   account_type: string | null;
@@ -21,7 +21,7 @@ export interface PaymentMethod {
   // Mobile money fields
   phone_number: string | null;
   holder_name: string | null;
-  // Metadata for API credentials when integration_mode = 'automatic'
+  // Metadata for API credentials when automatic_enabled = true
   // For MonCash: { client_id, client_secret, business_key }
   // For NatCash: { api_key, api_secret }
   metadata: Record<string, unknown>;
@@ -33,7 +33,8 @@ export interface PaymentMethodInput {
   method_type: 'bank' | 'moncash' | 'natcash' | 'stripe';
   is_active?: boolean;
   display_name?: string;
-  integration_mode?: IntegrationMode;
+  manual_enabled?: boolean;
+  automatic_enabled?: boolean;
   bank_name?: string;
   account_type?: string;
   account_number?: string;
@@ -90,7 +91,8 @@ export const usePaymentMethods = (ownerType: 'admin' | 'seller' | 'store', owner
         method_type: input.method_type,
         is_active: input.is_active,
         display_name: input.display_name,
-        integration_mode: input.integration_mode,
+        manual_enabled: input.manual_enabled,
+        automatic_enabled: input.automatic_enabled,
         bank_name: input.bank_name,
         account_type: input.account_type,
         account_number: input.account_number,
@@ -247,6 +249,43 @@ export const useStorePaymentMethodsReadOnly = (storeId?: string) => {
 
     fetchMethods();
   }, [storeId]);
+
+  return {
+    methods,
+    isLoading,
+    bankMethod: methods.find(m => m.method_type === 'bank'),
+    moncashMethod: methods.find(m => m.method_type === 'moncash'),
+    natcashMethod: methods.find(m => m.method_type === 'natcash'),
+  };
+};
+
+// Hook to fetch admin payment methods for checkout (read-only)
+export const useAdminPaymentMethodsReadOnly = () => {
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMethods = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('payment_methods')
+          .select('*')
+          .eq('owner_type', 'admin')
+          .is('owner_id', null)
+          .eq('is_active', true);
+
+        if (error) throw error;
+        setMethods((data || []) as PaymentMethod[]);
+      } catch (err) {
+        console.error('Error fetching admin payment methods:', err);
+        setMethods([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMethods();
+  }, []);
 
   return {
     methods,
