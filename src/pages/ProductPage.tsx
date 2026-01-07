@@ -11,6 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { useStore } from '@/hooks/useStore';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProductVariants } from "@/hooks/useProductVariants";
+import { useRecommendedProducts } from "@/hooks/useMarketplaceData";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 import VariantSelector from "@/components/products/VariantSelector";
@@ -18,6 +19,7 @@ import VariantDrawer from '@/components/products/VariantDrawer';
 import { ProductBottomSheet } from '@/components/products/ProductBottomSheet';
 import useVariantDrawerStore from '@/stores/useVariantDrawerStore';
 import ProductReviews from "@/components/products/ProductReviews";
+import ProductCarousel from "@/components/landing/ProductCarousel";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -230,6 +232,14 @@ const ProductPage = () => {
   const {
     data: storeData
   } = useStore((product as any)?.store?.id);
+
+  // Fetch recommended products based on current product's category
+  const categoryId = product?.source_product?.categoria_id || null;
+  const { data: recommendedProducts = [], isLoading: loadingRecommended } = useRecommendedProducts(
+    product?.id || null,
+    categoryId,
+    8
+  );
 
   // Local state
   const [selectedImage, setSelectedImage] = useState(0);
@@ -1066,8 +1076,35 @@ const ProductPage = () => {
 
         {/* Recomendados - Full Width */}
         <div id="section-recs" ref={recsRef} className="mt-12 pt-8 border-t border-gray-200 scroll-mt-20">
-          <h3 className="text-2xl font-bold text-gray-900 mb-6">Recomendados</h3>
-          <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-400">Sin productos recomendados.</div>
+          {loadingRecommended ? (
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-gray-900">Recomendados</h3>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {Array.from({ length: 4 }).map((_, i) => (
+                  <div key={i} className="bg-card rounded-lg overflow-hidden">
+                    <Skeleton className="aspect-square w-full" />
+                    <div className="p-3 space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-2/3" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : recommendedProducts.length > 0 ? (
+            <ProductCarousel
+              title="Recomendados"
+              products={recommendedProducts}
+              itemsPerView={4}
+            />
+          ) : (
+            <div className="space-y-4">
+              <h3 className="text-2xl font-bold text-gray-900">Recomendados</h3>
+              <div className="bg-gray-50 border rounded-lg p-6 text-center text-gray-400">
+                No hay productos recomendados disponibles.
+              </div>
+            </div>
+          )}
         </div>
       </main>
 
