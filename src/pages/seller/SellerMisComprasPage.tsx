@@ -17,7 +17,7 @@ import { useOrdersPOInfo, OrderPOInfo } from '@/hooks/useOrderPOInfo';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { generateThermalLabelPDF, generateInvoicePDF } from '@/services/pdfGenerators';
+import { generateInvoicePDF } from '@/services/pdfGenerators';
 import { 
   Package, 
   Clock, 
@@ -39,7 +39,7 @@ import {
   ChevronRight,
   Printer,
   FileText,
-  Tag,
+  
   Boxes,
   Ship,
   Plane,
@@ -163,23 +163,7 @@ const SellerMisComprasPage = () => {
     };
   }, [user?.id, queryClient]);
 
-  // PDF Generation handlers
-  const handlePrintThermalLabel = (order: BuyerOrder) => {
-    const shippingAddress = order.metadata?.shipping_address || {};
-    const hybridId = order.metadata?.hybrid_tracking_id || 
-      `OU-PAP-HUB-${order.total_quantity}-${order.id.slice(0, 8).toUpperCase()}`;
-    
-    generateThermalLabelPDF({
-      hybridTrackingId: hybridId,
-      customerName: user?.name || shippingAddress.full_name || 'Cliente B2B',
-      customerPhone: shippingAddress.phone || user?.email || '',
-      commune: shippingAddress.commune || 'N/A',
-      department: shippingAddress.department || 'N/A',
-      unitCount: order.total_quantity || 1,
-    });
-    
-    toast.success('Etiqueta generada', { description: 'Preparando impresión...' });
-  };
+  // PDF Generation handler - Invoice only (sellers don't need shipping labels for their purchases)
 
   const handlePrintInvoice = (order: BuyerOrder) => {
     const shippingAddress = order.metadata?.shipping_address || {};
@@ -200,6 +184,7 @@ const SellerMisComprasPage = () => {
         subtotal: item.subtotal,
         color: item.sku?.split('-')[1],
         size: item.sku?.split('-')[2],
+        image: item.image || undefined,
       })),
       total_amount: order.total_amount,
       payment_method: order.payment_method || 'N/A',
@@ -678,16 +663,7 @@ const SellerMisComprasPage = () => {
                       <Printer className="h-4 w-4" />
                       Documentos
                     </h4>
-                    <div className="grid grid-cols-2 gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handlePrintThermalLabel(selectedOrder)}
-                        className="flex items-center gap-2"
-                      >
-                        <Tag className="h-4 w-4" />
-                        Etiqueta 4x6
-                      </Button>
+                    <div className="flex justify-end">
                       <Button
                         variant="outline"
                         size="sm"
@@ -695,7 +671,7 @@ const SellerMisComprasPage = () => {
                         className="flex items-center gap-2"
                       >
                         <FileText className="h-4 w-4" />
-                        Factura
+                        Factura de Compra
                       </Button>
                     </div>
                   </div>
