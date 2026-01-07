@@ -370,11 +370,11 @@ const SellerMisComprasPage = () => {
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="font-semibold text-sm md:text-base">#{order.id.slice(0, 6).toUpperCase()}</span>
+                          <div className="flex items-center gap-1 flex-wrap">
+                            <span className="font-semibold text-[11px] md:text-base">#{order.id.slice(0, 6).toUpperCase()}</span>
                             {getStatusBadge(order.status)}
                           </div>
-                          <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                          <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 line-clamp-1">
                             {order.order_items_b2b?.length || 0} prod. • {order.total_quantity} uds
                             {poInfo && ` • PO: ${poInfo.po_number}`}
                           </p>
@@ -382,9 +382,9 @@ const SellerMisComprasPage = () => {
                       </div>
                       
                       <div className="flex items-center gap-2 shrink-0">
-                        <div className="text-right">
-                          <p className="font-bold text-sm md:text-lg">${order.total_amount.toLocaleString()}</p>
-                          <p className="text-xs text-muted-foreground hidden md:block">{order.currency}</p>
+                        <div className="text-right hidden md:block">
+                          <p className="font-bold text-lg">${order.total_amount.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">{order.currency}</p>
                         </div>
                         <ChevronRight className="h-4 w-4 md:h-5 md:w-5 text-muted-foreground" />
                       </div>
