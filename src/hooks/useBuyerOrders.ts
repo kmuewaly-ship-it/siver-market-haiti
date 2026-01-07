@@ -56,7 +56,9 @@ export const useBuyerOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      let query = supabase
+      // Get all B2C orders (both from seller_id perspective and buyer_id perspective)
+      // This ensures we get orders where user is the buyer
+      const { data, error } = await supabase
         .from('orders_b2b')
         .select(`
           *,
@@ -64,15 +66,18 @@ export const useBuyerOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
           seller_profile:profiles!orders_b2b_seller_id_fkey (full_name, email)
         `)
         .eq('buyer_id', user.id)
+        .filter('metadata->order_type', 'eq', 'b2c')
         .order('created_at', { ascending: false });
 
+      if (error) throw error;
+
+      let filteredData = data as BuyerOrder[];
+
       if (statusFilter && statusFilter !== 'all') {
-        query = query.eq('status', statusFilter);
+        filteredData = filteredData.filter(order => order.status === statusFilter);
       }
 
-      const { data, error } = await query;
-      if (error) throw error;
-      return data as BuyerOrder[];
+      return filteredData;
     },
     enabled: !!user?.id,
   });
@@ -95,12 +100,47 @@ export const useBuyerOrder = (orderId: string) => {
         `)
         .eq('id', orderId)
         .eq('buyer_id', user.id)
+        .filter('metadata->order_type', 'eq', 'b2c')
         .single();
 
       if (error) throw error;
       return data as BuyerOrder;
     },
     enabled: !!user?.id && !!orderId,
+  });
+};
+
+// Hook for B2B orders where seller is the buyer (seller purchases from other sellers)
+export const useBuyerB2BOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
+  const { user } = useAuth();
+
+  return useQuery({
+    queryKey: ['buyer-b2b-orders', user?.id, statusFilter],
+    queryFn: async () => {
+      if (!user?.id) return [];
+
+      const { data, error } = await supabase
+        .from('orders_b2b')
+        .select(`
+          *,
+          order_items_b2b (*),
+          seller_profile:profiles!orders_b2b_seller_id_fkey (full_name, email)
+        `)
+        .eq('buyer_id', user.id)
+        .filter('metadata->order_type', 'eq', 'b2b')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+
+      let filteredData = data as BuyerOrder[];
+
+      if (statusFilter && statusFilter !== 'all') {
+        filteredData = filteredData.filter(order => order.status === statusFilter);
+      }
+
+      return filteredData;
+    },
+    enabled: !!user?.id,
   });
 };
 

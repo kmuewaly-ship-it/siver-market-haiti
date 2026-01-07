@@ -139,6 +139,9 @@ const SellerCheckout = () => {
       // Create metadata object
       const metadata: Record<string, any> = {};
       
+      // Mark this as a B2B order
+      metadata.order_type = 'b2b';
+      
       if (shippingAddress) {
         metadata.shipping_address = shippingAddress;
       }
@@ -155,14 +158,21 @@ const SellerCheckout = () => {
       const orderSubtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
       const orderTotalQuantity = items.reduce((sum, item) => sum + item.cantidad, 0);
       
+      // Determine payment_status based on payment method
+      const paymentStatus = paymentMethod === 'stripe' 
+        ? 'pending' 
+        : 'pending_validation';
+      
       const { data: order, error: orderError } = await supabase
         .from('orders_b2b')
         .insert({
           seller_id: user.id,
+          buyer_id: user.id,
           total_amount: orderSubtotal,
           total_quantity: orderTotalQuantity,
           payment_method: paymentMethod,
-          status: 'draft',
+          payment_status: paymentStatus,
+          status: 'placed',
           currency: 'USD',
           metadata: Object.keys(metadata).length > 0 ? metadata : null,
         })
@@ -209,9 +219,11 @@ const SellerCheckout = () => {
     postal_code: '',
     country: 'Haití',
     notes: '',
-    department_id: '',
-    commune_id: '',
   });
+  
+  // Separate state for department/commune selection (not saved to addresses table)
+  const [selectedDept, setSelectedDept] = useState('');
+  const [selectedComm, setSelectedComm] = useState('');
 
   // Get logistics engine for departments/communes
   const logisticsEngine = useLogisticsEngine();
@@ -221,7 +233,7 @@ const SellerCheckout = () => {
   const departments = departmentsQuery.data || [];
   
   // Get communes based on selected department - always call the hook
-  const communesQuery = logisticsEngine.useCommunes(newAddress.department_id || undefined);
+  const communesQuery = logisticsEngine.useCommunes(selectedDept || undefined);
   const communes = communesQuery.data || [];
 
   // Set default address on load
@@ -310,9 +322,9 @@ const SellerCheckout = () => {
         postal_code: '',
         country: 'Haití',
         notes: '',
-        department_id: '',
-        commune_id: '',
       });
+      setSelectedDept('');
+      setSelectedComm('');
     } catch (error) {
       console.error('Error creating address:', error);
     }
@@ -500,10 +512,13 @@ const SellerCheckout = () => {
 
       // Handle payment completion based on method
       if (paymentMethod === 'stripe') {
-        // For Stripe, mark order as paid
+        // For Stripe, mark order as paid (payment confirmed immediately)
         const { error: updateError } = await supabase
           .from('orders_b2b')
-          .update({ status: 'paid' })
+          .update({ 
+            payment_status: 'paid',
+            status: 'paid'
+          })
           .eq('id', order.id);
         
         if (!updateError) {
@@ -512,7 +527,7 @@ const SellerCheckout = () => {
             : 'Pago procesado correctamente');
         }
       } else {
-        // For MonCash/Transfer, order stays pending until admin verifies
+        // For MonCash/Transfer, order stays pending_validation until admin verifies and updates payment_status
         toast.success(useSiverCredit && creditAmount > 0
           ? 'Pedido creado con crédito aplicado. Pago restante pendiente de verificación.'
           : 'Pedido creado. Pendiente de verificación de pago.');
@@ -787,13 +802,13 @@ const SellerCheckout = () => {
                         <Label htmlFor="address_department">Departamento *</Label>
                         <select
                           id="address_department"
-                          value={newAddress.department_id}
+                          value={selectedDept}
                           onChange={(e) => {
                             const deptId = e.target.value;
+                            setSelectedDept(deptId);
+                            setSelectedComm(''); // Reset commune when department changes
                             setNewAddress({ 
-                              ...newAddress, 
-                              department_id: deptId,
-                              commune_id: '', // Reset commune when department changes
+                              ...newAddress,
                               state: departments.find(d => d.id === deptId)?.name || ''
                             });
                           }}
@@ -811,16 +826,16 @@ const SellerCheckout = () => {
                         <Label htmlFor="address_city">Comuna *</Label>
                         <select
                           id="address_city"
-                          value={newAddress.commune_id}
+                          value={selectedComm}
                           onChange={(e) => {
                             const commId = e.target.value;
+                            setSelectedComm(commId);
                             setNewAddress({
                               ...newAddress,
-                              commune_id: commId,
                               city: communes.find(c => c.id === commId)?.name || ''
                             });
                           }}
-                          disabled={!newAddress.department_id}
+                          disabled={!selectedDept}
                           className="w-full px-3 py-2 border border-border rounded-md bg-background disabled:opacity-50"
                         >
                           <option value="">Seleccionar comuna...</option>

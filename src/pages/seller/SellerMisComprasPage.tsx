@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
-import { useBuyerOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from '@/hooks/useBuyerOrders';
+import { useBuyerB2BOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from '@/hooks/useBuyerOrders';
 import { usePackageTracking } from '@/hooks/usePackageTracking';
 import { TrackingWidget } from '@/components/tracking/TrackingWidget';
 import { supabase } from '@/integrations/supabase/client';
@@ -77,7 +77,7 @@ const SellerMisComprasPage = () => {
   const [cancelReason, setCancelReason] = useState('');
   const [requestRefund, setRequestRefund] = useState(false);
 
-  const { data: orders, isLoading } = useBuyerOrders(statusFilter === 'all' ? undefined : statusFilter);
+  const { data: orders, isLoading } = useBuyerB2BOrders(statusFilter === 'all' ? undefined : statusFilter);
   const cancelOrder = useCancelBuyerOrder();
   
   // Package tracking
@@ -102,8 +102,8 @@ const SellerMisComprasPage = () => {
         (payload) => {
           console.log('B2B Order update received:', payload);
           
-          // Invalidate queries to refetch data
-          queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+          // Invalidate queries to refetch data with specific key matching
+          queryClient.invalidateQueries({ queryKey: ['buyer-b2b-orders', user?.id] });
           
           // Show toast for important updates
           if (payload.eventType === 'UPDATE' && payload.new) {
