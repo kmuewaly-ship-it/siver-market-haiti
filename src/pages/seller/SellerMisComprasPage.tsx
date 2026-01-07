@@ -297,13 +297,13 @@ const SellerMisComprasPage = () => {
         <Card className="bg-card border-border">
           <CardContent className="pt-6">
             <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as BuyerOrderStatus | 'all')}>
-              <TabsList className="grid grid-cols-4 md:grid-cols-7 gap-1">
-                <TabsTrigger value="all" className="text-xs">Todos</TabsTrigger>
-                <TabsTrigger value="placed" className="text-xs">Pendientes</TabsTrigger>
-                <TabsTrigger value="paid" className="text-xs">Pagados</TabsTrigger>
-                <TabsTrigger value="shipped" className="text-xs">En Camino</TabsTrigger>
-                <TabsTrigger value="delivered" className="text-xs hidden md:block">Entregados</TabsTrigger>
-                <TabsTrigger value="cancelled" className="text-xs hidden md:block">Cancelados</TabsTrigger>
+              <TabsList className="flex w-full overflow-x-auto gap-1 justify-start">
+                <TabsTrigger value="all" className="text-xs shrink-0">Todos</TabsTrigger>
+                <TabsTrigger value="placed" className="text-xs shrink-0">Pendientes</TabsTrigger>
+                <TabsTrigger value="paid" className="text-xs shrink-0">Pagados</TabsTrigger>
+                <TabsTrigger value="shipped" className="text-xs shrink-0">En Camino</TabsTrigger>
+                <TabsTrigger value="delivered" className="text-xs shrink-0">Entregados</TabsTrigger>
+                <TabsTrigger value="cancelled" className="text-xs shrink-0">Cancelados</TabsTrigger>
               </TabsList>
             </Tabs>
           </CardContent>
