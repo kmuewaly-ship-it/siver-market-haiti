@@ -735,12 +735,13 @@ const SellerMisComprasPage = () => {
 
                   {['placed', 'paid'].includes(selectedOrder.status) && (
                     <Button 
-                      variant="outline" 
-                      className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                      variant="ghost" 
+                      size="sm"
+                      className="text-muted-foreground hover:text-red-600 hover:bg-red-50/50"
                       onClick={() => handleCancelClick(selectedOrder)}
                     >
-                      <XCircle className="h-4 w-4 mr-2" />
-                      Cancelar Pedido
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Cancelar
                     </Button>
                   )}
                 </div>
