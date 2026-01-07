@@ -133,14 +133,56 @@ export const useBuyerB2BOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
 
       if (error) throw error;
 
-      // Map items to include image from product
+      // Collect all unique SKU bases from items that don't have product_id
+      const skuBasesNeeded: string[] = [];
+      (data || []).forEach(order => {
+        (order.order_items_b2b || []).forEach((item: any) => {
+          if (!item.product_id && item.sku) {
+            // Extract base SKU (first part before variant info)
+            const skuBase = item.sku.split('-')[0];
+            if (skuBase && !skuBasesNeeded.includes(skuBase)) {
+              skuBasesNeeded.push(skuBase);
+            }
+          }
+        });
+      });
+
+      // Fetch product images by sku_interno if needed
+      let productImageMap: Record<string, string> = {};
+      if (skuBasesNeeded.length > 0) {
+        const { data: productsData } = await supabase
+          .from('products')
+          .select('sku_interno, imagen_principal')
+          .in('sku_interno', skuBasesNeeded);
+        
+        if (productsData) {
+          productsData.forEach(p => {
+            if (p.sku_interno && p.imagen_principal) {
+              productImageMap[p.sku_interno] = p.imagen_principal;
+            }
+          });
+        }
+      }
+
+      // Map items to include image from product or from SKU lookup
       const ordersWithImages = (data || []).map(order => ({
         ...order,
-        order_items_b2b: (order.order_items_b2b || []).map((item: any) => ({
-          ...item,
-          image: item.products?.imagen_principal || null,
-          products: undefined, // Remove nested products object
-        }))
+        order_items_b2b: (order.order_items_b2b || []).map((item: any) => {
+          // First try from product_id join
+          let image = item.products?.imagen_principal || null;
+          
+          // If no image and we have SKU, try from SKU lookup
+          if (!image && item.sku) {
+            const skuBase = item.sku.split('-')[0];
+            image = productImageMap[skuBase] || null;
+          }
+          
+          return {
+            ...item,
+            image,
+            products: undefined, // Remove nested products object
+          };
+        })
       }));
 
       let filteredData = ordersWithImages as BuyerOrder[];
