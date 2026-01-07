@@ -291,13 +291,6 @@ const SellerMisComprasPage = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-2 text-center">
-              <DollarSign className="h-3 w-3 text-green-600 mx-auto mb-1" />
-              <div className="text-lg font-bold text-green-600">${stats.totalAmount.toFixed(0)}</div>
-              <p className="text-[9px] text-muted-foreground">Total $</p>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Filters */}
