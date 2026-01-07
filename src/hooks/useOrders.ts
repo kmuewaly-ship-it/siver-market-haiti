@@ -321,7 +321,11 @@ export const useOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['all-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order'] });
       queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
-      toast({ title: '¡Pago confirmado!', description: 'El pedido ha sido marcado como pagado.' });
+      queryClient.invalidateQueries({ queryKey: ['buyer-b2b-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['master-purchase-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['current-open-po'] });
+      queryClient.invalidateQueries({ queryKey: ['consolidation-stats'] });
+      toast({ title: '¡Pago confirmado!', description: 'El pedido ha sido marcado como pagado y vinculado a la PO activa.' });
     },
     onError: (error: Error) => {
       toast({ title: 'Error al confirmar pago', description: error.message, variant: 'destructive' });
@@ -366,6 +370,7 @@ export const useOrders = () => {
       queryClient.invalidateQueries({ queryKey: ['all-orders'] });
       queryClient.invalidateQueries({ queryKey: ['order'] });
       queryClient.invalidateQueries({ queryKey: ['buyer-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['buyer-b2b-orders'] });
       toast({ title: 'Pago rechazado', description: 'El pedido ha sido cancelado.' });
     },
     onError: (error: Error) => {

@@ -43,6 +43,16 @@ const statusConfig: Record<OrderStatus, { label: string; color: string; icon: Re
   cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400 border-red-500/30', icon: XCircle },
 };
 
+const paymentStatusConfig: Record<string, { label: string; color: string }> = {
+  draft: { label: 'Borrador', color: 'bg-gray-500/20 text-gray-400' },
+  pending: { label: 'Procesando', color: 'bg-blue-500/20 text-blue-400' },
+  pending_validation: { label: 'Pendiente Validación', color: 'bg-amber-500/20 text-amber-400' },
+  paid: { label: 'Confirmado', color: 'bg-green-500/20 text-green-400' },
+  failed: { label: 'Fallido', color: 'bg-red-500/20 text-red-400' },
+  expired: { label: 'Expirado', color: 'bg-gray-500/20 text-gray-400' },
+  cancelled: { label: 'Cancelado', color: 'bg-red-500/20 text-red-400' },
+};
+
 const logisticsStageOptions = [
   { value: 'payment_pending', label: 'Pago Pendiente', icon: Clock },
   { value: 'payment_validated', label: 'Pago Validado', icon: CheckCircle },
@@ -63,7 +73,7 @@ const carrierOptions = [
 ];
 
 const AdminPedidos = () => {
-  const { useAllOrders, useOrderStats, usePaidOrdersForManifest, updateOrderStatus, updateOrderTracking, updateLogisticsStage, cancelOrder } = useOrders();
+  const { useAllOrders, useOrderStats, usePaidOrdersForManifest, updateOrderStatus, updateOrderTracking, updateLogisticsStage, cancelOrder, confirmManualPayment, rejectManualPayment } = useOrders();
   
   const [statusFilter, setStatusFilter] = useState<OrderStatus | 'all'>('all');
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,6 +91,10 @@ const AdminPedidos = () => {
   const [trackingNumber, setTrackingNumber] = useState('');
   const [customCarrierUrl, setCustomCarrierUrl] = useState('');
   const [estimatedDelivery, setEstimatedDelivery] = useState('');
+  
+  // Payment confirmation state
+  const [paymentConfirmationNotes, setPaymentConfirmationNotes] = useState('');
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const { data: orders, isLoading } = useAllOrders({ status: statusFilter, search: searchTerm });
   const { data: stats } = useOrderStats();
@@ -154,6 +168,28 @@ const AdminPedidos = () => {
         chinaTracking: chinaTracking || undefined
       });
     }
+  };
+
+  // Handle manual payment confirmation (for transfer, natcash, etc.)
+  const handleConfirmPayment = async () => {
+    if (!selectedOrder) return;
+    await confirmManualPayment.mutateAsync({
+      orderId: selectedOrder.id,
+      paymentNotes: paymentConfirmationNotes || undefined,
+    });
+    setSelectedOrder(null);
+    setPaymentConfirmationNotes('');
+  };
+
+  // Handle payment rejection
+  const handleRejectPayment = async () => {
+    if (!selectedOrder) return;
+    await rejectManualPayment.mutateAsync({
+      orderId: selectedOrder.id,
+      rejectionReason: rejectionReason || 'Pago no verificado',
+    });
+    setSelectedOrder(null);
+    setRejectionReason('');
   };
 
   // Generate Picking Manifest PDF
@@ -483,11 +519,23 @@ const AdminPedidos = () => {
                   <p className="font-mono text-sm">{selectedOrder.id}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Estado Actual</p>
+                  <p className="text-sm text-muted-foreground">Estado Pedido</p>
                   {getStatusBadge(selectedOrder.status as OrderStatus)}
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Vendedor</p>
+                  <p className="text-sm text-muted-foreground">Estado Pago</p>
+                  <Badge className={paymentStatusConfig[selectedOrder.payment_status || 'draft']?.color || 'bg-gray-500/20 text-gray-400'}>
+                    {paymentStatusConfig[selectedOrder.payment_status || 'draft']?.label || selectedOrder.payment_status}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Tipo</p>
+                  <Badge variant="outline">
+                    {(selectedOrder.metadata as any)?.order_type === 'b2b' ? 'B2B (Mayorista)' : 'B2C (Consumidor)'}
+                  </Badge>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Vendedor/Comprador</p>
                   <p className="text-sm font-medium">{selectedOrder.profiles?.full_name || 'Sin nombre'}</p>
                   <p className="text-xs text-muted-foreground">{selectedOrder.profiles?.email}</p>
                 </div>
@@ -501,30 +549,90 @@ const AdminPedidos = () => {
                 </div>
               </div>
 
-              {/* Update Status */}
-              <div className="p-4 bg-muted/50 rounded-lg space-y-3">
-                <p className="text-sm font-medium">Cambiar Estado</p>
-                <div className="flex gap-2">
-                  <Select value={newStatus} onValueChange={(v) => setNewStatus(v as OrderStatus)}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue placeholder="Seleccionar estado" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="draft">Borrador</SelectItem>
-                      <SelectItem value="placed">Pendiente de Pago</SelectItem>
-                      <SelectItem value="paid">Pagado</SelectItem>
-                      <SelectItem value="shipped">Enviado</SelectItem>
-                      <SelectItem value="cancelled">Cancelado</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  <Button 
-                    onClick={handleUpdateStatus}
-                    disabled={updateOrderStatus.isPending || newStatus === selectedOrder.status}
-                  >
-                    {updateOrderStatus.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
-                  </Button>
+              {/* MANUAL PAYMENT CONFIRMATION SECTION */}
+              {selectedOrder.payment_status === 'pending_validation' && (
+                <div className="p-4 bg-amber-500/10 rounded-lg space-y-4 border border-amber-500/30">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="h-5 w-5 text-amber-500" />
+                    <p className="font-medium text-amber-500">Validación de Pago Manual Requerida</p>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    El cliente ha indicado que realizó el pago via <strong className="capitalize">{selectedOrder.payment_method}</strong>. 
+                    Verifica el pago y confirma o rechaza.
+                  </p>
+                  
+                  {/* Payment reference if available */}
+                  {(selectedOrder.metadata as any)?.payment_reference && (
+                    <div className="p-3 bg-background rounded border">
+                      <p className="text-xs text-muted-foreground mb-1">Referencia de pago proporcionada:</p>
+                      <p className="font-mono text-sm">{(selectedOrder.metadata as any).payment_reference}</p>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="paymentNotes">Notas de confirmación (opcional)</Label>
+                    <Input
+                      id="paymentNotes"
+                      placeholder="Ej: Verificado en cuenta bancaria..."
+                      value={paymentConfirmationNotes}
+                      onChange={(e) => setPaymentConfirmationNotes(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handleConfirmPayment}
+                      disabled={confirmManualPayment.isPending}
+                      className="flex-1 bg-green-600 hover:bg-green-700"
+                    >
+                      {confirmManualPayment.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Confirmar Pago
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      onClick={handleRejectPayment}
+                      disabled={rejectManualPayment.isPending}
+                      className="flex-1"
+                    >
+                      {rejectManualPayment.isPending ? (
+                        <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <XCircle className="h-4 w-4 mr-2" />
+                      )}
+                      Rechazar
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              )}
+
+              {/* Update Status - Only show if payment is already confirmed */}
+              {selectedOrder.payment_status === 'paid' && (
+                <div className="p-4 bg-muted/50 rounded-lg space-y-3">
+                  <p className="text-sm font-medium">Cambiar Estado del Pedido</p>
+                  <div className="flex gap-2">
+                    <Select value={newStatus} onValueChange={(v) => setNewStatus(v as OrderStatus)}>
+                      <SelectTrigger className="flex-1">
+                        <SelectValue placeholder="Seleccionar estado" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="paid">Pagado (Procesando)</SelectItem>
+                        <SelectItem value="shipped">Enviado</SelectItem>
+                        <SelectItem value="cancelled">Cancelado</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button 
+                      onClick={handleUpdateStatus}
+                      disabled={updateOrderStatus.isPending || newStatus === selectedOrder.status}
+                    >
+                      {updateOrderStatus.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Actualizar'}
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Tracking Info Section */}
               {(selectedOrder.status === 'paid' || selectedOrder.status === 'shipped') && (
