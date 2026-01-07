@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
+export type IntegrationMode = 'manual' | 'automatic';
+
 export interface PaymentMethod {
   id: string;
   owner_type: 'admin' | 'seller' | 'store';
@@ -9,6 +11,7 @@ export interface PaymentMethod {
   method_type: 'bank' | 'moncash' | 'natcash' | 'stripe';
   is_active: boolean;
   display_name: string | null;
+  integration_mode: IntegrationMode;
   // Bank fields
   bank_name: string | null;
   account_type: string | null;
@@ -18,6 +21,9 @@ export interface PaymentMethod {
   // Mobile money fields
   phone_number: string | null;
   holder_name: string | null;
+  // Metadata for API credentials when integration_mode = 'automatic'
+  // For MonCash: { client_id, client_secret, business_key }
+  // For NatCash: { api_key, api_secret }
   metadata: Record<string, unknown>;
   created_at: string;
   updated_at: string;
@@ -27,6 +33,7 @@ export interface PaymentMethodInput {
   method_type: 'bank' | 'moncash' | 'natcash' | 'stripe';
   is_active?: boolean;
   display_name?: string;
+  integration_mode?: IntegrationMode;
   bank_name?: string;
   account_type?: string;
   account_number?: string;
@@ -34,6 +41,7 @@ export interface PaymentMethodInput {
   bank_swift?: string;
   phone_number?: string;
   holder_name?: string;
+  metadata?: Record<string, unknown>;
 }
 
 export const usePaymentMethods = (ownerType: 'admin' | 'seller' | 'store', ownerId?: string) => {
@@ -75,10 +83,22 @@ export const usePaymentMethods = (ownerType: 'admin' | 'seller' | 'store', owner
       // Check if method exists
       const existing = methods.find(m => m.method_type === input.method_type);
 
+      // Cast metadata to Json type for Supabase compatibility
       const data = {
         owner_type: ownerType,
         owner_id: ownerType === 'admin' ? null : ownerId,
-        ...input,
+        method_type: input.method_type,
+        is_active: input.is_active,
+        display_name: input.display_name,
+        integration_mode: input.integration_mode,
+        bank_name: input.bank_name,
+        account_type: input.account_type,
+        account_number: input.account_number,
+        account_holder: input.account_holder,
+        bank_swift: input.bank_swift,
+        phone_number: input.phone_number,
+        holder_name: input.holder_name,
+        metadata: input.metadata ? JSON.parse(JSON.stringify(input.metadata)) : undefined,
       };
 
       if (existing) {

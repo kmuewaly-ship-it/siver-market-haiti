@@ -1859,6 +1859,7 @@ export type Database = {
           display_name: string | null
           holder_name: string | null
           id: string
+          integration_mode: string | null
           is_active: boolean | null
           metadata: Json | null
           method_type: string
@@ -1877,6 +1878,7 @@ export type Database = {
           display_name?: string | null
           holder_name?: string | null
           id?: string
+          integration_mode?: string | null
           is_active?: boolean | null
           metadata?: Json | null
           method_type: string
@@ -1895,6 +1897,7 @@ export type Database = {
           display_name?: string | null
           holder_name?: string | null
           id?: string
+          integration_mode?: string | null
           is_active?: boolean | null
           metadata?: Json | null
           method_type?: string
