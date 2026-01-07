@@ -250,47 +250,46 @@ const SellerMisComprasPage = () => {
         </div>
 
         {/* Stats Cards - Compact */}
-        <div className="grid grid-cols-6 gap-2">
+        <div className="grid grid-cols-5 gap-1.5 w-full">
           <Card className="bg-card border-border">
-            <CardContent className="p-2 text-center">
-              <Package className="h-3 w-3 text-primary mx-auto mb-1" />
-              <div className="text-lg font-bold text-foreground">{stats.total}</div>
-              <p className="text-[9px] text-muted-foreground">Total</p>
+            <CardContent className="p-1.5 text-center">
+              <Package className="h-3 w-3 text-primary mx-auto mb-0.5" />
+              <div className="text-base font-bold text-foreground">{stats.total}</div>
+              <p className="text-[8px] text-muted-foreground leading-tight">Total</p>
             </CardContent>
           </Card>
           
           <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-2 text-center">
-              <Clock className="h-3 w-3 text-blue-500 mx-auto mb-1" />
-              <div className="text-lg font-bold text-blue-500">{stats.pending}</div>
-              <p className="text-[9px] text-muted-foreground">Pendiente</p>
+            <CardContent className="p-1.5 text-center">
+              <Clock className="h-3 w-3 text-blue-500 mx-auto mb-0.5" />
+              <div className="text-base font-bold text-blue-500">{stats.pending}</div>
+              <p className="text-[8px] text-muted-foreground leading-tight">Pendiente</p>
             </CardContent>
           </Card>
 
           <Card className="bg-amber-50 border-amber-200">
-            <CardContent className="p-2 text-center">
-              <CheckCircle className="h-3 w-3 text-amber-500 mx-auto mb-1" />
-              <div className="text-lg font-bold text-amber-500">{stats.paid}</div>
-              <p className="text-[9px] text-muted-foreground">Pagados</p>
+            <CardContent className="p-1.5 text-center">
+              <CheckCircle className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
+              <div className="text-base font-bold text-amber-500">{stats.paid}</div>
+              <p className="text-[8px] text-muted-foreground leading-tight">Pagados</p>
             </CardContent>
           </Card>
 
           <Card className="bg-purple-50 border-purple-200">
-            <CardContent className="p-2 text-center">
-              <Truck className="h-3 w-3 text-purple-500 mx-auto mb-1" />
-              <div className="text-lg font-bold text-purple-500">{stats.shipped}</div>
-              <p className="text-[9px] text-muted-foreground">Camino</p>
+            <CardContent className="p-1.5 text-center">
+              <Truck className="h-3 w-3 text-purple-500 mx-auto mb-0.5" />
+              <div className="text-base font-bold text-purple-500">{stats.shipped}</div>
+              <p className="text-[8px] text-muted-foreground leading-tight">Camino</p>
             </CardContent>
           </Card>
 
           <Card className="bg-green-50 border-green-200">
-            <CardContent className="p-2 text-center">
-              <CheckCircle className="h-3 w-3 text-green-500 mx-auto mb-1" />
-              <div className="text-lg font-bold text-green-500">{stats.delivered}</div>
-              <p className="text-[9px] text-muted-foreground">Entregado</p>
+            <CardContent className="p-1.5 text-center">
+              <CheckCircle className="h-3 w-3 text-green-500 mx-auto mb-0.5" />
+              <div className="text-base font-bold text-green-500">{stats.delivered}</div>
+              <p className="text-[8px] text-muted-foreground leading-tight">Entregado</p>
             </CardContent>
           </Card>
-
         </div>
 
         {/* Filters */}
