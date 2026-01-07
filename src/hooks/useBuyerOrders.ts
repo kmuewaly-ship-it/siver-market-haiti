@@ -56,8 +56,7 @@ export const useBuyerOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
     queryFn: async () => {
       if (!user?.id) return [];
 
-      // Get all B2C orders (both from seller_id perspective and buyer_id perspective)
-      // This ensures we get orders where user is the buyer
+      // Get all orders where user is the buyer (both B2C orders and any orders where they're buyer)
       const { data, error } = await supabase
         .from('orders_b2b')
         .select(`
@@ -66,7 +65,6 @@ export const useBuyerOrders = (statusFilter?: BuyerOrderStatus | 'all') => {
           seller_profile:profiles!orders_b2b_seller_id_fkey (full_name, email)
         `)
         .eq('buyer_id', user.id)
-        .filter('metadata->order_type', 'eq', 'b2c')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -100,7 +98,6 @@ export const useBuyerOrder = (orderId: string) => {
         `)
         .eq('id', orderId)
         .eq('buyer_id', user.id)
-        .filter('metadata->order_type', 'eq', 'b2c')
         .single();
 
       if (error) throw error;
