@@ -227,52 +227,18 @@ const VariantSelector = ({
     return sum + price * qty;
   }, 0) || 0;
 
-  // Common size values for detection
-  const SIZE_VALUES = new Set(['xs', 's', 'm', 'l', 'xl', 'xxl', 'xxxl', '2xl', '3xl', '4xl', '5xl',
-    'small', 'medium', 'large', 'extra large', 'one size', 'unica', 'único',
-    '35', '36', '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48',
-    '0-3m', '3-6m', '6-12m', '12-18m', '18-24m', '2t', '3t', '4t', '5t', '6', '7', '8', '10', '12', '14', '16']);
-  
-  // Common color values for detection
-  const COLOR_VALUES = new Set(Object.keys(COLOR_HEX_MAP));
-
-  // Infer attribute type from its values
-  const inferAttributeType = useCallback((attrType: string, values: string[]): string => {
-    if (!values || values.length === 0) return attrType;
-    
-    // Check if majority of values look like colors
-    const colorMatches = values.filter(v => COLOR_VALUES.has(v.toLowerCase().trim())).length;
-    if (colorMatches >= values.length * 0.5) return 'Color';
-    
-    // Check if majority of values look like sizes
-    const sizeMatches = values.filter(v => SIZE_VALUES.has(v.toLowerCase().trim())).length;
-    if (sizeMatches >= values.length * 0.5) return 'Talla';
-    
-    return attrType;
-  }, []);
-
-  // Get the best display name for an attribute type
+  // Get the display name for an attribute type directly from database
   const getAttributeDisplayName = useCallback((attrType: string): string => {
+    // Try exact match from database first
+    if (attrDisplayNames[attrType]) return attrDisplayNames[attrType];
+    
+    // Try lowercase match
     const lowerType = attrType.toLowerCase();
+    if (attrDisplayNames[lowerType]) return attrDisplayNames[lowerType];
     
-    // 1. Check if it's a known attribute type
-    if (ATTRIBUTE_CONFIG[lowerType]?.displayName) return ATTRIBUTE_CONFIG[lowerType].displayName;
-    
-    // 2. Try exact match from database (skip if it's a generic name)
-    const dbName = attrDisplayNames[attrType] || attrDisplayNames[lowerType];
-    if (dbName && !dbName.toLowerCase().includes('attribute')) return dbName;
-    
-    // 3. Infer from actual values if available
-    const values = attributeOptions[attrType] || [];
-    const inferredType = inferAttributeType(attrType, values);
-    if (inferredType !== attrType) return inferredType;
-    
-    // 4. Capitalize the original attribute type as fallback (clean up generic names)
-    if (lowerType.includes('attribute_1') || lowerType.includes('attribute 1')) return 'Color';
-    if (lowerType.includes('attribute_2') || lowerType.includes('attribute 2')) return 'Talla';
-    
-    return attrType.charAt(0).toUpperCase() + attrType.slice(1);
-  }, [attrDisplayNames, attributeOptions, inferAttributeType]);
+    // Fallback: capitalize the original attribute type
+    return attrType.charAt(0).toUpperCase() + attrType.slice(1).replace(/_/g, ' ');
+  }, [attrDisplayNames]);
 
   // Validation: check if all required attribute types are selected
   const validationState = useMemo(() => {
