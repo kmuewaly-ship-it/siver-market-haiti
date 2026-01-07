@@ -953,8 +953,16 @@ const SellerCheckout = () => {
                       key={item.productId}
                       className="flex gap-4 pb-4 border-b last:border-b-0"
                     >
-                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center">
-                        <ShoppingBag className="h-6 w-6 text-muted-foreground" />
+                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                        {item.image ? (
+                          <img 
+                            src={item.image} 
+                            alt={item.name}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <ShoppingBag className="h-6 w-6 text-muted-foreground" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold line-clamp-1">{item.name}</p>
