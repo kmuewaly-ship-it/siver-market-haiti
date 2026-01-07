@@ -730,48 +730,135 @@ const SellerAccountPage = () => {
                 </div>
               </TabsContent>
 
-              {/* Mis Compras Tab - Redirect to dedicated page */}
-              <TabsContent value="compras" className="space-y-6 pt-8">
-                <Card className="p-8 text-center">
-                  <div className="max-w-md mx-auto space-y-4">
-                    <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-                      <ShoppingCart className="h-8 w-8 text-primary" />
-                    </div>
-                    <h3 className="text-xl font-semibold">Mis Compras B2B</h3>
-                    <p className="text-muted-foreground">
-                      Gestiona tus pedidos, ve el estado de envío, genera facturas y más.
-                    </p>
-                    
-                    {/* Quick Stats */}
-                    <div className="grid grid-cols-3 gap-3 py-4">
-                      <div className="bg-amber-50 rounded-lg p-3">
-                        <p className="text-2xl font-bold text-amber-600">
-                          {orders?.filter(o => o.status === 'paid').length || 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Pagados</p>
+              {/* Mis Compras Tab */}
+              <TabsContent value="compras" className="space-y-4 pt-4">
+                {/* Quick Stats */}
+                <div className="grid grid-cols-4 gap-2">
+                  <Card className="bg-amber-50 border-amber-200">
+                    <CardContent className="p-2 text-center">
+                      <p className="text-lg font-bold text-amber-600">
+                        {orders?.filter(o => o.status === 'paid').length || 0}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Pagados</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-purple-50 border-purple-200">
+                    <CardContent className="p-2 text-center">
+                      <p className="text-lg font-bold text-purple-600">
+                        {orders?.filter(o => o.status === 'shipped').length || 0}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">En Camino</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-2 text-center">
+                      <p className="text-lg font-bold text-green-600">
+                        {orders?.filter(o => o.status === 'delivered').length || 0}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Entregados</p>
+                    </CardContent>
+                  </Card>
+                  <Card className="bg-green-50 border-green-200">
+                    <CardContent className="p-2 text-center">
+                      <p className="text-lg font-bold text-green-600">
+                        ${(orders?.filter(o => ['paid', 'shipped', 'delivered'].includes(o.status))
+                          .reduce((sum, o) => sum + o.total_amount, 0) || 0).toFixed(0)}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">Total</p>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Filter Tabs */}
+                <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as BuyerOrderStatus | 'all')}>
+                  <TabsList className="grid grid-cols-4 gap-1 h-auto">
+                    <TabsTrigger value="all" className="text-xs py-1.5">Todos</TabsTrigger>
+                    <TabsTrigger value="paid" className="text-xs py-1.5">Pagados</TabsTrigger>
+                    <TabsTrigger value="shipped" className="text-xs py-1.5">Enviados</TabsTrigger>
+                    <TabsTrigger value="delivered" className="text-xs py-1.5">Entregados</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+
+                {/* Orders List */}
+                <div className="space-y-2">
+                  {ordersLoading ? (
+                    <Card className="p-6">
+                      <div className="flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-primary" />
                       </div>
-                      <div className="bg-purple-50 rounded-lg p-3">
-                        <p className="text-2xl font-bold text-purple-600">
-                          {orders?.filter(o => o.status === 'shipped').length || 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">En Camino</p>
-                      </div>
-                      <div className="bg-green-50 rounded-lg p-3">
-                        <p className="text-2xl font-bold text-green-600">
-                          {orders?.filter(o => o.status === 'delivered').length || 0}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Entregados</p>
-                      </div>
-                    </div>
-                    
-                    <Button asChild size="lg" className="w-full">
-                      <Link to="/seller/mis-compras">
-                        Ver Todas Mis Compras
-                        <ChevronRight className="h-4 w-4 ml-2" />
-                      </Link>
-                    </Button>
-                  </div>
-                </Card>
+                    </Card>
+                  ) : orders && orders.length === 0 ? (
+                    <Card className="p-6 text-center">
+                      <ShoppingCart className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                      <h3 className="font-semibold mb-1">No tienes compras aún</h3>
+                      <p className="text-sm text-muted-foreground mb-3">Explora el catálogo B2B</p>
+                      <Button asChild size="sm">
+                        <Link to="/seller/adquisicion-lotes">Ir al Catálogo</Link>
+                      </Button>
+                    </Card>
+                  ) : orders && orders.length > 0 ? (
+                    orders.map((order) => {
+                      const status = statusConfig[order.status];
+                      const Icon = status.icon;
+                      
+                      return (
+                        <Card 
+                          key={order.id} 
+                          className={`cursor-pointer hover:shadow-md transition-all border-l-4 ${
+                            order.status === 'shipped' ? 'border-l-purple-500' : 
+                            order.status === 'delivered' ? 'border-l-green-500' : 
+                            order.status === 'paid' ? 'border-l-amber-500' : 
+                            order.status === 'placed' ? 'border-l-blue-500' : 
+                            order.status === 'cancelled' ? 'border-l-red-500' : 'border-l-gray-300'
+                          }`}
+                          onClick={() => setSelectedOrder(order)}
+                        >
+                          <CardContent className="p-3">
+                            <div className="flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden shrink-0">
+                                  {order.order_items_b2b?.[0]?.image ? (
+                                    <img 
+                                      src={order.order_items_b2b[0].image} 
+                                      alt={order.order_items_b2b[0].nombre}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className={`w-full h-full flex items-center justify-center ${status.bgColor}`}>
+                                      <Icon className={`h-4 w-4 ${status.color}`} />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-semibold text-sm">#{order.id.slice(0, 6).toUpperCase()}</span>
+                                    {getStatusBadge(order.status)}
+                                  </div>
+                                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                    {order.order_items_b2b?.length || 0} prod. • {order.total_quantity} uds
+                                  </p>
+                                </div>
+                              </div>
+                              
+                              <div className="flex items-center gap-2 shrink-0">
+                                <p className="font-bold text-sm">${order.total_amount.toLocaleString()}</p>
+                                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })
+                  ) : null}
+                </div>
+
+                {/* Link to full page */}
+                <Button asChild variant="outline" className="w-full">
+                  <Link to="/seller/mis-compras">
+                    Ver página completa
+                    <ExternalLink className="h-4 w-4 ml-2" />
+                  </Link>
+                </Button>
               </TabsContent>
 
               {/* Mi Tienda Tab */}
