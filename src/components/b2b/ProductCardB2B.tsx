@@ -115,12 +115,12 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         {/* Price Section */}
         <div className="mt-1 space-y-1">
           {/* B2B Price */}
-          <div className="flex items-baseline gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1 bg-destructive/10 border border-destructive/20 px-2 py-0.5 rounded-md">
-              <span className="text-destructive font-bold text-base">
+          <div className="flex items-baseline gap-1">
+            <span className="inline-flex items-center gap-0.5 bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 rounded-md">
+              <span className="text-destructive font-bold text-sm">
                 {formatPriceRange()}
               </span>
-              <span className="text-[10px] font-medium text-destructive">USD</span>
+              <span className="text-[9px] font-medium text-destructive">USD</span>
             </span>
           </div>
           
