@@ -405,7 +405,9 @@ const ProductPage = () => {
   const images = useMemo(() => {
     if (!product) return [];
     const imgs = product.images as any;
-    return Array.isArray(imgs) && imgs.length > 0 ? imgs : [''];
+    // Filter out empty strings and invalid URLs
+    const validImages = Array.isArray(imgs) ? imgs.filter((img: string) => img && img.trim() !== '') : [];
+    return validImages.length > 0 ? validImages : [];
   }, [product]);
 
   // B2B Specific Data
