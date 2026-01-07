@@ -625,9 +625,24 @@ const SellerMisComprasPage = () => {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium text-sm line-clamp-1">{item.nombre}</p>
-                          <p className="text-xs text-muted-foreground">Cant: {item.cantidad}</p>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground mt-0.5">
+                            {/* Extract variant info from SKU (format: BASE-COLOR-SIZE) */}
+                            {item.sku && item.sku.includes('-') && (
+                              <>
+                                {item.sku.split('-')[1] && (
+                                  <span className="bg-muted px-1.5 py-0.5 rounded">{item.sku.split('-')[1]}</span>
+                                )}
+                                {item.sku.split('-')[2] && (
+                                  <span className="bg-muted px-1.5 py-0.5 rounded">{item.sku.split('-')[2]}</span>
+                                )}
+                              </>
+                            )}
+                          </div>
                         </div>
-                        <p className="font-semibold flex-shrink-0">${item.subtotal.toLocaleString()}</p>
+                        <div className="text-right flex-shrink-0">
+                          <p className="font-semibold">${item.subtotal.toLocaleString()}</p>
+                          <p className="text-xs text-muted-foreground">× {item.cantidad} uds</p>
+                        </div>
                       </div>
                     ))}
                   </div>
