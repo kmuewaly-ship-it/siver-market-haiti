@@ -26,7 +26,7 @@ import { SellerStatusViewer } from "@/components/seller/SellerStatusViewer";
 import { useAdminBanners } from "@/hooks/useAdminBanners";
 import { SellerQuotesHistory } from "@/components/seller/SellerQuotesHistory";
 import { KYCUploadForm } from "@/components/seller/KYCUploadForm";
-import { useBuyerOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from "@/hooks/useBuyerOrders";
+import { useBuyerB2BOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from "@/hooks/useBuyerOrders";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -122,7 +122,7 @@ const SellerAccountPage = () => {
   const [showStoreDescription, setShowStoreDescription] = useState(false);
   
   // Hooks for orders
-  const { data: orders, isLoading: ordersLoading } = useBuyerOrders(statusFilter === 'all' ? undefined : statusFilter);
+  const { data: orders, isLoading: ordersLoading } = useBuyerB2BOrders(statusFilter === 'all' ? undefined : statusFilter);
   const cancelOrder = useCancelBuyerOrder();
   
   // Statuses hook
