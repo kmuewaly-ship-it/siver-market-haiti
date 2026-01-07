@@ -140,16 +140,8 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         </div>
 
         {/* Min Order & Variants Info */}
-        <div className="mt-2 text-xs space-y-1">
-          <div className="flex items-center justify-between">
-            <span className="text-amber-600 font-medium">Min: {product.moq} uds</span>
-            {hasMultipleVariants && product.variants && (
-              <span className="text-muted-foreground">
-                {product.variants.map(v => v.label).slice(0, 4).join(', ')}
-                {product.variants.length > 4 && '...'}
-              </span>
-            )}
-          </div>
+        <div className="mt-2 text-xs">
+          <span className="text-amber-600 font-medium">Min: {product.moq} uds</span>
           {/* Flexible MOQ message */}
           {product.moq > 1 && hasMultipleVariants && (
             <p className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-1 rounded">
