@@ -275,7 +275,42 @@ const SellerAccountPage = () => {
     
     setUpdatingBankInfo(true);
     try {
-      const { error } = await supabase
+      // Save to payment_methods table
+      const existingMethod = await supabase
+        .from('payment_methods')
+        .select('id')
+        .eq('owner_type', 'store')
+        .eq('owner_id', store.id)
+        .eq('method_type', 'bank')
+        .maybeSingle();
+
+      const paymentData = {
+        owner_type: 'store',
+        owner_id: store.id,
+        method_type: 'bank',
+        is_active: true,
+        display_name: 'Transferencia Bancaria',
+        bank_name: bankInfo.bank_name,
+        account_type: bankInfo.account_type,
+        account_number: bankInfo.account_number,
+        account_holder: bankInfo.account_holder,
+      };
+
+      if (existingMethod.data?.id) {
+        const { error } = await supabase
+          .from('payment_methods')
+          .update(paymentData)
+          .eq('id', existingMethod.data.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('payment_methods')
+          .insert(paymentData);
+        if (error) throw error;
+      }
+
+      // Also update store metadata for backwards compatibility
+      await supabase
         .from("stores")
         .update({
           metadata: {
@@ -285,14 +320,13 @@ const SellerAccountPage = () => {
         })
         .eq("id", store.id);
 
-      if (error) throw error;
-
       toast({
         title: "Éxito",
         description: "Información bancaria guardada correctamente",
       });
 
       queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["payment-methods", "store", store.id] });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -309,7 +343,40 @@ const SellerAccountPage = () => {
     
     setUpdatingMoncash(true);
     try {
-      const { error } = await supabase
+      // Save to payment_methods table
+      const existingMethod = await supabase
+        .from('payment_methods')
+        .select('id')
+        .eq('owner_type', 'store')
+        .eq('owner_id', store.id)
+        .eq('method_type', 'moncash')
+        .maybeSingle();
+
+      const paymentData = {
+        owner_type: 'store',
+        owner_id: store.id,
+        method_type: 'moncash',
+        is_active: true,
+        display_name: 'MonCash',
+        phone_number: moncashInfo.phone_number,
+        holder_name: moncashInfo.name,
+      };
+
+      if (existingMethod.data?.id) {
+        const { error } = await supabase
+          .from('payment_methods')
+          .update(paymentData)
+          .eq('id', existingMethod.data.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('payment_methods')
+          .insert(paymentData);
+        if (error) throw error;
+      }
+
+      // Also update store metadata for backwards compatibility
+      await supabase
         .from("stores")
         .update({
           metadata: {
@@ -319,14 +386,13 @@ const SellerAccountPage = () => {
         })
         .eq("id", store.id);
 
-      if (error) throw error;
-
       toast({
         title: "Éxito",
         description: "Información Moncash guardada correctamente",
       });
 
       queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["payment-methods", "store", store.id] });
     } catch (error: any) {
       toast({
         title: "Error",
@@ -343,7 +409,40 @@ const SellerAccountPage = () => {
     
     setUpdatingNatcash(true);
     try {
-      const { error } = await supabase
+      // Save to payment_methods table
+      const existingMethod = await supabase
+        .from('payment_methods')
+        .select('id')
+        .eq('owner_type', 'store')
+        .eq('owner_id', store.id)
+        .eq('method_type', 'natcash')
+        .maybeSingle();
+
+      const paymentData = {
+        owner_type: 'store',
+        owner_id: store.id,
+        method_type: 'natcash',
+        is_active: true,
+        display_name: 'NatCash',
+        phone_number: natcashInfo.phone_number,
+        holder_name: natcashInfo.name,
+      };
+
+      if (existingMethod.data?.id) {
+        const { error } = await supabase
+          .from('payment_methods')
+          .update(paymentData)
+          .eq('id', existingMethod.data.id);
+        if (error) throw error;
+      } else {
+        const { error } = await supabase
+          .from('payment_methods')
+          .insert(paymentData);
+        if (error) throw error;
+      }
+
+      // Also update store metadata for backwards compatibility
+      await supabase
         .from("stores")
         .update({
           metadata: {
@@ -353,14 +452,13 @@ const SellerAccountPage = () => {
         })
         .eq("id", store.id);
 
-      if (error) throw error;
-
       toast({
         title: "Éxito",
         description: "Información Natcash guardada correctamente",
       });
 
       queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+      queryClient.invalidateQueries({ queryKey: ["payment-methods", "store", store.id] });
     } catch (error: any) {
       toast({
         title: "Error",
