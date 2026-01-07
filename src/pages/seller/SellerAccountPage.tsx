@@ -1583,29 +1583,35 @@ const SellerAccountPage = () => {
                   </Card>
                 )}
 
-                {/* Timeline */}
+                {/* Timeline - Horizontal */}
                 <div className="space-y-3">
                   <h4 className="font-semibold text-sm text-muted-foreground uppercase tracking-wide">Estado del Pedido</h4>
-                  <div className="relative">
-                    {['placed', 'paid', 'shipped', 'delivered'].map((step, index) => {
+                  <div className="flex items-center justify-between w-full">
+                    {['placed', 'paid', 'shipped', 'delivered'].map((step, index, arr) => {
                       const stepStatus = statusConfig[step as BuyerOrderStatus];
                       const StepIcon = stepStatus.icon;
                       const isCompleted = ['placed', 'paid', 'shipped', 'delivered'].indexOf(selectedOrder.status) >= index;
                       const isCurrent = selectedOrder.status === step;
 
                       return (
-                        <div key={step} className="flex items-center gap-3 mb-3 last:mb-0">
-                          <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
-                            ${isCompleted ? stepStatus.bgColor : 'bg-gray-100'}
-                            ${isCurrent ? 'ring-2 ring-offset-2 ring-primary' : ''}`}>
-                            <StepIcon className={`h-4 w-4 ${isCompleted ? stepStatus.color : 'text-gray-400'}`} />
-                          </div>
-                          <div className="flex-1">
-                            <p className={`font-medium ${isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
+                        <div key={step} className="flex items-center flex-1 last:flex-none">
+                          <div className="flex flex-col items-center">
+                            <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0
+                              ${isCompleted ? stepStatus.bgColor : 'bg-gray-100'}
+                              ${isCurrent ? 'ring-2 ring-offset-1 ring-primary' : ''}`}>
+                              {isCompleted ? (
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                              ) : (
+                                <StepIcon className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                            <p className={`text-[10px] mt-1 text-center ${isCompleted ? 'text-foreground font-medium' : 'text-muted-foreground'}`}>
                               {stepStatus.label}
                             </p>
                           </div>
-                          {isCompleted && <CheckCircle className="h-4 w-4 text-green-500" />}
+                          {index < arr.length - 1 && (
+                            <div className={`flex-1 h-0.5 mx-1 ${isCompleted ? 'bg-green-400' : 'bg-gray-200'}`} />
+                          )}
                         </div>
                       );
                     })}
