@@ -13,6 +13,7 @@ import { validateB2CCheckout, getFieldError, hasFieldError, CheckoutValidationEr
 import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
 import { LocationSelector } from '@/components/checkout/LocationSelector';
 import { useApplyDiscount, AppliedDiscount } from '@/hooks/useApplyDiscount';
+import { useStorePaymentMethodsReadOnly } from '@/hooks/usePaymentMethods';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -157,20 +158,49 @@ const CheckoutPage = () => {
     },
   ];
 
-  // Get seller payment info from cart items (use first store with payment info)
-  const sellerPaymentInfo = useMemo(() => {
+  // Get first store ID from cart items
+  const firstStoreId = useMemo(() => {
     for (const item of items) {
-      if (item.storeMetadata) {
-        return {
-          storeName: item.storeName || 'Vendedor',
-          moncash: item.storeMetadata.moncash_info,
-          natcash: item.storeMetadata.natcash_info,
-          bank: item.storeMetadata.bank_info,
-        };
-      }
+      if (item.storeId) return item.storeId;
     }
-    return null;
+    return undefined;
   }, [items]);
+
+  const firstStoreName = useMemo(() => {
+    for (const item of items) {
+      if (item.storeName) return item.storeName;
+    }
+    return 'Vendedor';
+  }, [items]);
+
+  // Fetch payment methods from database
+  const { 
+    bankMethod: storeBank,
+    moncashMethod: storeMoncash,
+    natcashMethod: storeNatcash,
+    isLoading: paymentMethodsLoading 
+  } = useStorePaymentMethodsReadOnly(firstStoreId);
+
+  // Build seller payment info from database
+  const sellerPaymentInfo = useMemo(() => {
+    return {
+      storeName: firstStoreName,
+      moncash: storeMoncash ? {
+        phone_number: storeMoncash.phone_number || '',
+        name: storeMoncash.holder_name || '',
+      } : null,
+      natcash: storeNatcash ? {
+        phone_number: storeNatcash.phone_number || '',
+        name: storeNatcash.holder_name || '',
+      } : null,
+      bank: storeBank ? {
+        bank_name: storeBank.bank_name || '',
+        account_number: storeBank.account_number || '',
+        account_holder: storeBank.account_holder || '',
+        account_type: storeBank.account_type || '',
+      } : null,
+    };
+  }, [firstStoreName, storeBank, storeMoncash, storeNatcash]);
 
   // Helper to mask phone/account numbers
   const maskNumber = (num: string | undefined) => {
@@ -831,6 +861,7 @@ const CheckoutPage = () => {
                   <h4 className="font-semibold text-green-800 mb-2">Datos Bancarios - {sellerPaymentInfo.storeName}</h4>
                   <div className="space-y-1 text-sm text-green-700">
                     <p><span className="font-medium">Banco:</span> {sellerPaymentInfo.bank.bank_name || 'No configurado'}</p>
+                    <p><span className="font-medium">Tipo:</span> {sellerPaymentInfo.bank.account_type || 'No configurado'}</p>
                     <p><span className="font-medium">Cuenta:</span> {maskNumber(sellerPaymentInfo.bank.account_number)}</p>
                     <p><span className="font-medium">Beneficiario:</span> {sellerPaymentInfo.bank.account_holder || 'No configurado'}</p>
                   </div>
@@ -849,12 +880,18 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              {paymentMethod === 'moncash' && (
+              {paymentMethod === 'transfer' && !sellerPaymentInfo?.bank && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-700">El vendedor no ha configurado datos bancarios.</p>
+                </div>
+              )}
+
+              {paymentMethod === 'moncash' && sellerPaymentInfo?.moncash && (
                 <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#94111f20' }}>
-                  <h4 className="font-semibold mb-2" style={{ color: '#94111f' }}>Datos MonCash - {sellerPaymentInfo?.storeName || 'Vendedor'}</h4>
+                  <h4 className="font-semibold mb-2" style={{ color: '#94111f' }}>Datos MonCash - {sellerPaymentInfo.storeName}</h4>
                   <div className="space-y-1 text-sm" style={{ color: '#94111f' }}>
-                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo?.moncash?.phone_number || 'No configurado'}</p>
-                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo?.moncash?.name || 'No configurado'}</p>
+                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo.moncash.phone_number || 'No configurado'}</p>
+                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo.moncash.name || 'No configurado'}</p>
                   </div>
                   <div className="mt-3">
                     <Label>Código de Transacción *</Label>
@@ -871,12 +908,18 @@ const CheckoutPage = () => {
                 </div>
               )}
 
-              {paymentMethod === 'natcash' && (
+              {paymentMethod === 'moncash' && !sellerPaymentInfo?.moncash && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-700">El vendedor no ha configurado MonCash.</p>
+                </div>
+              )}
+
+              {paymentMethod === 'natcash' && sellerPaymentInfo?.natcash && (
                 <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: '#071d7f20' }}>
-                  <h4 className="font-semibold mb-2" style={{ color: '#071d7f' }}>Datos NatCash - {sellerPaymentInfo?.storeName || 'Vendedor'}</h4>
+                  <h4 className="font-semibold mb-2" style={{ color: '#071d7f' }}>Datos NatCash - {sellerPaymentInfo.storeName}</h4>
                   <div className="space-y-1 text-sm" style={{ color: '#071d7f' }}>
-                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo?.natcash?.phone_number || 'No configurado'}</p>
-                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo?.natcash?.name || 'No configurado'}</p>
+                    <p><span className="font-medium">Número:</span> {sellerPaymentInfo.natcash.phone_number || 'No configurado'}</p>
+                    <p><span className="font-medium">Nombre:</span> {sellerPaymentInfo.natcash.name || 'No configurado'}</p>
                   </div>
                   <div className="mt-3">
                     <Label>Código de Transacción *</Label>
@@ -892,6 +935,13 @@ const CheckoutPage = () => {
                   </div>
                 </div>
               )}
+
+              {paymentMethod === 'natcash' && !sellerPaymentInfo?.natcash && (
+                <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                  <p className="text-sm text-yellow-700">El vendedor no ha configurado NatCash.</p>
+                </div>
+              )}
+
             </Card>
 
             {/* Order Notes */}

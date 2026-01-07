@@ -188,3 +188,51 @@ export const usePaymentMethods = (ownerType: 'admin' | 'seller' | 'store', owner
 export const useAdminPaymentMethods = () => {
   return usePaymentMethods('admin');
 };
+
+// Hook for getting store payment methods (for B2C customers)
+export const useStorePaymentMethods = (storeId?: string) => {
+  return usePaymentMethods('store', storeId);
+};
+
+// Hook to fetch payment methods for a specific store (read-only, for checkout)
+export const useStorePaymentMethodsReadOnly = (storeId?: string) => {
+  const [methods, setMethods] = useState<PaymentMethod[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchMethods = async () => {
+      if (!storeId) {
+        setMethods([]);
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const { data, error } = await supabase
+          .from('payment_methods')
+          .select('*')
+          .eq('owner_type', 'store')
+          .eq('owner_id', storeId)
+          .eq('is_active', true);
+
+        if (error) throw error;
+        setMethods((data || []) as PaymentMethod[]);
+      } catch (err) {
+        console.error('Error fetching store payment methods:', err);
+        setMethods([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchMethods();
+  }, [storeId]);
+
+  return {
+    methods,
+    isLoading,
+    bankMethod: methods.find(m => m.method_type === 'bank'),
+    moncashMethod: methods.find(m => m.method_type === 'moncash'),
+    natcashMethod: methods.find(m => m.method_type === 'natcash'),
+  };
+};
