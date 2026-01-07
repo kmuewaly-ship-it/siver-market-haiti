@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,6 +13,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useBuyerB2BOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from '@/hooks/useBuyerOrders';
 import { usePackageTracking } from '@/hooks/usePackageTracking';
 import { TrackingWidget } from '@/components/tracking/TrackingWidget';
+import { useOrdersPOInfo, OrderPOInfo } from '@/hooks/useOrderPOInfo';
 import { supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
@@ -38,7 +39,12 @@ import {
   ChevronRight,
   Printer,
   FileText,
-  Tag
+  Tag,
+  Boxes,
+  Ship,
+  Plane,
+  Warehouse,
+  PackageCheck
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -79,7 +85,10 @@ const SellerMisComprasPage = () => {
 
   const { data: orders, isLoading } = useBuyerB2BOrders(statusFilter === 'all' ? undefined : statusFilter);
   const cancelOrder = useCancelBuyerOrder();
-  
+
+  // Get order IDs to fetch PO info
+  const orderIds = useMemo(() => orders?.map(o => o.id) || [], [orders]);
+  const { data: poInfoMap } = useOrdersPOInfo(orderIds);
   // Package tracking
   const { tracking, isLoading: trackingLoading, getCarrierTrackingUrl } = usePackageTracking(
     selectedOrder?.id || ''
@@ -356,6 +365,7 @@ const SellerMisComprasPage = () => {
               const Icon = status.icon;
               const trackingNumber = order.metadata?.tracking_number;
               const carrier = order.metadata?.carrier;
+              const poInfo = poInfoMap?.[order.id];
               
               return (
                 <Card 
@@ -379,6 +389,10 @@ const SellerMisComprasPage = () => {
                           <div className="flex items-center gap-2 flex-wrap">
                             <span className="font-semibold">Pedido #{order.id.slice(0, 8).toUpperCase()}</span>
                             {getStatusBadge(order.status)}
+                            <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
+                              <Boxes className="h-3 w-3 mr-1" />
+                              B2B
+                            </Badge>
                           </div>
                           <p className="text-sm text-muted-foreground mt-1">
                             {format(new Date(order.created_at), "d 'de' MMMM, yyyy", { locale: es })}
@@ -386,6 +400,16 @@ const SellerMisComprasPage = () => {
                           <p className="text-sm text-muted-foreground">
                             {order.order_items_b2b?.length || 0} productos • {order.total_quantity} unidades
                           </p>
+                          {/* Show PO info if linked */}
+                          {poInfo && (
+                            <p className="text-xs text-indigo-600 mt-1 flex items-center gap-1">
+                              <Package className="h-3 w-3" />
+                              PO: {poInfo.po_number}
+                              {poInfo.hybrid_tracking_id && (
+                                <span className="ml-2 font-mono">{poInfo.hybrid_tracking_id}</span>
+                              )}
+                            </p>
+                          )}
                         </div>
                       </div>
                       
@@ -418,7 +442,9 @@ const SellerMisComprasPage = () => {
       {/* Order Detail Dialog */}
       <Dialog open={!!selectedOrder && !showCancelDialog} onOpenChange={(open) => !open && setSelectedOrder(null)}>
         <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedOrder && (
+          {selectedOrder && (() => {
+            const selectedPoInfo = poInfoMap?.[selectedOrder.id];
+            return (
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3">
@@ -430,12 +456,83 @@ const SellerMisComprasPage = () => {
                   </div>
                   <div>
                     <span className="block">Pedido #{selectedOrder.id.slice(0, 8).toUpperCase()}</span>
-                    {getStatusBadge(selectedOrder.status)}
+                    <div className="flex items-center gap-2 mt-1">
+                      {getStatusBadge(selectedOrder.status)}
+                      <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
+                        <Boxes className="h-3 w-3 mr-1" />
+                        B2B
+                      </Badge>
+                    </div>
                   </div>
                 </DialogTitle>
               </DialogHeader>
 
               <div className="space-y-6 mt-4">
+                {/* PO Information Card - Show if linked to PO */}
+                {selectedPoInfo && (
+                  <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-base flex items-center gap-2 text-indigo-700">
+                        <Boxes className="h-5 w-5" />
+                        Orden de Compra Consolidada
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-indigo-600">Número de PO:</span>
+                        <Badge className="bg-indigo-600 text-white">{selectedPoInfo.po_number}</Badge>
+                      </div>
+                      {selectedPoInfo.hybrid_tracking_id && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-indigo-600">ID Híbrido:</span>
+                          <span className="font-mono text-sm font-medium text-indigo-800">{selectedPoInfo.hybrid_tracking_id}</span>
+                        </div>
+                      )}
+                      {selectedPoInfo.china_tracking_number && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-indigo-600">Guía China:</span>
+                          <span className="font-mono text-sm font-medium text-indigo-800">{selectedPoInfo.china_tracking_number}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-indigo-600">Estado PO:</span>
+                        <Badge variant="outline" className="border-indigo-300 text-indigo-700">
+                          {selectedPoInfo.po_status === 'open' ? 'Abierta' : 
+                           selectedPoInfo.po_status === 'closed' ? 'Cerrada' : 
+                           selectedPoInfo.po_status === 'in_transit' ? 'En Tránsito' :
+                           selectedPoInfo.po_status === 'arrived_hub' ? 'En Hub' : selectedPoInfo.po_status}
+                        </Badge>
+                      </div>
+                      
+                      {/* PO Logistics Timeline */}
+                      <div className="mt-4 pt-3 border-t border-indigo-200">
+                        <p className="text-xs font-medium text-indigo-700 mb-2">Progreso Logístico</p>
+                        <div className="flex items-center gap-2 text-xs">
+                          <div className={`flex items-center gap-1 ${selectedPoInfo.shipped_from_china_at ? 'text-green-600' : 'text-gray-400'}`}>
+                            <Package className="h-3 w-3" />
+                            <span>China</span>
+                          </div>
+                          <ChevronRight className="h-3 w-3 text-gray-300" />
+                          <div className={`flex items-center gap-1 ${selectedPoInfo.arrived_usa_at ? 'text-green-600' : 'text-gray-400'}`}>
+                            <Plane className="h-3 w-3" />
+                            <span>USA</span>
+                          </div>
+                          <ChevronRight className="h-3 w-3 text-gray-300" />
+                          <div className={`flex items-center gap-1 ${selectedPoInfo.arrived_hub_at ? 'text-green-600' : 'text-gray-400'}`}>
+                            <Warehouse className="h-3 w-3" />
+                            <span>Hub Haití</span>
+                          </div>
+                          <ChevronRight className="h-3 w-3 text-gray-300" />
+                          <div className={`flex items-center gap-1 ${selectedPoInfo.delivery_confirmed_at ? 'text-green-600' : 'text-gray-400'}`}>
+                            <PackageCheck className="h-3 w-3" />
+                            <span>Entregado</span>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
                 {/* Package Tracking Widget */}
                 {selectedOrder && ['shipped', 'delivered'].includes(selectedOrder.status) && (
                   <TrackingWidget 
@@ -626,7 +723,8 @@ const SellerMisComprasPage = () => {
                 </div>
               </div>
             </>
-          )}
+          );
+          })()}
         </DialogContent>
       </Dialog>
 

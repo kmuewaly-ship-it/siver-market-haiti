@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { useAuth } from "@/hooks/useAuth";
 import { useBuyerOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus } from "@/hooks/useBuyerOrders";
+import { useOrdersPOInfo, OrderPOInfo } from "@/hooks/useOrderPOInfo";
 import { useCart } from "@/hooks/useCart";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -18,7 +19,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useQueryClient } from "@tanstack/react-query";
-import { Package, ShoppingBag, Truck, CheckCircle, XCircle, Clock, ExternalLink, ChevronRight, ArrowLeft, MapPin, Calendar, RefreshCw, AlertTriangle, Loader2, Ban, DollarSign, Plane, Ship, Warehouse, PackageCheck } from "lucide-react";
+import { Package, ShoppingBag, Truck, CheckCircle, XCircle, Clock, ExternalLink, ChevronRight, ArrowLeft, MapPin, Calendar, RefreshCw, AlertTriangle, Loader2, Ban, DollarSign, Plane, Ship, Warehouse, PackageCheck, Boxes, Store } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 const refundStatusConfig: Record<RefundStatus, {
@@ -130,14 +131,19 @@ const carrierUrls: Record<string, string> = {
 };
 const OrderCard = ({
   order,
-  onClick
+  onClick,
+  poInfo
 }: {
   order: BuyerOrder;
   onClick: () => void;
+  poInfo?: OrderPOInfo;
 }) => {
   const status = statusConfig[order.status] || statusConfig.draft;
   const itemCount = order.order_items_b2b?.length || 0;
   const firstItem = order.order_items_b2b?.[0];
+  const orderType = order.metadata?.order_type || 'b2c';
+  const isB2B = orderType === 'b2b';
+
   return <Card className={`cursor-pointer hover:shadow-lg transition-all duration-300 border-l-4 group ${order.status === 'shipped' ? 'border-l-purple-500' : order.status === 'delivered' ? 'border-l-green-500' : order.status === 'paid' ? 'border-l-amber-500' : order.status === 'placed' ? 'border-l-blue-500' : order.status === 'cancelled' ? 'border-l-red-500' : 'border-l-gray-300'}`} onClick={onClick}>
       <CardContent className="p-4 md:p-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -153,6 +159,17 @@ const OrderCard = ({
                 <Badge variant="outline" className={`${status.color} border-current text-xs`}>
                   {status.label}
                 </Badge>
+                {isB2B ? (
+                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
+                    <Boxes className="h-3 w-3 mr-1" />
+                    B2B
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 text-xs">
+                    <Store className="h-3 w-3 mr-1" />
+                    B2C
+                  </Badge>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-1">
                 {format(new Date(order.created_at), "d 'de' MMMM, yyyy", {
@@ -162,6 +179,13 @@ const OrderCard = ({
               <p className="text-sm text-muted-foreground truncate mt-1">
                 {firstItem?.nombre} {itemCount > 1 && `y ${itemCount - 1} más`}
               </p>
+              {/* Show PO info if linked */}
+              {poInfo && (
+                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                  <Package className="h-3 w-3" />
+                  PO: {poInfo.po_number}
+                </p>
+              )}
             </div>
           </div>
           
@@ -191,13 +215,15 @@ const OrderDetailDialog = ({
   open,
   onClose,
   onReorder,
-  onCancelClick
+  onCancelClick,
+  poInfo
 }: {
   order: BuyerOrder | null;
   open: boolean;
   onClose: () => void;
   onReorder: (order: BuyerOrder) => void;
   onCancelClick: (order: BuyerOrder) => void;
+  poInfo?: OrderPOInfo;
 }) => {
   if (!order) return null;
   const status = statusConfig[order.status] || statusConfig.draft;
@@ -208,6 +234,21 @@ const OrderDetailDialog = ({
   const canCancel = ['placed', 'paid'].includes(order.status);
   const refundStatus = order.metadata?.refund_status as RefundStatus || 'none';
   const refundConfig = refundStatusConfig[refundStatus];
+  const orderType = order.metadata?.order_type || 'b2c';
+  const isB2B = orderType === 'b2b';
+
+  // Use PO logistics info if available (more accurate than order metadata)
+  const getLogisticsStageFromPO = (): LogisticsStage => {
+    if (order.status === 'delivered') return 'delivered';
+    if (poInfo?.arrived_hub_at) return 'in_haiti_hub';
+    if (poInfo?.shipped_to_haiti_at || poInfo?.arrived_usa_at) return 'in_transit_usa';
+    if (poInfo?.shipped_from_china_at) return 'in_china';
+    if (order.status === 'paid') return 'payment_validated';
+    return 'payment_pending';
+  };
+
+  const currentStageFromPO = poInfo ? getLogisticsStageFromPO() : getLogisticsStage(order);
+
   return <Dialog open={open} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -217,30 +258,82 @@ const OrderDetailDialog = ({
             </div>
             <div>
               <span className="block">Pedido #{order.id.slice(0, 8).toUpperCase()}</span>
-              <Badge variant="outline" className={`${status.color} border-current mt-1`}>
-                {status.label}
-              </Badge>
+              <div className="flex items-center gap-2 mt-1">
+                <Badge variant="outline" className={`${status.color} border-current`}>
+                  {status.label}
+                </Badge>
+                {isB2B ? (
+                  <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
+                    <Boxes className="h-3 w-3 mr-1" />
+                    B2B
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 text-xs">
+                    <Store className="h-3 w-3 mr-1" />
+                    B2C
+                  </Badge>
+                )}
+              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6 mt-4">
-          {/* Logistics Progress - NEW Real-time tracking */}
+          {/* PO Information Card - Show if linked to PO */}
+          {poInfo && (
+            <Card className="bg-gradient-to-br from-indigo-50 to-purple-50 border-indigo-200">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-base flex items-center gap-2 text-indigo-700">
+                  <Boxes className="h-5 w-5" />
+                  Orden de Compra Consolidada
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-indigo-600">Número de PO:</span>
+                  <Badge className="bg-indigo-600 text-white">{poInfo.po_number}</Badge>
+                </div>
+                {poInfo.hybrid_tracking_id && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-indigo-600">ID Híbrido:</span>
+                    <span className="font-mono text-sm font-medium text-indigo-800">{poInfo.hybrid_tracking_id}</span>
+                  </div>
+                )}
+                {poInfo.china_tracking_number && (
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-indigo-600">Guía China:</span>
+                    <span className="font-mono text-sm font-medium text-indigo-800">{poInfo.china_tracking_number}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between">
+                  <span className="text-sm text-indigo-600">Estado PO:</span>
+                  <Badge variant="outline" className="border-indigo-300 text-indigo-700">
+                    {poInfo.po_status === 'open' ? 'Abierta' : 
+                     poInfo.po_status === 'closed' ? 'Cerrada' : 
+                     poInfo.po_status === 'in_transit' ? 'En Tránsito' :
+                     poInfo.po_status === 'arrived_hub' ? 'En Hub' : poInfo.po_status}
+                  </Badge>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Logistics Progress - Real-time tracking */}
           {order.status !== 'cancelled' && order.status !== 'draft' && (
             <Card className="bg-gradient-to-br from-blue-50 to-indigo-50 border-blue-200">
               <CardHeader className="pb-2">
                 <CardTitle className="text-base flex items-center gap-2 text-blue-700">
                   <Ship className="h-5 w-5" />
                   Seguimiento en Tiempo Real
+                  {poInfo && <Badge variant="outline" className="ml-2 text-xs border-blue-300">Sincronizado con PO</Badge>}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 <div className="relative">
                   {logisticsStages.map((stage, index) => {
-                    const currentStage = getLogisticsStage(order);
-                    const currentIndex = logisticsStages.findIndex(s => s.key === currentStage);
+                    const currentIndex = logisticsStages.findIndex(s => s.key === currentStageFromPO);
                     const isCompleted = index <= currentIndex;
-                    const isCurrent = stage.key === currentStage;
+                    const isCurrent = stage.key === currentStageFromPO;
                     
                     return (
                       <div key={stage.key} className="flex items-start gap-3 mb-4 last:mb-0">
@@ -493,6 +586,10 @@ const MyPurchasesPage = () => {
   const { data: orders, isLoading } = useBuyerOrders(statusFilter);
   const cancelOrderMutation = useCancelBuyerOrder();
 
+  // Get order IDs to fetch PO info
+  const orderIds = useMemo(() => orders?.map(o => o.id) || [], [orders]);
+  const { data: poInfoMap } = useOrdersPOInfo(orderIds);
+
   // Real-time subscription for order updates
   useEffect(() => {
     if (!user?.id) return;
@@ -667,7 +764,7 @@ const MyPurchasesPage = () => {
                 </CardContent>
               </Card>)}
           </div> : orders && orders.length > 0 ? <div className="space-y-4">
-            {orders.map(order => <OrderCard key={order.id} order={order} onClick={() => setSelectedOrder(order)} />)}
+            {orders.map(order => <OrderCard key={order.id} order={order} onClick={() => setSelectedOrder(order)} poInfo={poInfoMap?.[order.id]} />)}
           </div> : <Card className="text-center py-12">
             <CardContent>
               <ShoppingBag className="h-16 w-16 mx-auto text-muted-foreground/50 mb-4" />
@@ -689,7 +786,7 @@ const MyPurchasesPage = () => {
 
       {!isMobile && <Footer />}
       
-      <OrderDetailDialog order={selectedOrder} open={!!selectedOrder} onClose={() => setSelectedOrder(null)} onReorder={handleReorder} onCancelClick={handleCancelClick} />
+      <OrderDetailDialog order={selectedOrder} open={!!selectedOrder} onClose={() => setSelectedOrder(null)} onReorder={handleReorder} onCancelClick={handleCancelClick} poInfo={selectedOrder ? poInfoMap?.[selectedOrder.id] : undefined} />
 
       <CancelOrderDialog order={orderToCancel} open={!!orderToCancel} onClose={() => setOrderToCancel(null)} onConfirm={handleCancelConfirm} isLoading={cancelOrderMutation.isPending} />
     </div>;
