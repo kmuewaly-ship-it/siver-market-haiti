@@ -656,7 +656,7 @@ const SellerCartPage = () => {
                           />
                         </div>
                         {/* Product Image */}
-                        <div className="flex-shrink-0 rounded-md bg-muted overflow-hidden" style={{ width: '70px', height: '70px' }}>
+                        <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted overflow-hidden">
                           {item.image ? (
                             <img 
                               src={item.image} 
