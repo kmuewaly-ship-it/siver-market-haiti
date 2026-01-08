@@ -1064,7 +1064,7 @@ const ProductPage = () => {
                       {Array.isArray(p.images) && p.images[0] && <img src={p.images[0]} alt={p.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
                     </div>
                     <div className="p-3">
-                      <h3 className="text-sm font-medium text-gray-900 line-clamp-2 mb-1 group-hover:text-blue-600">
+                      <h3 className="text-sm font-medium text-gray-900 line-clamp-1 mb-1 group-hover:text-blue-600">
                         {p.nombre}
                       </h3>
                       <p className="text-sm font-bold text-gray-900">

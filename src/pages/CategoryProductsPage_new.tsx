@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronRight, Filter } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
 import { useCategoryBySlug } from "@/hooks/useQueriesCategories";
@@ -56,21 +56,14 @@ const CategoryProductsPage = () => {
   const [selectedSubcategory, setSelectedSubcategory] = useState<string | null>(null);
   const [priceMin, setPriceMin] = useState<number | undefined>(undefined);
   const [priceMax, setPriceMax] = useState<number | undefined>(undefined);
-  const [showFiltersMobile, setShowFiltersMobile] = useState(false);
-  const [showMoreFilters, setShowMoreFilters] = useState(false);
-  const [minRating, setMinRating] = useState<number | undefined>(undefined);
-  const [onlyPromo, setOnlyPromo] = useState(false);
-  const [inStockOnly, setInStockOnly] = useState(false);
 
   const filteredProducts = useMemo(() => {
     let list = [...products];
 
     // Filter products based on user role
     // Only sellers/admins can see products from the B2B catalog
-    const isB2BUser = role === UserRole.ADMIN || role === UserRole.SELLER;
     if (!isB2BUser) {
       // For non-B2B users, only show products that have a suggested retail price (visible to public)
-      // This means hiding pure B2B-only products
       list = list.filter((p: any) => p.precio_sugerido_venta != null && p.precio_sugerido_venta > 0);
     }
 
@@ -81,46 +74,32 @@ const CategoryProductsPage = () => {
 
     // apply price range
     if (typeof priceMin !== "undefined") {
-      list = list.filter((p: any) => (p.precio_b2c ?? p.precio ?? p.price ?? 0) >= priceMin);
+      list = list.filter((p: any) => (p.precio ?? p.price ?? 0) >= priceMin);
     }
     if (typeof priceMax !== "undefined") {
-      list = list.filter((p: any) => (p.precio_b2c ?? p.precio ?? p.price ?? 0) <= priceMax);
-    }
-
-    // apply rating filter
-    if (typeof minRating !== "undefined" && minRating > 0) {
-      list = list.filter((p: any) => (p.rating ?? 0) >= minRating);
-    }
-
-    // apply promo filter
-    if (onlyPromo) {
-      list = list.filter((p: any) => (p.promo_active || p.precio_promocional) && p.precio_promocional > 0);
-    }
-
-    // apply stock filter
-    if (inStockOnly) {
-      list = list.filter((p: any) => (p.stock_fisico ?? 0) > 0);
+      list = list.filter((p: any) => (p.precio ?? p.price ?? 0) <= priceMax);
     }
 
     // sorting
     switch (filters.sortBy) {
       case "price_asc":
-        return list.sort((a: any, b: any) => (a.precio_b2c ?? a.precio ?? 0) - (b.precio_b2c ?? b.precio ?? 0));
+        return list.sort((a: any, b: any) => (a.precio ?? 0) - (b.precio ?? 0));
       case "price_desc":
-        return list.sort((a: any, b: any) => (b.precio_b2c ?? b.precio ?? 0) - (a.precio_b2c ?? a.precio ?? 0));
+        return list.sort((a: any, b: any) => (b.precio ?? 0) - (a.precio ?? 0));
       case "rating":
         return list.sort((a: any, b: any) => (b.rating ?? 0) - (a.rating ?? 0));
       case "newest":
       default:
         return list;
     }
-  }, [products, filters.sortBy, selectedSubcategory, priceMin, priceMax, role, minRating, onlyPromo, inStockOnly]);
+  }, [products, filters.sortBy, selectedSubcategory, priceMin, priceMax, isB2BUser]);
+
   const handleViewStore = (sellerId: string) => navigate(`/tienda/${sellerId}`);
 
   const getSku = (p: AnyProduct) => p.sku_interno ?? p.sku ?? p.id;
   const getName = (p: AnyProduct) => p.nombre ?? p.name ?? "Producto";
   const getPrice = (p: AnyProduct) => p.precio ?? 0;  // B2C price (default Supabase field)
-  const getImage = (p: AnyProduct) => p.imagen ?? (p.galeria_imagenes && p.galeria_imagenes[0]) ?? p.image ?? "https://via.placeholder.com/400x500?text=Sin+imagen";
+  const getImage = (p: AnyProduct) => p.imagen_principal ?? (p.galeria_imagenes && p.galeria_imagenes[0]) ?? p.image ?? "https://via.placeholder.com/400x500?text=Sin+imagen";
   const getSeller = (p: AnyProduct) => p.vendedor ?? p.seller ?? { id: "", nombre: "Tienda" };
 
   if (isLoading) {
@@ -163,126 +142,72 @@ const CategoryProductsPage = () => {
         </div>
 
         {/* Compact Filters Bar */}
-        {/* Filters Bar - Responsive */}
         <div className="bg-white rounded-lg shadow-sm p-3 mb-6">
-          <div className="flex flex-col md:flex-row md:items-center md:flex-wrap gap-2">
-            {/* Row 1: Primary Filters */}
-            <div className="flex flex-wrap items-center gap-2 w-full">
-              {/* Sort Dropdown */}
-              <select 
-                value={filters.sortBy} 
-                onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as FilterOptions["sortBy"] })}
-                className="px-2 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-fit"
-              >
-                <option value="newest">Más Nuevo</option>
-                <option value="price_asc">Precio: ↑</option>
-                <option value="price_desc">Precio: ↓</option>
-                <option value="rating">⭐ Rating</option>
-              </select>
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Sort Dropdown */}
+            <select 
+              value={filters.sortBy} 
+              onChange={(e) => setFilters({ ...filters, sortBy: e.target.value as FilterOptions["sortBy"] })}
+              className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="newest">Más Nuevo</option>
+              <option value="price_asc">Precio: Menor a Mayor</option>
+              <option value="price_desc">Precio: Mayor a Menor</option>
+              <option value="rating">Mejor Valorado</option>
+            </select>
 
-              {/* Price Range Compact */}
-              <div className="flex items-center gap-1">
-                <span className="text-sm text-gray-600">Precio:</span>
-                <input 
-                  type="number" 
-                  placeholder="Mín" 
-                  value={priceMin ?? ""}
-                  onChange={(e) => { setPriceMin(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
-                  className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm"
-                />
-                <span className="text-gray-400">-</span>
-                <input 
-                  type="number" 
-                  placeholder="Máx" 
-                  value={priceMax ?? ""}
-                  onChange={(e) => { setPriceMax(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
-                  className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm"
-                />
-              </div>
-
-              {/* More Filters Button */}
-              <button 
-                onClick={() => setShowMoreFilters(!showMoreFilters)}
-                className="ml-auto flex items-center gap-1 px-3 py-1.5 border border-gray-300 rounded text-sm hover:bg-gray-50 transition"
-              >
-                <Filter className="w-4 h-4" />
-              </button>
+            {/* Price Range Compact */}
+            <div className="flex items-center gap-1">
+              <label className="text-sm text-gray-600">Precio:</label>
+              <input 
+                type="number" 
+                placeholder="Mín" 
+                value={priceMin ?? ""}
+                onChange={(e) => { setPriceMin(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
+                className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm"
+              />
+              <span className="text-gray-400">-</span>
+              <input 
+                type="number" 
+                placeholder="Máx" 
+                value={priceMax ?? ""}
+                onChange={(e) => { setPriceMax(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
+                className="w-16 px-2 py-1.5 border border-gray-300 rounded text-sm"
+              />
             </div>
 
-            {/* Row 2: Secondary Filters (shown when expanded) */}
-            {showMoreFilters && (
-              <div className="flex flex-wrap items-center gap-2 w-full">
-                {/* Subcategories Dropdown */}
-                {subcategories.length > 0 && (
-                  <select 
-                    value={selectedSubcategory ?? ""} 
-                    onChange={(e) => { setSelectedSubcategory(e.target.value || null); setCurrentPage(1); }}
-                    className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  >
-                    <option value="">Todas</option>
-                    {subcategories.map((s: any) => (
-                      <option key={s.id} value={s.id}>{s.name}</option>
-                    ))}
-                  </select>
-                )}
+            {/* Subcategories Dropdown */}
+            {subcategories.length > 0 && (
+              <select 
+                value={selectedSubcategory ?? ""} 
+                onChange={(e) => { setSelectedSubcategory(e.target.value || null); setCurrentPage(1); }}
+                className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Todas las subcategorías</option>
+                {subcategories.map((s: any) => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
 
-                {/* Rating Filter */}
-                <select 
-                  value={minRating ?? ""} 
-                  onChange={(e) => { setMinRating(e.target.value ? Number(e.target.value) : undefined); setCurrentPage(1); }}
-                  className="px-3 py-1.5 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">Rating</option>
-                  <option value="4">⭐ 4+</option>
-                  <option value="3">⭐ 3+</option>
-                  <option value="2">⭐ 2+</option>
-                </select>
-
-                {/* Promo Filter */}
-                <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 px-2 py-1.5 rounded">
-                  <input 
-                    type="checkbox" 
-                    checked={onlyPromo}
-                    onChange={(e) => { setOnlyPromo(e.target.checked); setCurrentPage(1); }}
-                    className="w-4 h-4 rounded border-gray-300"
-                  />
-                  <span>Promociones</span>
-                </label>
-
-                {/* Stock Filter */}
-                <label className="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-100 px-2 py-1.5 rounded">
-                  <input 
-                    type="checkbox" 
-                    checked={inStockOnly}
-                    onChange={(e) => { setInStockOnly(e.target.checked); setCurrentPage(1); }}
-                    className="w-4 h-4 rounded border-gray-300"
-                  />
-                  <span>En Stock</span>
-                </label>
-
-                {/* Clear Filters */}
-                {(priceMin || priceMax || selectedSubcategory || minRating || onlyPromo || inStockOnly) && (
-                  <button 
-                    onClick={() => { 
-                      setPriceMin(undefined); 
-                      setPriceMax(undefined); 
-                      setSelectedSubcategory(null);
-                      setMinRating(undefined);
-                      setOnlyPromo(false);
-                      setInStockOnly(false);
-                      setCurrentPage(1); 
-                    }}
-                    className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 font-medium"
-                  >
-                    Limpiar
-                  </button>
-                )}
-              </div>
+            {/* Clear Filters */}
+            {(priceMin || priceMax || selectedSubcategory) && (
+              <button 
+                onClick={() => { 
+                  setPriceMin(undefined); 
+                  setPriceMax(undefined); 
+                  setSelectedSubcategory(null); 
+                  setCurrentPage(1); 
+                }}
+                className="px-3 py-1.5 text-sm text-red-600 hover:text-red-700 font-medium"
+              >
+                Limpiar filtros
+              </button>
             )}
           </div>
         </div>
 
-        {/* Products Grid - Updated with additional filters */}
+        {/* Products Grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-4">
           {filteredProducts.map((p) => {
             const sku = getSku(p);
@@ -305,7 +230,6 @@ const CategoryProductsPage = () => {
               storeId: seller.id,
               storeName: seller.nombre ?? seller.name,
               storeWhatsapp: seller.whatsapp,
-              isSellerVerified: seller.is_verified || false,
               // Optional fields
               discount: p.discount ?? 0,
               badge: p.badge ?? p.coupon_label,

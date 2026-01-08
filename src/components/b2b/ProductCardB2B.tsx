@@ -63,14 +63,6 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         
         {/* Badges Overlay */}
         <div className="absolute top-2 left-2 flex flex-col gap-1">
-          {/* Variants Badge - Most prominent */}
-          {hasMultipleVariants && (
-            <Badge className="bg-purple-600 hover:bg-purple-700 text-white text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1">
-              <Layers className="w-3 h-3" />
-              {product.variant_count} tallas
-            </Badge>
-          )}
-          
           {/* Profit Badge */}
           {profit > 0 && (
             <Badge className="bg-green-600 hover:bg-green-700 text-white text-[10px] font-bold px-1.5 py-0.5 flex items-center gap-1">
@@ -87,12 +79,11 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         </div>
 
         {/* Stock Badge - Top Right */}
-        <div className="absolute top-2 right-2">
-          {product.stock_fisico > 0 && (
-            <Badge variant="secondary" className="text-[10px] font-medium bg-white/90 text-foreground">
-              {product.stock_fisico} disp.
-            </Badge>
-          )}
+        <div className="absolute top-2 right-2 flex flex-col gap-1">
+          <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground bg-white/90 px-1.5 py-0.5 rounded">
+            <ShieldCheck className="w-3 h-3 text-orange-500" />
+            Verified
+          </div>
         </div>
 
         {/* Out of Stock Overlay */}
@@ -107,7 +98,7 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
       <div className="p-3 flex flex-col flex-1">
         {/* Title */}
         <Link to={`/producto/${product.sku}`}>
-          <h3 className="text-sm text-foreground line-clamp-2 mb-2 leading-snug hover:text-primary transition-colors font-medium" title={product.nombre}>
+          <h3 className="text-sm text-foreground line-clamp-1 mb-2 leading-snug hover:text-primary transition-colors font-medium" title={product.nombre}>
             {product.nombre}
           </h3>
         </Link>
@@ -141,21 +132,12 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
 
         {/* Min Order & Variants Info */}
         <div className="mt-2 text-xs">
-          <span className="text-amber-600 font-medium">Min: {product.moq} uds</span>
           {/* Flexible MOQ message */}
           {product.moq > 1 && hasMultipleVariants && (
             <p className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-1 rounded">
               💡 Combina tallas y colores para llegar al mínimo
             </p>
           )}
-        </div>
-
-        {/* Trust Badges */}
-        <div className="flex items-center gap-2 mt-2 mb-3">
-          <div className="flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-            <ShieldCheck className="w-3 h-3 text-orange-500" />
-            Verified
-          </div>
         </div>
 
         {/* Spacer */}
@@ -181,7 +163,7 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
             disabled={isOutOfStock}
           >
             <ShoppingCart className="w-3.5 h-3.5 mr-1.5" />
-            {hasMultipleVariants ? 'Elegir Opciones' : 'Agregar'}
+            B2B
           </Button>
         </div>
       </div>

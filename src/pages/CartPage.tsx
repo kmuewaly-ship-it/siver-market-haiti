@@ -583,7 +583,7 @@ const CartPage = () => {
                                 <div className="flex justify-between items-start gap-2 mb-2">
                                   <p 
                                     onClick={() => navigate(`/producto/${item.sku}`)}
-                                    className="font-medium text-gray-900 line-clamp-2 cursor-pointer hover:text-blue-600 transition"
+                                    className="font-medium text-gray-900 line-clamp-1 cursor-pointer hover:text-blue-600 transition"
                                   >
                                     {item.name}
                                   </p>

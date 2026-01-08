@@ -61,7 +61,7 @@ const SearchResultsPage = () => {
                         </div>
 
                         <div className="p-4 flex-1 flex flex-col">
-                        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 cursor-pointer hover:text-blue-600 transition" onClick={() => navigate(`/producto/${sku}`)}>{name}</h3>
+                        <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 cursor-pointer hover:text-blue-600 transition" onClick={() => navigate(`/producto/${sku}`)}>{name}</h3>
 
                         <div className="flex items-center gap-2 mt-2">
                             <div className="flex text-yellow-400">{Array.from({ length: Math.round(rating) }).map((_, i) => (<Star key={i} className="w-3 h-3 fill-current" />))}</div>

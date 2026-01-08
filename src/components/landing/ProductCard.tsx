@@ -1,4 +1,4 @@
-import { Heart, Package, Store, TrendingUp, ShoppingCart, MessageCircle } from "lucide-react";
+import { Heart, Package, Store, TrendingUp, ShoppingCart, MessageCircle, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +19,7 @@ interface Product {
   storeId?: string;
   storeName?: string;
   storeWhatsapp?: string;
+  isSellerVerified?: boolean;
   // B2B fields (legacy/fallback)
   priceB2B?: number;
   pvp?: number;
@@ -52,7 +53,7 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
   const { user } = useAuth();
   const isMobile = useIsMobile();
 
-  const isSeller = user?.role === UserRole.SELLER;
+  const isB2BUser = user?.role === UserRole.SELLER || user?.role === UserRole.ADMIN;
 
   // Calcular precios según el contexto
   // Priorizamos b2bData si existe, sino usamos los campos del producto (fallback)
@@ -87,16 +88,16 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
 
   // Precio a mostrar según rol
   // B2C: si hay promo activa, mostrar precio promo, sino precio normal
-  // Seller: precio B2B
-  const displayPrice = isSeller 
+  // B2B (Seller/Admin): precio mayorista
+  const displayPrice = isB2BUser 
     ? costB2B 
     : (promoActive && promoPrice ? promoPrice : product.price);
   
   // Precio tachado/referencia
-  // Si es seller: mostramos PVP tachado
+  // Si es B2B: mostramos PVP tachado
   // Si es cliente B2C con promo: mostramos precio original tachado
   // Si es cliente sin promo: mostramos originalPrice si existe
-  const strikethroughPrice = isSeller 
+  const strikethroughPrice = isB2BUser 
     ? pvp 
     : (promoActive && promoPrice ? product.price : product.originalPrice);
 
@@ -126,14 +127,14 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
           )}
 
           {/* Promo/Discount Badge - Solo para B2C */}
-          {!isSeller && discountPercentage > 0 && (
+          {!isB2BUser && discountPercentage > 0 && (
             <div className={`absolute top-2 left-2 ${promoActive ? 'bg-red-600' : 'bg-[#071d7f]'} text-white px-2 py-1 rounded text-xs font-bold z-10`}>
               {promoActive ? `🔥 ${discountPercentage}% OFF` : `${discountPercentage}% DESC`}
             </div>
           )}
 
           {/* B2B Profitability Badge - "Ganas: $..." */}
-          {isSeller && profit > 0 && (
+          {isB2BUser && profit > 0 && (
             <Badge className="absolute top-2 left-2 bg-green-600 hover:bg-green-700 text-white gap-1 z-10 shadow-sm border-0">
               <TrendingUp className="h-3 w-3" />
               Ganas: ${profit.toFixed(2)}
@@ -141,9 +142,17 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
           )}
 
           {/* Custom Badge */}
-          {product.badge && !isSeller && (
+          {product.badge && !isB2BUser && (
             <div className="absolute top-2 right-2 bg-yellow-400 text-gray-900 px-2 py-1 rounded text-xs font-bold z-10">
               {product.badge}
+            </div>
+          )}
+
+          {/* Seller Verification Badge - Only show if no custom badge */}
+          {!isB2BUser && product.isSellerVerified && !product.badge && (
+            <div className="absolute top-2 right-2 flex items-center gap-0.5 text-[10px] font-bold text-muted-foreground bg-white/90 px-1.5 py-0.5 rounded z-10">
+              <ShieldCheck className="w-3 h-3 text-orange-500" />
+              Verified
             </div>
           )}
 
@@ -194,7 +203,7 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
         </Link>
 
         {/* MOQ Label for Seller */}
-        {isSeller && moq > 1 && (
+        {isB2BUser && moq > 1 && (
           <div className="text-xs text-amber-600 font-medium mb-2">
             Mínimo: {moq} unidades
           </div>
@@ -209,12 +218,12 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
               <span className="text-[7px] font-medium text-white">{currency}</span>
             </span>
             
-            {isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
+            {isB2BUser && strikethroughPrice && strikethroughPrice > displayPrice && (
               <span className="text-[9px] text-green-600 font-semibold">
                 ${strikethroughPrice.toFixed(2)} PVP
               </span>
             )}
-            {!isSeller && strikethroughPrice && strikethroughPrice > displayPrice && (
+            {!isB2BUser && strikethroughPrice && strikethroughPrice > displayPrice && (
               <span className="text-[9px] text-muted-foreground line-through">
                 ${strikethroughPrice.toFixed(2)}
               </span>
@@ -243,7 +252,7 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
             className={`px-2.5 py-1.5 rounded-lg text-xs font-medium transition shadow-sm flex items-center justify-center gap-1 bg-primary hover:bg-primary/90 text-white`}
           >
             <ShoppingCart className="w-3.5 h-3.5" />
-            {isSeller ? "B2B" : "Carrito"}
+            {isB2BUser ? "B2B" : "Carrito"}
           </button>
         </div>
       </div>

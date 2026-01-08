@@ -437,7 +437,7 @@ const StoreProfilePage = () => {
 
                 {/* Info */}
                 <div className="p-3">
-                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-2">
+                  <h3 className="text-sm font-semibold text-gray-900 line-clamp-1 mb-2">
                     {product.nombre}
                   </h3>
 

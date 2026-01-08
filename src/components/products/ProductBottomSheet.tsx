@@ -173,7 +173,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               <img src={displayImage} alt={product!.name} className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <DrawerTitle className="text-sm sm:text-base font-bold line-clamp-2">{product!.name}</DrawerTitle>
+              <DrawerTitle className="text-sm sm:text-base font-bold line-clamp-1">{product!.name}</DrawerTitle>
               <DrawerDescription className="mt-0.5 text-xs"></DrawerDescription>
               <div className="mt-1 font-bold text-base sm:text-lg text-primary">
                 ${currentPrice.toFixed(2)}
@@ -197,7 +197,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               <img src={displayImage} alt={product!.name} className="w-full h-full object-cover" />
             </div>
             <div className="flex-1 min-w-0">
-              <SheetTitle className="text-lg font-bold line-clamp-2">{product!.name}</SheetTitle>
+              <SheetTitle className="text-lg font-bold line-clamp-1">{product!.name}</SheetTitle>
               <SheetDescription className="mt-0.5 text-sm"></SheetDescription>
               <div className="mt-2 font-bold text-xl text-primary">
                 ${currentPrice.toFixed(2)}
@@ -467,7 +467,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <DrawerTitle className="text-sm font-bold line-clamp-2">{product.name}</DrawerTitle>
+                      <DrawerTitle className="text-sm font-bold line-clamp-1">{product.name}</DrawerTitle>
                       <div className="mt-1 font-bold text-base text-primary">
                         ${currentPrice.toFixed(2)}
                         {isSeller && <span className="text-[10px] font-normal text-muted-foreground ml-1">costo</span>}
@@ -664,7 +664,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                     <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <SheetTitle className="text-lg font-bold line-clamp-2">{product.name}</SheetTitle>
+                    <SheetTitle className="text-lg font-bold line-clamp-1">{product.name}</SheetTitle>
                     <div className="mt-2 font-bold text-xl text-primary">
                       ${currentPrice.toFixed(2)}
                       {isSeller && <span className="text-sm font-normal text-muted-foreground ml-2">costo</span>}

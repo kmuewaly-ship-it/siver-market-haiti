@@ -361,7 +361,7 @@ const SellerCartPage = () => {
                           <div className="flex-1 min-w-0">
                             <div className="flex justify-between items-start">
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-gray-900 line-clamp-2">
+                                <p className="font-medium text-sm text-gray-900 line-clamp-1">
                                   {item.name}
                                 </p>
                                 <p className="text-xs text-gray-600 mt-0.5">Cantidad: {item.cantidad}</p>
