@@ -1,8 +1,11 @@
 /**
  * Smart Cart Hook
  * Automatically routes cart operations based on user role:
+ * - Unauthenticated users -> Local B2C Cart (localStorage)
  * - Sellers/Admins -> B2B Cart with MOQ
  * - Regular users -> B2C Cart
+ * 
+ * When users log in, useCartMigration handles migration to the appropriate cart.
  */
 
 import { useAuth } from "@/hooks/useAuth";
@@ -35,13 +38,44 @@ interface BusinessSummary {
 }
 
 export const useSmartCart = () => {
-  const { role } = useAuth();
+  const { user, role } = useAuth();
   const b2cCart = useCart();
   const b2bCart = useCartB2B();
 
-  const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
+  // User is B2B only if authenticated AND has SELLER or ADMIN role
+  const isB2BUser = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
+  
+  // User is authenticated
+  const isAuthenticated = !!user;
 
+  /**
+   * Add product to cart - routes based on authentication and role
+   * - Not authenticated: Local cart (B2C style)
+   * - Authenticated B2B user: B2B cart with MOQ
+   * - Authenticated B2C user: B2C cart
+   */
   const addToCart = (product: ProductForCart) => {
+    // If not authenticated, always use local cart (B2C-style)
+    // This will be migrated when user logs in via useCartMigration
+    if (!isAuthenticated) {
+      b2cCart.addItem({
+        id: product.id,
+        name: product.name,
+        price: product.price,
+        image: product.image,
+        sku: product.sku,
+        storeId: product.storeId,
+        storeName: product.storeName,
+        storeWhatsapp: product.storeWhatsapp,
+      });
+
+      toast.success("Añadido al carrito", {
+        description: product.name,
+      });
+      return true;
+    }
+
+    // Authenticated users - route based on role
     if (isB2BUser) {
       // Add to B2B cart with MOQ
       const moq = product.moq || 1;
@@ -70,7 +104,7 @@ export const useSmartCart = () => {
       });
       return true;
     } else {
-      // Add to B2C cart
+      // Authenticated B2C user
       b2cCart.addItem({
         id: product.id,
         name: product.name,
@@ -90,16 +124,8 @@ export const useSmartCart = () => {
   };
 
   const getCartInfo = () => {
-    if (isB2BUser) {
-      return {
-        totalItems: b2bCart.cart.totalItems,
-        totalQuantity: b2bCart.cart.totalQuantity,
-        subtotal: b2bCart.cart.subtotal,
-        items: b2bCart.cart.items,
-        cartType: "b2b" as const,
-        cartLink: "/seller/carrito",
-      };
-    } else {
+    // For unauthenticated users or B2C users, show local cart
+    if (!isAuthenticated || !isB2BUser) {
       return {
         totalItems: b2cCart.totalItems(),
         totalQuantity: b2cCart.items.reduce((sum, item) => sum + item.quantity, 0),
@@ -109,6 +135,16 @@ export const useSmartCart = () => {
         cartLink: "/carrito",
       };
     }
+    
+    // B2B user
+    return {
+      totalItems: b2bCart.cart.totalItems,
+      totalQuantity: b2bCart.cart.totalQuantity,
+      subtotal: b2bCart.cart.subtotal,
+      items: b2bCart.cart.items,
+      cartType: "b2b" as const,
+      cartLink: "/seller/carrito",
+    };
   };
 
   /**
@@ -135,7 +171,8 @@ export const useSmartCart = () => {
     addToCart,
     getCartInfo,
     getBusinessSummary,
-    isB2BUser,
+    isB2BUser: !!isB2BUser,
+    isAuthenticated,
     // Expose underlying carts for direct access when needed
     b2cCart,
     b2bCart,
