@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Eye, EyeOff, Mail, Lock, User, AlertCircle, Store, ShoppingBag } from "lucide-react";
-import Header from "@/components/layout/Header";
+import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 
 const LoginPage = () => {
@@ -92,8 +92,8 @@ const LoginPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <Header />
-      <main className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center">
+      <GlobalHeader />
+      <main className="flex-1 container mx-auto px-4 py-8 flex items-center justify-center pb-24 md:pb-8">
         <div className="w-full max-w-md">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-foreground mb-2">Bienvenido a Siver Market</h1>

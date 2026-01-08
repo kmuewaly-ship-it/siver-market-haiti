@@ -81,7 +81,7 @@ const Header = ({
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const prevCartCountRef = useRef<number>(0);
   
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { items: b2cItems } = useB2CCartItems();
   const { items: b2bItems } = useB2BCartItems();
   const { data: categories = [], isLoading: categoriesLoading } = usePublicCategories();
@@ -475,10 +475,12 @@ const Header = ({
               <Heart className="w-6 h-6" />
               <span className="text-xs">Favoritos</span>
             </Link>
-            <Link to={accountLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
-              <User className="w-6 h-6" />
-              <span className="text-xs">Cuenta</span>
-            </Link>
+            {user && (
+              <Link to={accountLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
+                <User className="w-6 h-6" />
+                <span className="text-xs">Cuenta</span>
+              </Link>
+            )}
             <Link to={cartLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition relative">
               <ShoppingBag className="w-6 h-6" />
               <span className="text-xs">Carrito</span>

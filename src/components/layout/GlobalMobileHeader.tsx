@@ -91,7 +91,8 @@ const GlobalMobileHeader = ({
     items: b2bItems
   } = useB2BCartItems();
   const {
-    role
+    role,
+    user
   } = useAuth();
   const {
     isClientPreview,
@@ -372,7 +373,7 @@ const GlobalMobileHeader = ({
           </button>)}
 
         {/* Search input with dropdown */}
-        <div ref={searchRef} className="flex-1 max-w-[60%] relative">
+        <div ref={searchRef} className="flex-1 relative">
           <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
             <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onFocus={() => searchQuery.length >= 2 && setShowResults(true)} className="flex-1 bg-transparent text-sm text-gray-700 px-3 py-2 outline-none min-w-0" />
             {searchQuery && <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600">
@@ -418,10 +419,12 @@ const GlobalMobileHeader = ({
             </div>}
         </div>
 
-        {/* Account User */}
-        <Link to={accountLink} className="relative flex-shrink-0">
-          <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-        </Link>
+        {/* Account User - Hide for unauthenticated and USER role users */}
+        {(user && (role === UserRole.SELLER || role === UserRole.ADMIN)) && (
+          <Link to={accountLink} className="relative flex-shrink-0">
+            <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+          </Link>
+        )}
 
         {/* Favorites heart */}
         <Link to={favoritesLink} className="relative flex-shrink-0">

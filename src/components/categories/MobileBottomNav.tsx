@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Home, LayoutGrid, Sparkles, ShoppingBag, Package } from "lucide-react";
+import { Home, LayoutGrid, Sparkles, ShoppingBag, Package, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
@@ -8,15 +8,14 @@ import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 
 const MobileBottomNav = () => {
   const location = useLocation();
-  const { role } = useAuth();
+  const { role, user } = useAuth();
   const { items: b2cItems } = useB2CCartItems();
   const { items: b2bItems } = useB2BCartItems();
   
-  // Hide on admin routes
+  // Hide on admin routes only
   const isAdminRoute = location.pathname.startsWith("/admin");
-  const isLoginRoute = location.pathname === "/login";
   
-  if (isAdminRoute || isLoginRoute) {
+  if (isAdminRoute) {
     return null;
   }
   
@@ -30,7 +29,7 @@ const MobileBottomNav = () => {
   
   const categoriesLink = "/categorias";
   
-  // Different nav items based on role - B2B users get B2B link instead of Cuenta
+  // Different nav items based on role - B2B users get B2B link, regular users/public get account link
   const navItems = isB2B ? [
     { href: "/", icon: Home, label: "Inicio" },
     { href: categoriesLink, icon: LayoutGrid, label: "Categorías" },
@@ -42,6 +41,7 @@ const MobileBottomNav = () => {
     { href: categoriesLink, icon: LayoutGrid, label: "Categorías" },
     { href: "/tendencias", icon: Sparkles, label: "Tendencias", hasDot: true },
     { href: cartLink, icon: ShoppingBag, label: "Carrito", badge: cartBadge },
+    { href: user ? "/cuenta" : "/login", icon: User, label: user ? "Cuenta" : "Login" },
   ];
 
   return (
