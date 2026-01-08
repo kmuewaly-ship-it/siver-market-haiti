@@ -961,7 +961,7 @@ const SellerCheckout = () => {
                       key={item.productId}
                       className="flex gap-4 pb-4 border-b last:border-b-0"
                     >
-                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden">
+                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
                         {item.image ? (
                           <img 
                             src={item.image} 
