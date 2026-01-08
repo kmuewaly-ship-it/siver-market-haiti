@@ -231,10 +231,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const signOut = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setRole(null);
-    navigate('/');
+    try {
+      // Clear local state first to ensure UI updates immediately
+      setUser(null);
+      setSession(null);
+      setRole(null);
+      
+      // Then sign out from Supabase (ignore errors if session already expired)
+      await supabase.auth.signOut();
+    } catch (error) {
+      console.warn('Sign out error (session may have already expired):', error);
+    } finally {
+      // Always navigate to home, regardless of Supabase response
+      navigate('/');
+    }
   };
 
   const value: AuthContextType = {
