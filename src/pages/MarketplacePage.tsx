@@ -51,9 +51,9 @@ const MarketplacePage = () => {
       const matchesStore = selectedStore === "all" || product.store?.id === selectedStore;
       const productPrice = product.precio_venta;
       const matchesPrice = (!minPrice || productPrice >= minPrice) && (!maxPrice || productPrice <= maxPrice);
-      const matchesStock = !showOnlyStock || (product.stock_fisico && product.stock_fisico > 0);
-      const matchesPromo = !showOnlyPromos || (product.promo_active && product.precio_promocional);
-      const matchesRating = !product.rating || product.rating >= minRating;
+      const matchesStock = !showOnlyStock || (product.stock && product.stock > 0);
+      const matchesPromo = !showOnlyPromos || ((product as any).promo_active && (product as any).precio_promocional);
+      const matchesRating = !(product as any).rating || (product as any).rating >= minRating;
 
       // Category filter - check if product category matches selected or is child of selected
       let matchesCategory = selectedCategory === "all";
@@ -239,6 +239,7 @@ const MarketplacePage = () => {
               )}
             </div>
           )}
+        </div>
 
         {/* Products Grid */}
         {isLoading ? (

@@ -49,14 +49,15 @@ export const getProductsB2C = async (filters?: {
   try {
     let query = supabase
       .from('products')
-      .select('id, nombre, descripcion_larga, precio_b2c, stock, galeria_imagenes, categoria_id, created_at, updated_at');
+      .select('id, nombre, descripcion_corta, descripcion_larga, precio_b2c, stock, galeria_imagenes, categoria_id, created_at, updated_at');
 
     if (filters?.category) {
       query = query.eq('categoria_id', filters.category);
     }
 
     if (filters?.search) {
-      query = query.ilike('nombre', `%${filters.search}%`);
+      // Search in nombre, descripcion_corta, and descripcion_larga
+      query = query.or(`nombre.ilike.%${filters.search}%,descripcion_corta.ilike.%${filters.search}%,descripcion_larga.ilike.%${filters.search}%`);
     }
 
     const { data, error } = await query;
@@ -107,8 +108,8 @@ export const searchProducts = async (
   try {
     let query = supabase
       .from('products')
-      .select('id, nombre, descripcion_larga, precio_b2c, stock, galeria_imagenes, categoria_id, created_at')
-      .ilike('nombre', `%${searchTerm}%`);
+      .select('id, nombre, descripcion_corta, descripcion_larga, precio_b2c, stock, galeria_imagenes, categoria_id, created_at')
+      .or(`nombre.ilike.%${searchTerm}%,descripcion_corta.ilike.%${searchTerm}%,descripcion_larga.ilike.%${searchTerm}%`);
 
     if (category) {
       query = query.eq('categoria_id', category);

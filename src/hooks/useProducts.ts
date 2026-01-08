@@ -63,11 +63,12 @@ export const useSearchProducts = (query: string, page = 0, limit = 12) => {
     queryFn: async () => {
       if (!query) return { products: [], total: 0 };
 
+      // Search in nombre, descripcion_corta, and descripcion_larga
       const { data, error, count } = await supabase
         .from("products")
         .select("*", { count: "exact" })
         .eq("is_active", true)
-        .ilike("nombre", `%${query}%`)
+        .or(`nombre.ilike.%${query}%,descripcion_corta.ilike.%${query}%,descripcion_larga.ilike.%${query}%`)
         .range(page * limit, (page + 1) * limit - 1);
 
       if (error) throw new Error(error.message);
