@@ -216,13 +216,17 @@ export const groupProductsByParent = (
 
     // Initialize group if new
     if (!groups[groupKey]) {
+      // Get description - fallback to parent name if no description column exists
+      const rawDescription = row[columnMapping.descripcion_corta] || '';
+      const description = rawDescription.trim() || extractParentName(name);
+      
       groups[groupKey] = {
         groupKey,
         parentName: extractParentName(name),
         baseSku: extractBaseSku(sku),
         category: row[columnMapping.categoria] || '',
         supplier: row[columnMapping.proveedor] || '',
-        description: row[columnMapping.descripcion_corta] || '',
+        description,
         variants: [],
         detectedAttributes: [],
       };

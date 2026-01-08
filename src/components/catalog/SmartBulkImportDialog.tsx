@@ -198,8 +198,13 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     headerRow.forEach((header) => {
       const lower = header.toLowerCase();
       if (lower.includes('sku') || lower.includes('codigo')) autoMapping.sku_interno = header;
-      else if (lower.includes('nombre') || lower.includes('name') || lower.includes('title')) autoMapping.nombre = header;
-      else if (lower.includes('desc')) autoMapping.descripcion_corta = header;
+      else if (lower.includes('nombre') || lower.includes('name') || lower.includes('title') || lower.includes('product')) {
+        // Prioriza nombre, pero también puede usar para descripción si no hay columna específica
+        if (!autoMapping.nombre) autoMapping.nombre = header;
+      }
+      else if (lower.includes('desc') || lower.includes('descripcion') || lower.includes('description') || lower.includes('detail')) {
+        autoMapping.descripcion_corta = header;
+      }
       else if (lower.includes('costo') || lower.includes('cost') || lower.includes('precio') || lower.includes('price')) autoMapping.costo_base = header;
       else if (lower.includes('moq') || lower.includes('minimo')) autoMapping.moq = header;
       else if (lower.includes('stock') || lower.includes('cantidad') || lower.includes('qty')) autoMapping.stock_fisico = header;
