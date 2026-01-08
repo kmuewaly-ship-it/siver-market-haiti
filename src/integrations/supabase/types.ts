@@ -304,6 +304,7 @@ export type Database = {
           color: string | null
           created_at: string | null
           id: string
+          image: string | null
           metadata: Json | null
           nombre: string
           product_id: string | null
@@ -318,6 +319,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           id?: string
+          image?: string | null
           metadata?: Json | null
           nombre: string
           product_id?: string | null
@@ -332,6 +334,7 @@ export type Database = {
           color?: string | null
           created_at?: string | null
           id?: string
+          image?: string | null
           metadata?: Json | null
           nombre?: string
           product_id?: string | null

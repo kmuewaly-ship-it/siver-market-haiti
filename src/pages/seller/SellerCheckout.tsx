@@ -1234,6 +1234,29 @@ const SellerCheckout = () => {
               <Card className="p-6 sticky top-8">
                 <h3 className="text-lg font-bold mb-4">Resumen del Pedido</h3>
 
+                {/* Items List with Images */}
+                <div className="space-y-3 max-h-64 overflow-y-auto mb-4 pb-4 border-b">
+                  {items.map((item) => (
+                    <div key={item.id} className="flex gap-3 pb-3 border-b last:border-b-0">
+                      <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {item.image ? (
+                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                        ) : (
+                          <ShoppingBag className="h-5 w-5 text-muted-foreground" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm line-clamp-1">{item.name}</p>
+                        <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
+                        <div className="flex justify-between items-center mt-1">
+                          <span className="text-xs text-muted-foreground">Cant: {item.cantidad}</span>
+                          <span className="text-sm font-semibold">${item.subtotal.toFixed(2)}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
                 <div className="space-y-3 mb-6 pb-6 border-b">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal:</span>

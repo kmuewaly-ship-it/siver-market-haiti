@@ -45,7 +45,7 @@ export const useB2BCartItems = () => {
       // Query directly from b2b_cart_items with JOIN to b2b_carts
       const { data: cartItems, error: itemsError } = await supabase
         .from('b2b_cart_items')
-        .select('*, cart_id!inner(id, buyer_user_id, status), products:product_id(precio_sugerido_venta, moq, imagen_principal)')
+        .select('*, image, cart_id!inner(id, buyer_user_id, status), products:product_id(precio_sugerido_venta, moq, imagen_principal)')
         .eq('cart_id.buyer_user_id', user.id)
         .eq('cart_id.status', 'open')
         .order('created_at', { ascending: false });
@@ -68,6 +68,9 @@ export const useB2BCartItems = () => {
           productImage = (item.products as any).imagen_principal || null;
         }
 
+        // Prioritize variant image saved on cart item, fallback to product image
+        const itemImage = (item as any).image || productImage;
+
         return {
           id: item.id,
           productId: item.product_id,
@@ -77,7 +80,7 @@ export const useB2BCartItems = () => {
           precioVenta: precioVenta,
           cantidad: item.quantity,
           subtotal: typeof item.total_price === 'string' ? parseFloat(item.total_price) : item.total_price,
-          image: productImage,
+          image: itemImage,
           moq: moq,
           color: item.color || null,
           size: item.size || null,
