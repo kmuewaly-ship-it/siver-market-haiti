@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/hooks/useAuth';
-import { useBuyerB2BOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus, BuyerOrderItem } from '@/hooks/useBuyerOrders';
+import { useBuyerB2BOrders, useCancelBuyerOrder, BuyerOrder, BuyerOrderStatus, RefundStatus, BuyerOrderItem, PaymentStatus } from '@/hooks/useBuyerOrders';
 import { usePackageTracking } from '@/hooks/usePackageTracking';
 import { TrackingWidget } from '@/components/tracking/TrackingWidget';
 import { useOrdersPOInfo, OrderPOInfo } from '@/hooks/useOrderPOInfo';
@@ -52,10 +52,21 @@ import { Link } from 'react-router-dom';
 
 const statusConfig: Record<BuyerOrderStatus, { label: string; color: string; icon: React.ElementType; bgColor: string }> = {
   draft: { label: 'Borrador', color: 'text-gray-600', icon: Clock, bgColor: 'bg-gray-100' },
-  placed: { label: 'Confirmado', color: 'text-blue-600', icon: Package, bgColor: 'bg-blue-100' },
-  paid: { label: 'Pagado', color: 'text-amber-600', icon: CheckCircle, bgColor: 'bg-amber-100' },
+  placed: { label: 'Procesando', color: 'text-blue-600', icon: Package, bgColor: 'bg-blue-100' },
+  paid: { label: 'Pagado', color: 'text-green-600', icon: CheckCircle, bgColor: 'bg-green-100' },
   shipped: { label: 'En camino', color: 'text-purple-600', icon: Truck, bgColor: 'bg-purple-100' },
   delivered: { label: 'Entregado', color: 'text-green-600', icon: CheckCircle, bgColor: 'bg-green-100' },
+  cancelled: { label: 'Cancelado', color: 'text-red-600', icon: XCircle, bgColor: 'bg-red-100' },
+};
+
+// Payment status configuration
+const paymentStatusConfig: Record<string, { label: string; color: string; icon: React.ElementType; bgColor: string }> = {
+  draft: { label: 'Borrador', color: 'text-gray-600', icon: Clock, bgColor: 'bg-gray-100' },
+  pending: { label: 'Pago Pendiente', color: 'text-amber-600', icon: Clock, bgColor: 'bg-amber-100' },
+  pending_validation: { label: 'Verificando Pago', color: 'text-orange-600', icon: AlertCircle, bgColor: 'bg-orange-100' },
+  paid: { label: 'Pagado', color: 'text-green-600', icon: CheckCircle, bgColor: 'bg-green-100' },
+  failed: { label: 'Pago Fallido', color: 'text-red-600', icon: XCircle, bgColor: 'bg-red-100' },
+  expired: { label: 'Expirado', color: 'text-red-600', icon: Clock, bgColor: 'bg-red-100' },
   cancelled: { label: 'Cancelado', color: 'text-red-600', icon: XCircle, bgColor: 'bg-red-100' },
 };
 
@@ -194,6 +205,56 @@ const SellerMisComprasPage = () => {
     });
     
     toast.success('Factura generada', { description: 'Preparando impresión...' });
+  };
+
+  // Use payment_status for badge when order is placed but payment not yet confirmed
+  const getOrderDisplayBadge = (order: BuyerOrder) => {
+    // If order is delivered, shipped, or cancelled - show order status
+    if (['delivered', 'shipped', 'cancelled'].includes(order.status)) {
+      const config = statusConfig[order.status];
+      const Icon = config.icon;
+      return (
+        <Badge className={`${config.bgColor} ${config.color} gap-1`}>
+          <Icon className="h-3 w-3" />
+          {config.label}
+        </Badge>
+      );
+    }
+    
+    // For placed orders, show payment status
+    if (order.status === 'placed') {
+      const paymentStatus = order.payment_status || 'pending';
+      const config = paymentStatusConfig[paymentStatus] || paymentStatusConfig.pending;
+      const Icon = config.icon;
+      return (
+        <Badge className={`${config.bgColor} ${config.color} gap-1`}>
+          <Icon className="h-3 w-3" />
+          {config.label}
+        </Badge>
+      );
+    }
+    
+    // For paid orders
+    if (order.status === 'paid' || order.payment_status === 'paid') {
+      const config = paymentStatusConfig.paid;
+      const Icon = config.icon;
+      return (
+        <Badge className={`${config.bgColor} ${config.color} gap-1`}>
+          <Icon className="h-3 w-3" />
+          {config.label}
+        </Badge>
+      );
+    }
+    
+    // Default: show order status
+    const config = statusConfig[order.status];
+    const Icon = config.icon;
+    return (
+      <Badge className={`${config.bgColor} ${config.color} gap-1`}>
+        <Icon className="h-3 w-3" />
+        {config.label}
+      </Badge>
+    );
   };
 
   const getStatusBadge = (status: BuyerOrderStatus) => {
@@ -339,8 +400,9 @@ const SellerMisComprasPage = () => {
                   className={`cursor-pointer hover:shadow-lg transition-all duration-300 border-l-4 ${
                     order.status === 'shipped' ? 'border-l-purple-500' : 
                     order.status === 'delivered' ? 'border-l-green-500' : 
-                    order.status === 'paid' ? 'border-l-amber-500' : 
-                    order.status === 'placed' ? 'border-l-blue-500' : 
+                    order.payment_status === 'paid' || order.status === 'paid' ? 'border-l-green-500' : 
+                    order.payment_status === 'pending_validation' ? 'border-l-orange-500' :
+                    order.status === 'placed' ? 'border-l-amber-500' : 
                     order.status === 'cancelled' ? 'border-l-red-500' : 'border-l-gray-300'
                   }`}
                   onClick={() => setSelectedOrder(order)}
@@ -364,7 +426,7 @@ const SellerMisComprasPage = () => {
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-1 flex-wrap">
                             <span className="font-semibold text-[11px] md:text-base">#{order.id.slice(0, 6).toUpperCase()}</span>
-                            {getStatusBadge(order.status)}
+                            {getOrderDisplayBadge(order)}
                           </div>
                           <p className="text-[10px] md:text-xs text-muted-foreground mt-0.5 line-clamp-1">
                             {order.order_items_b2b?.length || 0} prod. • {order.total_quantity} uds
@@ -408,16 +470,26 @@ const SellerMisComprasPage = () => {
             <>
               <DialogHeader>
                 <DialogTitle className="flex items-center gap-3">
-                  <div className={`p-2 rounded-lg ${statusConfig[selectedOrder.status].bgColor} ${statusConfig[selectedOrder.status].color}`}>
+                  <div className={`p-2 rounded-lg ${
+                    selectedOrder.payment_status === 'pending_validation' 
+                      ? 'bg-orange-100 text-orange-600'
+                      : selectedOrder.payment_status === 'paid'
+                        ? 'bg-green-100 text-green-600'
+                        : statusConfig[selectedOrder.status].bgColor + ' ' + statusConfig[selectedOrder.status].color
+                  }`}>
                     {(() => {
-                      const Icon = statusConfig[selectedOrder.status].icon;
+                      const Icon = selectedOrder.payment_status === 'pending_validation' 
+                        ? AlertCircle 
+                        : selectedOrder.payment_status === 'paid'
+                          ? CheckCircle
+                          : statusConfig[selectedOrder.status].icon;
                       return <Icon className="h-5 w-5" />;
                     })()}
                   </div>
                   <div>
                     <span className="block">Pedido #{selectedOrder.id.slice(0, 8).toUpperCase()}</span>
                     <div className="flex items-center gap-2 mt-1">
-                      {getStatusBadge(selectedOrder.status)}
+                      {getOrderDisplayBadge(selectedOrder)}
                       <Badge variant="secondary" className="bg-indigo-100 text-indigo-700 text-xs">
                         <Boxes className="h-3 w-3 mr-1" />
                         B2B

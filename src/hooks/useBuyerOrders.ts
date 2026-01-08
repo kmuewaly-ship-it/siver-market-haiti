@@ -19,11 +19,14 @@ export interface BuyerOrderItem {
   image?: string | null;
 }
 
+export type PaymentStatus = 'draft' | 'pending' | 'pending_validation' | 'paid' | 'failed' | 'expired' | 'cancelled';
+
 export interface BuyerOrder {
   id: string;
   seller_id: string;
   buyer_id: string | null;
   status: BuyerOrderStatus;
+  payment_status: PaymentStatus;
   total_amount: number;
   total_quantity: number;
   currency: string;
