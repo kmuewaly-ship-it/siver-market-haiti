@@ -163,6 +163,7 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
         unit_price: params.priceB2B,
         total_price: params.priceB2B * params.quantity,
         quantity: params.quantity,
+        image: params.image || null,
       }])
       .select();
 
