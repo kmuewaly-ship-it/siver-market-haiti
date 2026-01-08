@@ -441,12 +441,12 @@ const GlobalMobileHeader = ({
         </Link>
       </div>
 
-      {/* Category tabs - horizontal scroll with dynamic background */}
-      <div className="overflow-x-auto scrollbar-hide border-b border-gray-200 bg-[#071d7f]">
-        <div className="flex px-2 py-2 gap-1 min-w-max">
+      {/* Category tabs - distributed evenly across full width */}
+      <div className="border-b border-gray-200 bg-[#071d7f]">
+        <div className="flex w-full">
           <button
             onClick={() => navigate("/")}
-            className="px-3 py-1.5 text-white hover:bg-white/20 rounded-full transition-all flex items-center justify-center"
+            className="flex-1 px-2 py-2 text-white hover:bg-white/20 rounded-none transition-all flex items-center justify-center text-xs border-r border-[#0a3a9f]"
             title="Ir a inicio"
           >
             <Home className="w-4 h-4" />
@@ -454,7 +454,7 @@ const GlobalMobileHeader = ({
           <button
             onClick={() => handleClearFilters()}
             className={cn(
-              "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all",
+              "flex-1 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all border-r border-[#0a3a9f] text-center",
               selectedCategory === null
                 ? "bg-white text-[#071d7f] font-medium"
                 : "bg-white text-[#94111f] hover:bg-gray-100"
@@ -462,12 +462,13 @@ const GlobalMobileHeader = ({
           >
             Todo
           </button>
-          {rootCategories.map(cat => (
+          {rootCategories.map((cat, index) => (
             <button
               key={cat.id}
               onClick={() => handleCategorySelect(cat.id)}
               className={cn(
-                "px-3 py-1.5 text-xs rounded-full whitespace-nowrap transition-all",
+                "flex-1 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all text-center",
+                index < rootCategories.length - 1 && "border-r border-[#0a3a9f]",
                 selectedCategory === cat.id
                   ? "bg-white text-[#071d7f] font-medium"
                   : "bg-white text-[#94111f] hover:bg-gray-100"
