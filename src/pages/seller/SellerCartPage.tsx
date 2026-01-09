@@ -427,42 +427,42 @@ const SellerCartPage = () => {
               <div className="lg:col-span-1">
                 <div className="bg-white border border-gray-200 rounded-lg overflow-hidden sticky top-20">
                   {/* Summary Header */}
-                  <div className="bg-gray-50 border-b border-gray-200 p-4">
-                    <h2 className="font-bold text-lg text-gray-900">Resumen del Pedido</h2>
+                  <div className="bg-gray-50 border-b border-gray-200 p-3">
+                    <h2 className="font-bold text-base text-gray-900">Resumen del Pedido</h2>
                     <p className="text-xs text-gray-600 mt-1">Procesa descuentos y asientos luego confirmar precio final</p>
                   </div>
 
                   {/* Pricing Details */}
-                  <div className="p-4 space-y-3 border-b border-gray-200">
-                    <div className="flex justify-between items-center text-sm">
+                  <div className="p-2 space-y-2 border-b border-gray-200">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="text-gray-600">Precio Mayorista:</span>
                       <span className="font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="text-gray-600">Promociones:</span>
                       <span className="font-semibold text-red-600">—</span>
                     </div>
-                    <div className="flex justify-between items-center text-sm">
+                    <div className="flex justify-between items-center text-xs">
                       <span className="text-gray-600">Cupón:</span>
                       <span className="font-semibold text-blue-600">—</span>
                     </div>
                   </div>
 
                   {/* Total Price */}
-                  <div className="p-4 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
+                  <div className="p-2 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-gray-700 font-medium">Precio Estimado:</span>
-                      <span className="text-2xl font-bold" style={{ color: '#071d7f' }}>
+                      <span className="text-sm font-medium text-gray-700">Precio Estimado:</span>
+                      <span className="text-lg font-bold" style={{ color: '#071d7f' }}>
                         ${subtotal.toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-2">Se confirma el precio final en confirmar pedido</p>
+                    <p className="text-xs text-gray-500 mt-1">Se confirma el precio final en confirmar pedido</p>
                   </div>
 
                   {/* Business Analysis Panel */}
-                  <div className="p-4 bg-white border-b border-gray-200">
-                    <p className="text-sm font-bold text-gray-900 mb-3">PANEL DE NEGOCIO</p>
-                    <div className="space-y-2">
+                  <div className="p-2 bg-white border-b border-gray-200">
+                    <p className="text-xs font-bold text-gray-900 mb-2">PANEL DE NEGOCIO</p>
+                    <div className="space-y-1.5">
                       <div className="flex justify-between items-center text-xs">
                         <span className="text-gray-600">Inversión:</span>
                         <span className="font-semibold text-gray-900">${profitAnalysis.inversion.toFixed(2)}</span>
@@ -471,15 +471,15 @@ const SellerCartPage = () => {
                         <span className="text-gray-600">Venta (PVP):</span>
                         <span className="font-semibold text-gray-900">${profitAnalysis.venta.toFixed(2)}</span>
                       </div>
-                      <div className="flex justify-between items-center text-xs border-t pt-2 mt-2">
+                      <div className="flex justify-between items-center text-xs border-t pt-1.5 mt-1.5">
                         <span className="text-gray-600 font-medium">
                           {profitAnalysis.ganancia >= 0 ? '📈 Ganancia:' : '📉 Pérdida:'}
                         </span>
                         <div className="text-right">
-                          <div className="font-bold" style={{ color: profitAnalysis.ganancia >= 0 ? '#29892a' : '#dc2626' }}>
+                          <div className="font-bold text-xs" style={{ color: profitAnalysis.ganancia >= 0 ? '#29892a' : '#dc2626' }}>
                             {profitAnalysis.ganancia >= 0 ? '+' : ''}{profitAnalysis.ganancia.toFixed(2)}
                           </div>
-                          <div className="text-[10px] font-semibold" style={{ color: profitAnalysis.margen >= 0 ? '#29892a' : '#dc2626' }}>
+                          <div className="text-[9px] font-semibold" style={{ color: profitAnalysis.margen >= 0 ? '#29892a' : '#dc2626' }}>
                             {profitAnalysis.margen.toFixed(0)}% margen
                           </div>
                         </div>
@@ -488,50 +488,50 @@ const SellerCartPage = () => {
                   </div>
 
                   {/* Payment Methods */}
-                  <div className="p-3 bg-gray-50 border-t border-gray-200">
-                    <p className="text-xs font-semibold text-gray-700 mb-2">Aceptamos:</p>
-                    <div className="grid grid-cols-3 gap-1.5">
+                  <div className="p-2 bg-gray-50 border-t border-gray-200">
+                    <p className="text-xs font-semibold text-gray-700 mb-1.5">Aceptamos:</p>
+                    <div className="grid grid-cols-5 gap-1">
                       {/* Credit Cards Section - Show individual card types */}
                       {paymentMethods.includes('Tarjetas') && (
                         <>
                           {/* VISA */}
                           <div 
-                            className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                            className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                             title="VISA"
                           >
-                            <img src="/visa.png" alt="VISA" className="h-5 w-auto" />
+                            <img src="/visa.png" alt="VISA" className="h-4 w-auto" />
                           </div>
 
                           {/* MASTERCARD */}
                           <div 
-                            className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                            className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                             title="Mastercard"
                           >
-                            <img src="/mastercard.png" alt="Mastercard" className="h-5 w-auto" />
+                            <img src="/mastercard.png" alt="Mastercard" className="h-4 w-auto" />
                           </div>
 
                           {/* AMEX */}
                           <div 
-                            className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                            className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                             title="American Express"
                           >
-                            <img src="/american express.png" alt="American Express" className="h-5 w-auto" />
+                            <img src="/american express.png" alt="American Express" className="h-4 w-auto" />
                           </div>
 
                           {/* APPLE PAY */}
                           <div 
-                            className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                            className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                             title="Apple Pay"
                           >
-                            <img src="/apple pay.png" alt="Apple Pay" className="h-5 w-auto" />
+                            <img src="/apple pay.png" alt="Apple Pay" className="h-4 w-auto" />
                           </div>
 
                           {/* GOOGLE PAY */}
                           <div 
-                            className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                            className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                             title="Google Pay"
                           >
-                            <img src="/google pay.png" alt="Google Pay" className="h-5 w-auto" />
+                            <img src="/google pay.png" alt="Google Pay" className="h-4 w-auto" />
                           </div>
                         </>
                       )}
@@ -539,10 +539,10 @@ const SellerCartPage = () => {
                       {/* Transferencia */}
                       {paymentMethods.includes('Transferencia') && (
                         <div 
-                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                           title="Transferencia Bancaria"
                         >
-                          <Banknote className="h-5 w-5" style={{ color: '#071d7f' }} />
+                          <Banknote className="h-4 w-4" style={{ color: '#071d7f' }} />
                         </div>
                       )}
 
@@ -569,39 +569,39 @@ const SellerCartPage = () => {
                   </div>
 
                   {/* Checkout Button and Support */}
-                  <div className="p-4 space-y-3">
+                  <div className="p-2 space-y-2">
                     {!isCartValid && (
-                      <div className="text-xs text-amber-600 text-center bg-amber-50 p-2 rounded-lg border border-amber-200">
+                      <div className="text-xs text-amber-600 text-center bg-amber-50 p-1.5 rounded-lg border border-amber-200">
                         <AlertTriangle className="w-3 h-3 inline mr-1" />
                         Alcanza los mínimos para continuar
                       </div>
                     )}
-                    <div className="flex gap-3 justify-center">
+                    <div className="flex gap-2 justify-center">
                       <button
                         onClick={handleWhatsAppContact}
-                        className="px-6 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 bg-transparent border border-gray-300"
+                        className="px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-2 bg-transparent border border-gray-300"
                         style={{ color: '#29892a' }}
                         title="Contactar por WhatsApp"
                       >
-                        <MessageCircle className="w-5 h-5" style={{ color: '#29892a' }} />
+                        <MessageCircle className="w-4 h-4" style={{ color: '#29892a' }} />
                         WhatsApp
                       </button>
                       {isCartValid && someSelected ? (
                         <Link
                           to="/seller/checkout"
-                          className="px-6 py-3 rounded-lg font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
+                          className="px-4 py-2 rounded-lg font-semibold text-xs text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
                           style={{ backgroundColor: '#071d7f' }}
                         >
-                          <ShoppingCart className="w-5 h-5" />
+                          <ShoppingCart className="w-4 h-4" />
                           Comprar ({totalQuantity})
                         </Link>
                       ) : (
                         <button
                           disabled
-                          className="px-6 py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
+                          className="px-4 py-2 rounded-lg font-semibold text-xs text-white flex items-center justify-center gap-2 opacity-50 cursor-not-allowed"
                           style={{ backgroundColor: '#071d7f' }}
                         >
-                          <ShoppingCart className="w-5 h-5" />
+                          <ShoppingCart className="w-4 h-4" />
                           {!someSelected ? 'Selecciona productos' : `Comprar (${totalQuantity})`}
                         </button>
                       )}

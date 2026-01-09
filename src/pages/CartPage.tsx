@@ -660,18 +660,18 @@ const CartPage = () => {
             <div className="lg:col-span-1">
               <div className="bg-white rounded-lg border border-gray-200 overflow-hidden sticky top-24">
                 {/* Summary Header */}
-                <div className="bg-gray-50 border-b border-gray-200 p-4">
-                  <h2 className="font-bold text-lg text-gray-900">Resumen del Pedido</h2>
+                <div className="bg-gray-50 border-b border-gray-200 p-3">
+                  <h2 className="font-bold text-base text-gray-900">Resumen del Pedido</h2>
                   <p className="text-xs text-gray-600 mt-1">Procesa descuentos y asientos luego confirmar precio final</p>
                 </div>
 
                 {/* Product Images Carousel */}
-                <div className="p-4 border-b border-gray-200 bg-gray-50">
-                  <div className="flex gap-2 overflow-x-auto pb-2">
+                <div className="p-2 border-b border-gray-200 bg-gray-50">
+                  <div className="flex gap-1.5 overflow-x-auto pb-1">
                     {items.slice(0, 5).map((item) => (
                       <div
                         key={item.id}
-                        className="flex-shrink-0 w-16 h-16 rounded-lg bg-white border border-gray-200 overflow-hidden relative group"
+                        className="flex-shrink-0 w-10 h-10 rounded-lg bg-white border border-gray-200 overflow-hidden relative group"
                       >
                         {item.image ? (
                           <img 
@@ -681,16 +681,16 @@ const CartPage = () => {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center">
-                            <Package className="h-4 w-4 text-muted-foreground/50" />
+                            <Package className="h-3 w-3 text-muted-foreground/50" />
                           </div>
                         )}
-                        <div className="absolute top-1 right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-semibold">
+                        <div className="absolute top-0.5 right-0.5 bg-blue-600 text-white text-[9px] rounded-full w-4 h-4 flex items-center justify-center font-semibold">
                           {item.quantity}
                         </div>
                       </div>
                     ))}
                     {items.length > 5 && (
-                      <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-gray-200 flex items-center justify-center font-bold text-gray-700 border border-gray-300">
+                      <div className="flex-shrink-0 w-10 h-10 rounded-lg bg-gray-200 flex items-center justify-center font-bold text-gray-700 border border-gray-300 text-xs">
                         +{items.length - 5}
                       </div>
                     )}
@@ -698,109 +698,108 @@ const CartPage = () => {
                 </div>
 
                 {/* Pricing Details */}
-                <div className="p-4 space-y-3 border-b border-gray-200">
-                  <div className="flex justify-between items-center text-sm">
+                <div className="p-2 space-y-2 border-b border-gray-200">
+                  <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-600">Precio Retail:</span>
                     <span className="font-semibold text-gray-900">${totalPrice.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-600">Promociones:</span>
                     <span className="font-semibold text-red-600">—</span>
                   </div>
-                  <div className="flex justify-between items-center text-sm">
+                  <div className="flex justify-between items-center text-xs">
                     <span className="text-gray-600">Cupón:</span>
                     <span className="font-semibold text-blue-600">—</span>
                   </div>
                 </div>
 
                 {/* Total Price */}
-                <div className="p-4 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
+                <div className="p-2 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
                   <div className="flex justify-between items-center">
-                    <span className="text-gray-700 font-medium">Precio Estimado:</span>
-                    <span className="text-2xl font-bold" style={{ color: '#071d7f' }}>
+                    <span className="text-sm font-medium text-gray-700">Precio Estimado:</span>
+                    <span className="text-lg font-bold" style={{ color: '#071d7f' }}>
                       ${totalPrice.toFixed(2)}
                     </span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2">Se confirma el precio final en confirmar pedido</p>
+                  <p className="text-xs text-gray-500 mt-1">Se confirma el precio final en confirmar pedido</p>
                 </div>
 
                 {/* Checkout Button and Support */}
-                <div className="p-4 flex gap-3 justify-center">
+                <div className="p-2 flex gap-2 justify-center">
                   <button
                     onClick={handleWhatsAppSupport}
-                    className="px-6 py-3 rounded-lg font-bold transition flex items-center justify-center gap-2 bg-transparent border border-gray-300"
+                    className="px-4 py-2 rounded-lg font-semibold text-xs transition flex items-center justify-center gap-2 bg-transparent border border-gray-300"
                     style={{ color: '#29892a' }}
                     title="Contactar por WhatsApp"
                   >
-                    <MessageCircle className="w-5 h-5" style={{ color: '#29892a' }} />
+                    <MessageCircle className="w-4 h-4" style={{ color: '#29892a' }} />
                     Soporte
                   </button>
                   {someSelected ? (
                     <Link
                       to="/checkout"
-                      className="px-6 py-3 rounded-lg font-bold text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
+                      className="px-4 py-2 rounded-lg font-semibold text-xs text-white transition hover:opacity-90 flex items-center justify-center gap-2 shadow-lg"
                       style={{ backgroundColor: '#071d7f' }}
                     >
-                      <ShoppingCart className="w-5 h-5" />
+                      <ShoppingCart className="w-4 h-4" />
                       Comprar ({totalQuantity})
                     </Link>
                   ) : (
                     <button
                       disabled
-                      className="px-6 py-3 rounded-lg font-bold text-white flex items-center justify-center gap-2 shadow-lg opacity-50 cursor-not-allowed"
+                      className="px-4 py-2 rounded-lg font-semibold text-xs text-white flex items-center justify-center gap-2 shadow-lg opacity-50 cursor-not-allowed"
                       style={{ backgroundColor: '#071d7f' }}
                     >
-                      <ShoppingCart className="w-5 h-5" />
+                      <ShoppingCart className="w-4 h-4" />
                       Selecciona productos
                     </button>
                   )}
                 </div>
 
                 {/* Payment Methods */}
-                <div className="p-3 bg-gray-50 border-t border-gray-200">
-                  <p className="text-xs font-semibold text-gray-700 mb-2">Aceptamos:</p>
-                  <div className="grid grid-cols-3 gap-1.5">
+                <div className="p-2 bg-gray-50 border-t border-gray-200">
+                  <p className="text-xs font-semibold text-gray-700 mb-1.5">Aceptamos:</p>
+                  <div className="grid grid-cols-5 gap-1">
                     {/* Credit Cards Section - Show individual card types */}
                     {paymentMethods.includes('Tarjetas') && (
                       <>
-                        {/* VISA */}
-                        <div 
-                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                            <div 
+                          className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                           title="VISA"
                         >
-                          <img src="/visa.png" alt="VISA" className="h-5 w-auto" />
+                          <img src="/visa.png" alt="VISA" className="h-4 w-auto" />
                         </div>
 
                         {/* MASTERCARD */}
                         <div 
-                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                           title="Mastercard"
                         >
-                          <img src="/mastercard.png" alt="Mastercard" className="h-5 w-auto" />
+                          <img src="/mastercard.png" alt="Mastercard" className="h-4 w-auto" />
                         </div>
 
                         {/* AMEX */}
                         <div 
-                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                           title="American Express"
                         >
-                          <img src="/american express.png" alt="American Express" className="h-5 w-auto" />
+                          <img src="/american express.png" alt="American Express" className="h-4 w-auto" />
                         </div>
 
                         {/* APPLE PAY */}
                         <div 
-                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                           title="Apple Pay"
                         >
-                          <img src="/apple pay.png" alt="Apple Pay" className="h-5 w-auto" />
+                          <img src="/apple pay.png" alt="Apple Pay" className="h-4 w-auto" />
                         </div>
 
                         {/* GOOGLE PAY */}
                         <div 
-                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                           title="Google Pay"
                         >
-                          <img src="/google pay.png" alt="Google Pay" className="h-5 w-auto" />
+                          <img src="/google pay.png" alt="Google Pay" className="h-4 w-auto" />
                         </div>
                       </>
                     )}
@@ -866,7 +865,7 @@ const CartPage = () => {
                       return (
                         <div 
                           key={method}
-                          className="bg-white border border-gray-200 rounded p-2 flex flex-col items-center justify-center hover:border-gray-300 transition"
+                          className="bg-white border border-gray-200 rounded p-1 flex flex-col items-center justify-center hover:border-gray-300 transition"
                           title={display.label}
                         >
                           {customContent}
