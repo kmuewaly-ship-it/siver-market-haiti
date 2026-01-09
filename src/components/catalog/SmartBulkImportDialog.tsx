@@ -121,9 +121,25 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
           const parsed = JSON.parse(saved);
           if (parsed.step && parsed.step !== 'upload') {
             setStep(parsed.step);
-            setHeaders(parsed.headers || []);
+            const restoredHeaders = parsed.headers || [];
+            setHeaders(restoredHeaders);
             setRawData(parsed.rawData || []);
-            setMapping(parsed.mapping || DEFAULT_MAPPING);
+            
+            // Validate and restore mapping - ensure mapped columns exist in headers
+            let restoredMapping = parsed.mapping || DEFAULT_MAPPING;
+            // If url_imagen mapping doesn't exist in headers, try to find it
+            if (restoredMapping.url_imagen && !restoredHeaders.includes(restoredMapping.url_imagen)) {
+              const imageCol = restoredHeaders.find((h: string) => {
+                const lower = h.toLowerCase();
+                return lower.includes('imagen') || lower.includes('image') || lower.includes('foto');
+              });
+              if (imageCol) {
+                restoredMapping = { ...restoredMapping, url_imagen: imageCol };
+                console.log('[SmartBulkImport] Corrected image mapping to:', imageCol);
+              }
+            }
+            setMapping(restoredMapping);
+            
             setDefaultCategoryId(parsed.defaultCategoryId || '');
             setDefaultSupplierId(parsed.defaultSupplierId || '');
             setAttributeConfigs(parsed.attributeConfigs || []);
@@ -257,7 +273,15 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
             const headerRow = jsonData[0].map(h => String(h ?? '').trim());
             const dataRows = jsonData.slice(1).filter(row => 
               row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')
-            ).map(row => row.map(cell => String(cell ?? '').trim()));
+            ).map(row => row.map(cell => {
+              let val = String(cell ?? '').trim();
+              // Clean potential escaped characters from Excel (backslashes before colons and underscores)
+              val = val.replace(/\\:/g, ':').replace(/\\_/g, '_');
+              return val;
+            }));
+            
+            console.log('[SmartBulkImport] Headers:', headerRow);
+            console.log('[SmartBulkImport] Sample data row:', dataRows[0]);
             
             setHeaders(headerRow);
             setRawData(dataRows);
@@ -326,7 +350,10 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
       else if (lower.includes('costo') || lower.includes('cost') || lower.includes('precio') || lower.includes('price')) autoMapping.costo_base = header;
       else if (lower.includes('moq') || lower.includes('minimo')) autoMapping.moq = header;
       else if (lower.includes('stock') || lower.includes('cantidad') || lower.includes('qty')) autoMapping.stock_fisico = header;
-      else if (lower.includes('imagen') || lower.includes('image') || lower.includes('foto')) autoMapping.url_imagen = header;
+      else if (lower.includes('imagen') || lower.includes('image') || lower.includes('foto')) {
+        autoMapping.url_imagen = header;
+        console.log('[SmartBulkImport] Mapped image column:', header);
+      }
       else if (lower.includes('categ')) autoMapping.categoria = header;
       else if (lower.includes('proveedor') || lower.includes('supplier')) autoMapping.proveedor = header;
       else if (lower.includes('url_proveedor') || lower.includes('url_origen') || lower.includes('link')) autoMapping.url_origen = header;

@@ -28,18 +28,47 @@ interface AttributeConfigCardProps {
   onRemove: (id: string) => void;
 }
 
-// Valid image extensions
-const VALID_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+// Valid image extensions and CDN domains
+const VALID_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'svg'];
+const KNOWN_IMAGE_CDNS = ['alicdn.com', 'aliexpress.com', 'cbu01.alicdn.com', '1688.com', 'cloudinary.com', 'imgur.com', 'unsplash.com'];
 
 const isValidImageUrl = (url: string): boolean => {
-  if (!url) return false;
+  if (!url || typeof url !== 'string') return false;
+  
+  const trimmedUrl = url.trim();
+  if (!trimmedUrl) return false;
+  
+  // Check if it's a valid URL structure (starts with http or https)
+  if (!trimmedUrl.startsWith('http://') && !trimmedUrl.startsWith('https://')) {
+    return false;
+  }
+  
   try {
-    const urlObj = new URL(url);
+    const urlObj = new URL(trimmedUrl);
+    const hostname = urlObj.hostname.toLowerCase();
     const pathname = urlObj.pathname.toLowerCase();
-    return VALID_IMAGE_EXTENSIONS.some(ext => pathname.endsWith(`.${ext}`));
+    
+    // If it's from a known image CDN, consider it valid
+    if (KNOWN_IMAGE_CDNS.some(cdn => hostname.includes(cdn))) {
+      return true;
+    }
+    
+    // Check if pathname contains image-related paths
+    if (pathname.includes('/img/') || pathname.includes('/image/') || pathname.includes('/images/') || pathname.includes('/ibank/')) {
+      return true;
+    }
+    
+    // Check for valid image extensions
+    const cleanPathname = pathname.split('?')[0]; // Remove query string
+    if (VALID_IMAGE_EXTENSIONS.some(ext => cleanPathname.endsWith(`.${ext}`))) {
+      return true;
+    }
+    
+    return false;
   } catch {
-    const extension = url.split('.').pop()?.toLowerCase().split('?')[0];
-    return VALID_IMAGE_EXTENSIONS.includes(extension || '');
+    // If URL parsing fails, check for image extensions in the string
+    const lowerUrl = trimmedUrl.toLowerCase();
+    return VALID_IMAGE_EXTENSIONS.some(ext => lowerUrl.includes(`.${ext}`));
   }
 };
 
@@ -75,26 +104,52 @@ export const AttributeConfigCard = ({
     const valueColIndex = headers.indexOf(config.valueColumn);
     const imageColIndex = imageColumnName ? headers.indexOf(imageColumnName) : -1;
     
+    console.log('[AttributeConfigCard] Looking for images:', {
+      valueColumn: config.valueColumn,
+      imageColumnName,
+      valueColIndex,
+      imageColIndex,
+      headersCount: headers.length,
+      sampleHeaders: headers.slice(0, 10)
+    });
+    
     if (valueColIndex === -1) return [];
     
     // Map: value -> first image found for that value
     const valueToImage = new Map<string, string>();
     
-    rawData.forEach(row => {
+    rawData.forEach((row, rowIndex) => {
       const val = row[valueColIndex]?.trim();
       if (val && val !== '' && val.toLowerCase() !== 'n/a') {
         // Only set image if we haven't seen this value before (first occurrence wins)
-        if (!valueToImage.has(val) && imageColIndex !== -1) {
-          const imgUrl = row[imageColIndex]?.trim();
-          if (imgUrl && isValidImageUrl(imgUrl)) {
-            valueToImage.set(val, imgUrl);
+        if (!valueToImage.has(val)) {
+          if (imageColIndex !== -1) {
+            const imgUrl = row[imageColIndex]?.trim();
+            
+            // Debug first few rows
+            if (rowIndex < 3) {
+              console.log(`[AttributeConfigCard] Row ${rowIndex}:`, {
+                value: val,
+                imageUrl: imgUrl,
+                isValid: imgUrl ? isValidImageUrl(imgUrl) : false
+              });
+            }
+            
+            if (imgUrl && isValidImageUrl(imgUrl)) {
+              valueToImage.set(val, imgUrl);
+            } else {
+              valueToImage.set(val, ''); // Mark as seen but no valid image
+            }
           } else {
-            valueToImage.set(val, ''); // Mark as seen but no valid image
+            valueToImage.set(val, '');
           }
-        } else if (!valueToImage.has(val)) {
-          valueToImage.set(val, '');
         }
       }
+    });
+    
+    console.log('[AttributeConfigCard] Result:', {
+      totalValues: valueToImage.size,
+      withImages: Array.from(valueToImage.values()).filter(v => v).length
     });
     
     return Array.from(valueToImage.entries()).map(([value, imageUrl]) => ({
