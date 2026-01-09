@@ -553,6 +553,18 @@ const VariantSelector = ({
                             src={optionImage} 
                             alt={option}
                             className="w-full h-full object-cover"
+                            loading="lazy"
+                            referrerPolicy="no-referrer"
+                            crossOrigin="anonymous"
+                            onError={(e) => {
+                              // If image fails, hide it and show fallback color
+                              const target = e.currentTarget;
+                              target.style.display = 'none';
+                              const parent = target.parentElement;
+                              if (parent) {
+                                parent.style.backgroundColor = getColorHex(option) || '#E5E7EB';
+                              }
+                            }}
                           />
                           {/* Selection indicator */}
                           {isSelected && (

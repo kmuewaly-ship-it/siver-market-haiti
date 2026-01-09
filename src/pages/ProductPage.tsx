@@ -705,9 +705,19 @@ const ProductPage = () => {
               onClick={() => !isMobile && setZoomOpen(true)}
               className={`relative bg-white overflow-hidden shadow-sm border-gray-100 cursor-zoom-in ${isMobile ? 'w-full aspect-[4/5] rounded-none border-y' : 'rounded-2xl aspect-square border'}`}
             >
-              {images.length > 0 ? <img src={images[selectedImage]} alt={product.nombre} className={`w-full h-full ${isMobile ? 'object-cover' : 'object-contain p-4'}`} /> : <div className="w-full h-full flex items-center justify-center bg-gray-50">
+              {images.length > 0 ? (
+                <img 
+                  src={images[selectedImage]} 
+                  alt={product.nombre} 
+                  className={`w-full h-full ${isMobile ? 'object-cover' : 'object-contain p-4'}`}
+                  referrerPolicy="no-referrer"
+                  crossOrigin="anonymous"
+                />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center bg-gray-50">
                   <Package className="h-20 w-20 text-gray-300" />
-                </div>}
+                </div>
+              )}
 
               {/* Navigation Arrows */}
               {images.length > 1 && <>
@@ -740,9 +750,11 @@ const ProductPage = () => {
 
             {/* Thumbnails for Desktop */}
             {!isMobile && images.length > 1 && <div className="flex gap-3 overflow-x-auto pb-2 px-1">
-                {images.map((image, index) => <button key={index} onClick={() => setSelectedImage(index)} className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${selectedImage === index ? "border-blue-600 ring-2 ring-blue-100" : "border-transparent bg-white"}`}>
-                    <img src={image} alt="" className="w-full h-full object-cover" />
-                  </button>)}
+                {images.map((image, index) => (
+                  <button key={index} onClick={() => setSelectedImage(index)} className={`flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition-all ${selectedImage === index ? "border-blue-600 ring-2 ring-blue-100" : "border-transparent bg-white"}`}>
+                    <img src={image} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" crossOrigin="anonymous" />
+                  </button>
+                ))}
               </div>}
 
             {/* Color Variants Grid for Mobile */}
@@ -765,6 +777,8 @@ const ProductPage = () => {
                         src={image} 
                         alt={`Color ${index + 1}`}
                         className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
+                        crossOrigin="anonymous"
                       />
                       {selectedImage === index && (
                         <div className="absolute inset-0 bg-blue-500 bg-opacity-20 flex items-center justify-center">
@@ -1061,7 +1075,15 @@ const ProductPage = () => {
               {relatedProducts.map(p => <Link key={p.id} to={`/producto/${p.sku}`} className="group">
                   <div className="bg-white border border-gray-200 rounded-xl overflow-hidden hover:shadow-md transition-all">
                     <div className="aspect-square bg-gray-100 relative">
-                      {Array.isArray(p.images) && p.images[0] && <img src={p.images[0]} alt={p.nombre} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />}
+                      {Array.isArray(p.images) && p.images[0] && (
+                        <img 
+                          src={p.images[0]} 
+                          alt={p.nombre} 
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          referrerPolicy="no-referrer"
+                          crossOrigin="anonymous"
+                        />
+                      )}
                     </div>
                     <div className="p-3">
                       <h3 className="text-sm font-medium text-gray-900 line-clamp-1 mb-1 group-hover:text-blue-600">
