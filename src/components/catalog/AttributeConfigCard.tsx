@@ -302,15 +302,15 @@ export const AttributeConfigCard = ({
                       src={imageUrl}
                       alt={value}
                       className="w-8 h-8 rounded object-cover border shadow-sm flex-shrink-0"
+                      loading="lazy"
+                      decoding="async"
+                      referrerPolicy="no-referrer"
+                      crossOrigin="anonymous"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = 'none';
                       }}
                     />
-                  ) : (
-                    <div className="w-8 h-8 rounded bg-muted flex items-center justify-center flex-shrink-0">
-                      <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                    </div>
-                  )}
+                  ) : null}
                   <span className="text-xs font-medium truncate">{value}</span>
                 </div>
               ))}
