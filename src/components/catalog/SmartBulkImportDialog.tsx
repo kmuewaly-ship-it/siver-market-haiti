@@ -135,7 +135,6 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
               });
               if (imageCol) {
                 restoredMapping = { ...restoredMapping, url_imagen: imageCol };
-                console.log('[SmartBulkImport] Corrected image mapping to:', imageCol);
               }
             }
             setMapping(restoredMapping);
@@ -280,9 +279,6 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
               return val;
             }));
             
-            console.log('[SmartBulkImport] Headers:', headerRow);
-            console.log('[SmartBulkImport] Sample data row:', dataRows[0]);
-            
             setHeaders(headerRow);
             setRawData(dataRows);
             autoMapColumns(headerRow);
@@ -352,7 +348,6 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
       else if (lower.includes('stock') || lower.includes('cantidad') || lower.includes('qty')) autoMapping.stock_fisico = header;
       else if (lower.includes('imagen') || lower.includes('image') || lower.includes('foto')) {
         autoMapping.url_imagen = header;
-        console.log('[SmartBulkImport] Mapped image column:', header);
       }
       else if (lower.includes('categ')) autoMapping.categoria = header;
       else if (lower.includes('proveedor') || lower.includes('supplier')) autoMapping.proveedor = header;

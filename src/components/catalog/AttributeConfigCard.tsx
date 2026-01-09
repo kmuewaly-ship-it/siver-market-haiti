@@ -104,36 +104,18 @@ export const AttributeConfigCard = ({
     const valueColIndex = headers.indexOf(config.valueColumn);
     const imageColIndex = imageColumnName ? headers.indexOf(imageColumnName) : -1;
     
-    console.log('[AttributeConfigCard] Looking for images:', {
-      valueColumn: config.valueColumn,
-      imageColumnName,
-      valueColIndex,
-      imageColIndex,
-      headersCount: headers.length,
-      sampleHeaders: headers.slice(0, 10)
-    });
-    
     if (valueColIndex === -1) return [];
     
     // Map: value -> first image found for that value
     const valueToImage = new Map<string, string>();
     
-    rawData.forEach((row, rowIndex) => {
+    rawData.forEach((row) => {
       const val = row[valueColIndex]?.trim();
       if (val && val !== '' && val.toLowerCase() !== 'n/a') {
         // Only set image if we haven't seen this value before (first occurrence wins)
         if (!valueToImage.has(val)) {
           if (imageColIndex !== -1) {
             const imgUrl = row[imageColIndex]?.trim();
-            
-            // Debug first few rows
-            if (rowIndex < 3) {
-              console.log(`[AttributeConfigCard] Row ${rowIndex}:`, {
-                value: val,
-                imageUrl: imgUrl,
-                isValid: imgUrl ? isValidImageUrl(imgUrl) : false
-              });
-            }
             
             if (imgUrl && isValidImageUrl(imgUrl)) {
               valueToImage.set(val, imgUrl);
@@ -145,11 +127,6 @@ export const AttributeConfigCard = ({
           }
         }
       }
-    });
-    
-    console.log('[AttributeConfigCard] Result:', {
-      totalValues: valueToImage.size,
-      withImages: Array.from(valueToImage.values()).filter(v => v).length
     });
     
     return Array.from(valueToImage.entries()).map(([value, imageUrl]) => ({
