@@ -130,11 +130,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
             clearTimeout(safetyTimeout);
             setHasInitialized(true);
 
-            // Redirigir solo en eventos de login
-            if (event === 'SIGNED_IN') {
+            // SOLO redirigir en eventos de login genuino, NO en TOKEN_REFRESHED o INITIAL_SESSION
+            // Esto evita que la app redirija cuando el usuario cambia de pestaña o refresca
+            if (event === 'SIGNED_IN' && !hasInitialized) {
               const currentPath = window.location.pathname;
 
-              // Páginas de autenticación - siempre redirigir
+              // Solo redirigir si está en páginas de autenticación
               if (currentPath === '/login' || currentPath === '/cuenta') {
                 if (userRole === UserRole.SELLER) {
                   navigate('/seller/adquisicion-lotes');
@@ -143,25 +144,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 } else {
                   navigate('/');
                 }
-                return;
               }
-
-              // Páginas públicas donde NO queremos redirigir
-              const publicPagesPrefixes = ['/tienda/', '/producto/'];
-              const isPublicPage = currentPath === '/' || publicPagesPrefixes.some(page => currentPath.startsWith(page));
-
-              if (isPublicPage) {
-                return;
-              }
-
-              // Si está en una página protegida, redirigir según rol
-              if (userRole === UserRole.SELLER) {
-                navigate('/seller/adquisicion-lotes');
-              } else if (userRole === UserRole.ADMIN) {
-                navigate('/admin/dashboard');
-              } else {
-                navigate('/');
-              }
+              // En cualquier otra página, NO redirigir - el usuario se queda donde está
             }
           }, 0);
         } else {
