@@ -30,6 +30,7 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 import { cn } from '@/lib/utils';
+import * as XLSX from 'xlsx';
 
 interface SmartBulkImportDialogProps {
   open: boolean;
@@ -159,38 +160,82 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     const file = event.target.files?.[0];
     if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const text = e.target?.result as string;
-      const lines = text.split('\n').filter(line => line.trim());
-      const parsed = lines.map(line => {
-        const result = [];
-        let current = '';
-        let inQuotes = false;
-        
-        for (let i = 0; i < line.length; i++) {
-          const char = line[i];
-          if (char === '"') {
-            inQuotes = !inQuotes;
-          } else if (char === ',' && !inQuotes) {
-            result.push(current.trim());
-            current = '';
-          } else {
-            current += char;
-          }
-        }
-        result.push(current.trim());
-        return result;
-      });
+    const fileName = file.name.toLowerCase();
+    const isExcel = fileName.endsWith('.xlsx') || fileName.endsWith('.xls');
 
-      if (parsed.length > 0) {
-        setHeaders(parsed[0]);
-        setRawData(parsed.slice(1));
-        autoMapColumns(parsed[0]);
-        setStep('mapping');
-      }
-    };
-    reader.readAsText(file);
+    if (isExcel) {
+      // Parse Excel files using XLSX library
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target?.result as ArrayBuffer);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          
+          // Convert to array of arrays
+          const jsonData: string[][] = XLSX.utils.sheet_to_json(worksheet, { 
+            header: 1, 
+            defval: '' 
+          });
+          
+          if (jsonData.length > 0) {
+            // First row is headers
+            const headerRow = jsonData[0].map(h => String(h || '').trim());
+            const dataRows = jsonData.slice(1).filter(row => 
+              row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')
+            ).map(row => row.map(cell => String(cell || '').trim()));
+            
+            setHeaders(headerRow);
+            setRawData(dataRows);
+            autoMapColumns(headerRow);
+            setStep('mapping');
+          }
+        } catch (error) {
+          console.error('Error parsing Excel file:', error);
+          toast({
+            title: 'Error al leer el archivo Excel',
+            description: 'Asegúrate de que el archivo es un Excel válido (.xlsx o .xls)',
+            variant: 'destructive'
+          });
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    } else {
+      // Parse CSV files
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const text = e.target?.result as string;
+        const lines = text.split('\n').filter(line => line.trim());
+        const parsed = lines.map(line => {
+          const result = [];
+          let current = '';
+          let inQuotes = false;
+          
+          for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+              inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+              result.push(current.trim());
+              current = '';
+            } else {
+              current += char;
+            }
+          }
+          result.push(current.trim());
+          return result;
+        });
+
+        if (parsed.length > 0) {
+          setHeaders(parsed[0]);
+          setRawData(parsed.slice(1));
+          autoMapColumns(parsed[0]);
+          setStep('mapping');
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   const autoMapColumns = (headerRow: string[]) => {
