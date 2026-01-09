@@ -20,6 +20,7 @@ interface Product {
   storeName?: string;
   storeWhatsapp?: string;
   isSellerVerified?: boolean;
+  rating?: number;
   // B2B fields (legacy/fallback)
   priceB2B?: number;
   pvp?: number;
@@ -216,6 +217,12 @@ const ProductCard = ({ product, b2bData }: ProductCardProps) => {
             <span className="inline-flex items-center gap-1 bg-[#ef481b] border border-[#ef481b] px-1 py-0.5 rounded-md animate-pulse">
               <span className="text-white font-bold text-xs">${displayPrice.toFixed(2)}</span>
               <span className="text-[7px] font-medium text-white">{currency}</span>
+            </span>
+            
+            {/* Rating Display */}
+            <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-yellow-500">
+              <span className="text-sm">★</span>
+              {(product.rating || 0).toFixed(1)}
             </span>
             
             {isB2BUser && strikethroughPrice && strikethroughPrice > displayPrice && (
