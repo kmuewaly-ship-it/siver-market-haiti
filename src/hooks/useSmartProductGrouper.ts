@@ -74,35 +74,38 @@ const isAttributeColumn = (header: string): boolean => {
  */
 const extractBaseSku = (sku: string): string => {
   if (!sku) return '';
-  
-  // First, try to extract the part before the first hyphen
-  const hyphenMatch = sku.match(/^([A-Za-z0-9]+)-/);
-  if (hyphenMatch && hyphenMatch[1]) {
-    const basePart = hyphenMatch[1];
-    
-    // For very long numeric IDs (13+ digits), the last digits often increment per variant
-    // Use a shorter prefix to group related products
-    if (/^\d{13,}$/.test(basePart)) {
-      // Return first 10 digits as the grouping key
-      return basePart.slice(0, 10);
-    }
-    
-    return basePart;
+
+  const cleanSku = String(sku).trim();
+  if (!cleanSku) return '';
+
+  // Extract the first token (before variant separators)
+  const tokenMatch = cleanSku.match(/^([A-Za-z0-9]+)[-_.]/);
+  const token = tokenMatch?.[1] ?? cleanSku;
+
+  // Professional rule for numeric roots: ignore last 3 digits (common per-variant increment)
+  if (/^\d+$/.test(token) && token.length > 3) {
+    return token.slice(0, -3);
   }
-  
+
   // Fallback patterns for other SKU formats
   const patterns = [
-    /-[A-Z]{1,3}(-[A-Z0-9]+)*$/i,  // SKU-RED-M
-    /_[A-Z]{1,3}(_[A-Z0-9]+)*$/i,  // SKU_RED_M
+    /-[A-Z]{1,3}(-[A-Z0-9]+)*$/i, // SKU-RED-M
+    /_[A-Z]{1,3}(_[A-Z0-9]+)*$/i, // SKU_RED_M
     /\.[A-Z]{1,3}(\.[A-Z0-9]+)*$/i, // SKU.RED.M
-    /-\d{3,4}$/,                    // SKU-001
+    /-\d{3,4}$/, // SKU-001
   ];
 
-  let base = sku;
+  let base = cleanSku;
   for (const pattern of patterns) {
     base = base.replace(pattern, '');
   }
-  return base || sku;
+
+  // If we ended up with a numeric root here too, apply the same rule.
+  if (/^\d+$/.test(base) && base.length > 3) {
+    return base.slice(0, -3);
+  }
+
+  return base || cleanSku;
 };
 
 /**
@@ -207,25 +210,48 @@ export const groupProductsByParent = (
   // Group products
   const groups: Record<string, GroupedProduct> = {};
 
+  const normalizeGroupKeyPart = (value: string): string => {
+    const s = (value || '').toString().trim().toLowerCase();
+    if (!s) return '';
+    // Remove diacritics + normalize whitespace/punctuation
+    return s
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim()
+      .replace(/\s+/g, ' ');
+  };
+
+  const normalizeExcelUrl = (value: string): string => {
+    const s = (value || '').toString().trim();
+    if (!s) return '';
+    return s
+      .replace(/^"(.+)"$/, '$1') // strip wrapping quotes
+      .replace(/\\:/g, ':')
+      .replace(/\\_/g, '_')
+      .replace(/\\\//g, '/');
+  };
+
   rows.forEach(row => {
     const sku = row[columnMapping.sku_interno] || '';
     const name = row[columnMapping.nombre] || '';
-    const imageUrl = row[columnMapping.url_imagen] || '';
+    const imageUrl = normalizeExcelUrl(row[columnMapping.url_imagen] || '');
     const parentId = row['parent_id'] || row['Parent_ID'] || row['parent'] || '';
-    
-    // Determine group key - prioritize explicit parent_id, then cleaned name, then SKU base
+    // Determine group key - prioritize explicit parent_id, otherwise require BOTH:
+    // - same normalized parent title
+    // - same normalized SKU root (SKU ignoring last 3 digits)
     let groupKey: string;
     if (parentId) {
       groupKey = parentId;
     } else {
       const parentName = extractParentName(name);
       const baseSku = extractBaseSku(sku);
-      
-      // Prefer grouping by parent name when available (more reliable for variant grouping)
-      // Use lowercase and trimmed name for consistent matching
-      groupKey = parentName 
-        ? parentName.toLowerCase().trim() 
-        : baseSku || sku;
+
+      const titleKey = normalizeGroupKeyPart(parentName);
+      const skuKey = normalizeGroupKeyPart(baseSku);
+
+      // Enforce title match AND SKU-root match by using a composite key
+      groupKey = titleKey && skuKey ? `${titleKey}__${skuKey}` : (titleKey || skuKey || sku);
     }
 
     if (!groupKey) groupKey = sku || name;
@@ -277,7 +303,7 @@ export const groupProductsByParent = (
       stock: parseInt(stockStr.replace(/[^0-9]/g, ''), 10) || 0,
       moq: parseInt(moqStr.replace(/[^0-9]/g, ''), 10) || 1,
       imageUrl: imageUrl || '',
-      sourceUrl: row[columnMapping.url_origen] || '',
+      sourceUrl: normalizeExcelUrl(row[columnMapping.url_origen] || ''),
       attributeValues,
     };
 

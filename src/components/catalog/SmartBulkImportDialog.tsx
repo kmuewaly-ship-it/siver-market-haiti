@@ -820,9 +820,14 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                           <div className="flex items-center gap-3">
                             {group.variants[0]?.imageUrl && (
                               <img 
-                                src={group.variants[0].imageUrl} 
-                                alt="" 
+                                src={group.variants[0].imageUrl}
+                                alt={group.parentName}
                                 className="w-10 h-10 rounded object-cover border"
+                                loading="lazy"
+                                decoding="async"
+                                referrerPolicy="no-referrer"
+                                crossOrigin="anonymous"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
                             )}
                             <div>
@@ -882,6 +887,10 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                                             src={imgUrl} 
                                             alt={v} 
                                             className="w-5 h-5 rounded object-cover border flex-shrink-0"
+                                            loading="lazy"
+                                            decoding="async"
+                                            referrerPolicy="no-referrer"
+                                            crossOrigin="anonymous"
                                             onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                                           />
                                         )}
