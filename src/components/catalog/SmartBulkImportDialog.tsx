@@ -796,17 +796,12 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                       <Card key={i} className={cn("p-3", group.existsInDb && "opacity-50")}>
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            {group.variants[0]?.imageUrl ? (
+                            {group.variants[0]?.imageUrl && (
                               <img 
                                 src={group.variants[0].imageUrl} 
                                 alt="" 
                                 className="w-10 h-10 rounded object-cover border"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                               />
-                            ) : (
-                              <div className="w-10 h-10 rounded border bg-muted flex items-center justify-center">
-                                <ImageIcon className="h-4 w-4 text-muted-foreground" />
-                              </div>
                             )}
                             <div>
                               <h4 className="font-medium truncate max-w-xs">{group.parentName}</h4>
