@@ -698,9 +698,9 @@ const ProductPage = () => {
           </button>
         )}
 
-        <div className={`${isMobile ? 'grid grid-cols-1 gap-8 mb-8' : 'grid grid-cols-2 gap-8 mb-8'}`}>
+        <div className={`${isMobile ? 'grid grid-cols-1 gap-4 mb-8 px-4' : 'grid grid-cols-2 gap-8 mb-8'}`}>
           {/* Image Gallery */}
-          <div ref={imageRef} className={`space-y-4 ${isMobile ? '' : 'sticky top-0 h-fit'}`}>
+          <div ref={imageRef} className={`space-y-4 ${isMobile ? 'w-full' : 'sticky top-0 h-fit'}`}>
             <div 
               onClick={() => !isMobile && setZoomOpen(true)}
               className={`relative bg-white overflow-hidden shadow-sm border-gray-100 cursor-zoom-in ${isMobile ? 'w-full aspect-[4/5] rounded-none border-y' : 'rounded-2xl aspect-square border'}`}
@@ -796,7 +796,7 @@ const ProductPage = () => {
           </div>
 
           {/* Product Info */}
-          <div className={`space-y-3 ${isMobile ? 'px-4' : 'overflow-y-auto max-h-[calc(100vh-200px)] pr-4'}`}> 
+          <div className={`space-y-3 ${isMobile ? 'px-4 w-full' : 'overflow-y-auto max-h-[calc(100vh-200px)] pr-4'}`}> 
             <div>
               {/* Badges */}
               <div className="flex flex-wrap gap-2 mb-3">
