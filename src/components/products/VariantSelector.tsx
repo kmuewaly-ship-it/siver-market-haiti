@@ -190,6 +190,93 @@ const VariantSelector = ({
     return allOptions.filter(opt => availableSet.has(opt));
   }, [attributeOptions, variants, selectedAttributes]);
 
+  // Calculate which attribute types are actually required based on current selections
+  // E.g., if a color only has one size, that attribute type might be auto-selected or skipped
+  const requiredAttributeTypes = useMemo(() => {
+    if (!variants || orderedAttributeTypes.length === 0) return orderedAttributeTypes;
+    
+    const required: string[] = [];
+    
+    orderedAttributeTypes.forEach((attrType, idx) => {
+      // First attribute type is always required
+      if (idx === 0) {
+        required.push(attrType);
+        return;
+      }
+      
+      // For subsequent types, check if they exist for the current selection path
+      const prevSelections = orderedAttributeTypes.slice(0, idx).reduce((acc, type) => {
+        if (selectedAttributes[type]) {
+          acc[type] = selectedAttributes[type];
+        }
+        return acc;
+      }, {} as Record<string, string>);
+      
+      // Check if any variant with current selections has this attribute
+      const hasThisAttr = variants.some(v => {
+        const combo = v.attribute_combination;
+        if (!combo || !combo[attrType]) return false;
+        
+        // Match previous selections
+        for (const [key, value] of Object.entries(prevSelections)) {
+          if (combo[key] !== value) return false;
+        }
+        return true;
+      });
+      
+      if (hasThisAttr) {
+        required.push(attrType);
+      }
+    });
+    
+    return required;
+  }, [variants, orderedAttributeTypes, selectedAttributes]);
+
+  // Auto-select when only one option available for an attribute type
+  useEffect(() => {
+    if (!variants || orderedAttributeTypes.length === 0) return;
+    
+    orderedAttributeTypes.forEach((attrType, idx) => {
+      // Skip if already selected
+      if (selectedAttributes[attrType]) return;
+      
+      // Skip if previous attributes aren't selected (except first)
+      if (idx > 0) {
+        const prevAttr = orderedAttributeTypes[idx - 1];
+        if (!selectedAttributes[prevAttr]) return;
+      }
+      
+      // Get available options for this type
+      const availableOptions = new Set<string>();
+      variants.forEach(v => {
+        const combo = v.attribute_combination;
+        if (!combo || !combo[attrType]) return;
+        
+        // Check if matches current selections
+        let matches = true;
+        for (const [key, value] of Object.entries(selectedAttributes)) {
+          if (key !== attrType && combo[key] !== value) {
+            matches = false;
+            break;
+          }
+        }
+        
+        if (matches) {
+          availableOptions.add(combo[attrType]);
+        }
+      });
+      
+      // If only one option available, auto-select it
+      if (availableOptions.size === 1) {
+        const singleOption = Array.from(availableOptions)[0];
+        setSelectedAttributes(prev => ({
+          ...prev,
+          [attrType]: singleOption
+        }));
+      }
+    });
+  }, [variants, orderedAttributeTypes, selectedAttributes]);
+
   // Find matching variant for current selections
   const matchingVariant = useMemo(() => {
     if (!variants || Object.keys(selectedAttributes).length === 0) return null;
@@ -240,7 +327,7 @@ const VariantSelector = ({
     return attrType.charAt(0).toUpperCase() + attrType.slice(1).replace(/_/g, ' ');
   }, [attrDisplayNames]);
 
-  // Validation: check if all required attribute types are selected
+  // Validation: check if all REQUIRED attribute types are selected (not all possible types)
   const validationState = useMemo(() => {
     if (!hasEAVAttributes || orderedAttributeTypes.length === 0) {
       // No EAV attributes - valid if we have quantity
@@ -249,21 +336,21 @@ const VariantSelector = ({
 
     const errors: string[] = [];
     
-    // Check that all attribute types have a selection
-    orderedAttributeTypes.forEach(attrType => {
+    // Only check required attribute types (those that exist for current selection path)
+    requiredAttributeTypes.forEach(attrType => {
       if (!selectedAttributes[attrType]) {
         const displayName = getAttributeDisplayName(attrType);
         errors.push(`Selecciona ${displayName}`);
       }
     });
 
-    // If all attributes are selected, check quantity
+    // If all required attributes are selected, check quantity
     if (errors.length === 0 && totalQty === 0) {
       errors.push('Selecciona una cantidad');
     }
 
     return { isValid: errors.length === 0, errors };
-  }, [hasEAVAttributes, orderedAttributeTypes, selectedAttributes, getAttributeDisplayName, totalQty]);
+  }, [hasEAVAttributes, orderedAttributeTypes, requiredAttributeTypes, selectedAttributes, getAttributeDisplayName, totalQty]);
 
   // Notify parent of changes including validation state
   useEffect(() => {
@@ -370,10 +457,24 @@ const VariantSelector = ({
             return null;
           }
 
+          // Skip if this attribute type is not required for current selection path
+          // (e.g., Vinotinto only has S, so Size might be auto-selected or not needed)
+          if (!requiredAttributeTypes.includes(attrType)) {
+            return null;
+          }
+          
+          // Skip rendering if no options available (attribute doesn't apply)
+          if (availableOptions.length === 0) {
+            return null;
+          }
+
           // Check if this attribute is missing (for visual error indication)
           const isMissing = !selectedValue && validationState.errors.some(e => 
             e.toLowerCase().includes(displayName.toLowerCase())
           );
+
+          // Check if only one option (auto-selected scenario)
+          const isAutoSelected = availableOptions.length === 1 && selectedValue === availableOptions[0];
 
           return (
             <div key={attrType} className={cn(
@@ -388,11 +489,18 @@ const VariantSelector = ({
                   {displayName}
                   {isMissing && <span className="ml-1 text-destructive">*</span>}
                 </h4>
-                {selectedValue && (
-                  <Badge variant="secondary" className="text-[10px] font-normal capitalize ml-2">
-                    {selectedValue}
-                  </Badge>
-                )}
+                <div className="flex items-center gap-1">
+                  {isAutoSelected && (
+                    <Badge variant="outline" className="text-[10px] font-normal text-muted-foreground">
+                      Única opción
+                    </Badge>
+                  )}
+                  {selectedValue && (
+                    <Badge variant="secondary" className="text-[10px] font-normal capitalize">
+                      {selectedValue}
+                    </Badge>
+                  )}
+                </div>
               </div>
               <div className={cn(
                 "flex flex-wrap gap-2",
