@@ -475,10 +475,14 @@ const Header = ({
               <Heart className="w-6 h-6" />
               <span className="text-xs">Favoritos</span>
             </Link>
-            {user && (
-              <Link to={accountLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
-                <User className="w-6 h-6" />
-                <span className="text-xs">Cuenta</span>
+            <Link to={user ? accountLink : "/cuenta"} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition">
+              <User className="w-6 h-6" />
+              <span className="text-xs">Cuenta</span>
+            </Link>
+            {isB2B && (
+              <Link to="/seller/adquisicion-lotes" className="flex flex-col items-center gap-1 text-white bg-[#071d7f] hover:bg-[#0a3a9f] px-3 py-1 rounded-md transition">
+                <ShoppingBag className="w-5 h-5" />
+                <span className="text-xs font-medium">B2B</span>
               </Link>
             )}
             <Link to={cartLink} className="flex flex-col items-center gap-1 text-gray-700 hover:text-[#071d7f] transition relative">
