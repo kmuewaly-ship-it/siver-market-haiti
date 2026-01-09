@@ -109,6 +109,78 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     return headers.filter(h => !mappedCols.includes(h));
   }, [headers, mapping]);
 
+  // Persist modal state in sessionStorage to survive page refreshes
+  const STORAGE_KEY = 'smartImportDialogState';
+  
+  // Load persisted state on mount
+  useEffect(() => {
+    if (open) {
+      const saved = sessionStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (parsed.step && parsed.step !== 'upload') {
+            setStep(parsed.step);
+            setHeaders(parsed.headers || []);
+            setRawData(parsed.rawData || []);
+            setMapping(parsed.mapping || DEFAULT_MAPPING);
+            setDefaultCategoryId(parsed.defaultCategoryId || '');
+            setDefaultSupplierId(parsed.defaultSupplierId || '');
+            setAttributeConfigs(parsed.attributeConfigs || []);
+            if (parsed.groupedProducts) {
+              // Restore groupedProducts with proper Set reconstruction
+              const restored = parsed.groupedProducts.map((g: any) => ({
+                ...g,
+                detectedAttributes: g.detectedAttributes.map((a: any) => ({
+                  ...a,
+                  uniqueValues: new Set(a.uniqueValues || []),
+                }))
+              }));
+              setGroupedProducts(restored);
+            }
+            setDetectedAttributeColumns(parsed.detectedAttributeColumns || []);
+          }
+        } catch (err) {
+          console.error('Error loading persisted import state:', err);
+          sessionStorage.removeItem(STORAGE_KEY);
+        }
+      }
+    }
+  }, [open]);
+  
+  // Save state to sessionStorage whenever it changes
+  useEffect(() => {
+    if (open && step !== 'upload' && step !== 'importing') {
+      const stateToSave = {
+        step,
+        headers,
+        rawData,
+        mapping,
+        defaultCategoryId,
+        defaultSupplierId,
+        attributeConfigs,
+        groupedProducts: groupedProducts.map(g => ({
+          ...g,
+          detectedAttributes: g.detectedAttributes.map(a => ({
+            ...a,
+            uniqueValues: Array.from(a.uniqueValues),
+          }))
+        })),
+        detectedAttributeColumns,
+      };
+      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave));
+    }
+  }, [open, step, headers, rawData, mapping, defaultCategoryId, defaultSupplierId, attributeConfigs, groupedProducts, detectedAttributeColumns]);
+  
+  // Clear persisted state when closing dialog
+  const handleDialogClose = (isOpen: boolean) => {
+    if (!isOpen) {
+      sessionStorage.removeItem(STORAGE_KEY);
+      resetState();
+    }
+    onOpenChange(isOpen);
+  };
+
   useEffect(() => {
     if (categoryTemplates && categoryTemplates.length > 0 && headers.length > 0) {
       const suggestions = applyTemplateToImport(categoryTemplates, headers);
@@ -173,18 +245,19 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
           const firstSheetName = workbook.SheetNames[0];
           const worksheet = workbook.Sheets[firstSheetName];
           
-          // Convert to array of arrays
-          const jsonData: string[][] = XLSX.utils.sheet_to_json(worksheet, { 
+          // Convert to array of arrays with raw: false to preserve formatted strings (avoid scientific notation)
+          const jsonData: (string | number | boolean | null | undefined)[][] = XLSX.utils.sheet_to_json(worksheet, { 
             header: 1, 
-            defval: '' 
+            defval: '',
+            raw: false // This ensures numbers are returned as formatted strings
           });
           
           if (jsonData.length > 0) {
             // First row is headers
-            const headerRow = jsonData[0].map(h => String(h || '').trim());
+            const headerRow = jsonData[0].map(h => String(h ?? '').trim());
             const dataRows = jsonData.slice(1).filter(row => 
               row.some(cell => cell !== null && cell !== undefined && String(cell).trim() !== '')
-            ).map(row => row.map(cell => String(cell || '').trim()));
+            ).map(row => row.map(cell => String(cell ?? '').trim()));
             
             setHeaders(headerRow);
             setRawData(dataRows);
@@ -386,7 +459,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const currentStepIndex = STEPS.findIndex(s => s.id === step);
 
   return (
-    <Dialog open={open} onOpenChange={(o) => { onOpenChange(o); if (!o) resetState(); }}>
+    <Dialog open={open} onOpenChange={handleDialogClose}>
       <DialogContent className="max-w-4xl w-[95vw] max-h-[90vh] flex flex-col overflow-hidden p-0">
         <div className="px-6 pt-6 pb-2 flex-shrink-0">
           <DialogHeader className="pb-2">
@@ -723,7 +796,18 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                       <Card key={i} className={cn("p-3", group.existsInDb && "opacity-50")}>
                         <div className="flex items-center justify-between gap-4">
                           <div className="flex items-center gap-3">
-                            {group.variants[0]?.imageUrl && <img src={group.variants[0].imageUrl} alt="" className="w-10 h-10 rounded object-cover border" />}
+                            {group.variants[0]?.imageUrl ? (
+                              <img 
+                                src={group.variants[0].imageUrl} 
+                                alt="" 
+                                className="w-10 h-10 rounded object-cover border"
+                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                              />
+                            ) : (
+                              <div className="w-10 h-10 rounded border bg-muted flex items-center justify-center">
+                                <ImageIcon className="h-4 w-4 text-muted-foreground" />
+                              </div>
+                            )}
                             <div>
                               <h4 className="font-medium truncate max-w-xs">{group.parentName}</h4>
                               <div className="text-xs text-muted-foreground">SKU: {group.baseSku} • {group.variants.length} variantes</div>
