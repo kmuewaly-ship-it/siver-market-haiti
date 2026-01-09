@@ -66,16 +66,28 @@ const isAttributeColumn = (header: string): boolean => {
 
 /**
  * Extract base SKU for grouping - OPTIMIZED for common patterns
- * Now extracts root before first hyphen for SKUs like: 325681024-Coffee-M
+ * Handles various SKU formats and detects when SKUs have unique IDs per variant
+ * 
+ * Examples:
+ *   "325681024-Coffee-M" -> "325681024" (same number across variants = good grouping)
+ *   "5233016281810-NEGRO-S", "5233016281811-NEGRO-M" -> Use shorter prefix for grouping
  */
 const extractBaseSku = (sku: string): string => {
   if (!sku) return '';
   
-  // First, try to extract the numeric root before the first hyphen
-  // This handles patterns like: 325681024-Coffee-M, 325681024-Red-L
+  // First, try to extract the part before the first hyphen
   const hyphenMatch = sku.match(/^([A-Za-z0-9]+)-/);
   if (hyphenMatch && hyphenMatch[1]) {
-    return hyphenMatch[1];
+    const basePart = hyphenMatch[1];
+    
+    // For very long numeric IDs (13+ digits), the last digits often increment per variant
+    // Use a shorter prefix to group related products
+    if (/^\d{13,}$/.test(basePart)) {
+      // Return first 10 digits as the grouping key
+      return basePart.slice(0, 10);
+    }
+    
+    return basePart;
   }
   
   // Fallback patterns for other SKU formats
@@ -201,15 +213,19 @@ export const groupProductsByParent = (
     const imageUrl = row[columnMapping.url_imagen] || '';
     const parentId = row['parent_id'] || row['Parent_ID'] || row['parent'] || '';
     
-    // Determine group key - use the optimized SKU extraction
+    // Determine group key - prioritize explicit parent_id, then cleaned name, then SKU base
     let groupKey: string;
     if (parentId) {
       groupKey = parentId;
     } else {
-      // Extract base SKU (root before first hyphen)
-      const baseSku = extractBaseSku(sku);
       const parentName = extractParentName(name);
-      groupKey = baseSku || parentName;
+      const baseSku = extractBaseSku(sku);
+      
+      // Prefer grouping by parent name when available (more reliable for variant grouping)
+      // Use lowercase and trimmed name for consistent matching
+      groupKey = parentName 
+        ? parentName.toLowerCase().trim() 
+        : baseSku || sku;
     }
 
     if (!groupKey) groupKey = sku || name;
