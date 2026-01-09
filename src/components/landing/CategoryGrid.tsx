@@ -55,11 +55,11 @@ const CategoryGrid = () => {
   const secondRow = rootCategories.slice(half);
 
   return (
-    <section className="py-6 md:py-10">
+    <section className="w-full py-6 md:py-10 px-4 overflow-x-hidden">
       {/* Mobile/Tablet: Horizontal scroll with 2 rows */}
-      <div className="lg:hidden">
-        <div className="overflow-x-auto scrollbar-hide px-4">
-          <div className="flex flex-col gap-4 min-w-max pb-2">
+      <div className="lg:hidden w-full">
+        <div className="w-full overflow-x-auto scrollbar-hide">
+          <div className="flex flex-col gap-4 pb-2">
             {/* First row */}
             <div className="flex gap-4">
               {firstRow.map((cat) => (

@@ -35,10 +35,10 @@ const Index = () => {
   }, [categories]);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background w-full overflow-x-hidden">
       {!isMobile && <GlobalHeader />}
       
-      <main className={isMobile ? "pb-14" : ""}>
+      <main className={`w-full overflow-x-hidden ${isMobile ? 'pb-14' : ''}`}>
         <HeroSection />
         <CategoryGrid />
 

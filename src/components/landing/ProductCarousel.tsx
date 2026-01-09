@@ -105,9 +105,9 @@ const ProductCarousel = ({
   }
 
   return (
-    <section className="w-full px-0 md:px-0">
+    <section className="w-full px-4 md:px-4 overflow-hidden">
       {/* Box Container - Unified on Desktop */}
-      <div className="bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden">
+      <div className="w-full bg-white border border-gray-200 shadow-sm rounded-lg overflow-hidden">
         {/* Desktop Header - Integrated */}
         <div className="hidden md:block bg-gradient-to-r from-gray-50 to-gray-100 px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between gap-3">
@@ -150,16 +150,6 @@ const ProductCarousel = ({
 
         {/* Carousel Container - Integrated with header */}
         <div className="relative p-2 md:p-4 bg-white">
-          {/* Left Arrow */}
-          {currentIndex > 0 && (
-            <button
-              onClick={() => scroll("left")}
-              className="absolute -left-3 md:-left-4 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 hover:bg-gray-50 p-1.5 md:p-2 rounded-full transition shadow-sm"
-            >
-              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
-            </button>
-          )}
-
           {/* Products Grid */}
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 overflow-hidden">
             {visibleProducts.map((product) => (
@@ -167,15 +157,24 @@ const ProductCarousel = ({
             ))}
           </div>
 
-          {/* Right Arrow */}
-          {currentIndex < products.length - itemsPerView && (
+          {/* Navigation Arrows - Inside container, no overflow */}
+          <div className="flex justify-between items-center mt-3 gap-2">
+            <button
+              onClick={() => scroll("left")}
+              disabled={currentIndex === 0}
+              className="flex-shrink-0 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed p-1.5 md:p-2 rounded-full transition shadow-sm"
+            >
+              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
+            </button>
+            <div className="flex-1"></div>
             <button
               onClick={() => scroll("right")}
-              className="absolute -right-3 md:-right-4 top-1/2 transform -translate-y-1/2 z-10 bg-white border border-gray-300 hover:bg-gray-50 p-1.5 md:p-2 rounded-full transition shadow-sm"
+              disabled={currentIndex >= products.length - itemsPerView}
+              className="flex-shrink-0 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed p-1.5 md:p-2 rounded-full transition shadow-sm"
             >
               <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
             </button>
-          )}
+          </div>
         </div>
       </div>
     </section>
