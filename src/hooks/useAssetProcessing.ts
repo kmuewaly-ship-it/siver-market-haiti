@@ -95,22 +95,47 @@ export function useAssetProcessing() {
   // Process a single item
   const processItem = useCallback(async (itemId: string): Promise<{ success: boolean; publicUrl?: string; error?: string }> => {
     try {
-      const { data, error } = await supabase.functions.invoke('process-product-images', {
+      console.log(`Starting to process item ${itemId}`);
+      
+      const { error } = await supabase.functions.invoke('process-product-images', {
         body: { action: 'process_item', itemId }
       });
       
-      if (error) throw error;
+      if (error) {
+        console.error('Edge function error:', error);
+        throw error;
+      }
       
-      const result = data.items?.[0];
+      // Wait a moment for the database to be updated
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Check the item status in the database
+      const { data: item, error: fetchError } = await supabase
+        .from('asset_processing_items')
+        .select('*')
+        .eq('id', itemId)
+        .single();
+      
+      if (fetchError) {
+        console.error('Error fetching item status:', fetchError);
+        return { success: false, error: fetchError.message };
+      }
+      
+      console.log('Item status after processing:', item);
+      
       return {
-        success: result?.status === 'completed',
-        publicUrl: result?.publicUrl,
-        error: result?.error
+        success: item?.status === 'completed',
+        publicUrl: item?.public_url || undefined,
+        error: item?.error_message || undefined
       };
     } catch (error) {
       console.error('Error processing item:', error);
       return {
         success: false,
+        error: error instanceof Error ? error.message : String(error)
+      };
+    }
+  }, []);
         error: error instanceof Error ? error.message : String(error)
       };
     }
