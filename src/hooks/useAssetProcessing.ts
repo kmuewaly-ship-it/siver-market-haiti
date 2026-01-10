@@ -41,7 +41,7 @@ export function useAssetProcessing() {
   // Create a new processing job
   const createJob = useCallback(async (items: Array<{ skuInterno: string; originalUrl: string; rowIndex: number }>) => {
     try {
-      setState(prev => ({ ...prev, isProcessing: true, items: items.map(item => ({ ...item, status: 'pending' as const })) }));
+      setState(prev => ({ ...prev, isProcessing: true }));
       
       const { data, error } = await supabase.functions.invoke('process-product-images', {
         body: { action: 'create_job', items }
@@ -50,23 +50,41 @@ export function useAssetProcessing() {
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
       
+      const jobId = data.jobId;
+      console.log('Job created:', jobId);
+      
+      // Fetch the items from database instead of relying on the response
+      const { data: createdItems, error: fetchError } = await supabase
+        .from('asset_processing_items')
+        .select('*')
+        .eq('job_id', jobId);
+      
+      if (fetchError) {
+        console.error('Error fetching items:', fetchError);
+        throw fetchError;
+      }
+      
+      console.log('Fetched items:', createdItems);
+      
       setState(prev => ({
         ...prev,
         job: {
-          id: data.jobId,
+          id: jobId,
           status: 'processing',
-          totalAssets: items.length,
+          totalAssets: createdItems?.length || items.length,
           processedAssets: 0,
           failedAssets: 0
         },
-        items: data.items?.map((item: any, idx: number) => ({
-          ...items[idx],
+        items: (createdItems || []).map(item => ({
           id: item.id,
-          status: item.status
-        })) || prev.items
+          skuInterno: item.sku_interno,
+          originalUrl: item.original_url,
+          rowIndex: item.row_index,
+          status: item.status as 'pending' | 'processing' | 'completed' | 'failed'
+        }))
       }));
       
-      return data.jobId;
+      return jobId;
     } catch (error) {
       console.error('Error creating job:', error);
       setState(prev => ({ ...prev, isProcessing: false }));
