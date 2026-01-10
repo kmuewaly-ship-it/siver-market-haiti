@@ -928,43 +928,115 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                   </CardContent>
                 </Card>
 
-                {/* Item status list */}
+                {/* Item status list with URL comparison */}
                 {assetProcessing.state.items.length > 0 && (
                   <Card>
                     <CardHeader className="pb-2">
-                      <CardTitle className="text-sm">Estado de imágenes</CardTitle>
+                      <CardTitle className="text-sm flex items-center gap-2">
+                        <ImageIcon className="h-4 w-4" />
+                        Resultado del procesamiento de imágenes
+                      </CardTitle>
+                      <CardDescription className="text-xs">
+                        URLs originales → URLs de Supabase Storage
+                      </CardDescription>
                     </CardHeader>
                     <CardContent>
-                      <ScrollArea className="h-64">
-                        <div className="space-y-2">
+                      <ScrollArea className="h-80">
+                        <div className="space-y-3">
                           {assetProcessing.state.items.map((item, idx) => (
-                            <div key={item.id || idx} className="flex items-center gap-3 p-2 rounded bg-muted/30">
-                              {item.status === 'completed' && item.publicUrl ? (
-                                <img src={item.publicUrl} alt="" className="w-8 h-8 rounded object-cover" />
-                              ) : (
-                                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
-                                  {item.status === 'processing' && <Loader2 className="h-4 w-4 animate-spin" />}
-                                  {item.status === 'pending' && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
-                                  {item.status === 'failed' && <AlertCircle className="h-4 w-4 text-red-500" />}
-                                  {item.status === 'completed' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                            <div key={item.id || idx} className="p-3 rounded-lg border bg-card">
+                              {/* Header row with image preview and SKU */}
+                              <div className="flex items-start gap-3 mb-2">
+                                <div className="flex gap-2 flex-shrink-0">
+                                  {/* Original image preview */}
+                                  <div className="relative">
+                                    <img 
+                                      src={item.originalUrl} 
+                                      alt="Original" 
+                                      className="w-12 h-12 rounded object-cover border opacity-60"
+                                      onError={(e) => (e.target as HTMLImageElement).src = '/placeholder.svg'}
+                                    />
+                                    <span className="absolute -bottom-1 -right-1 text-[8px] bg-muted px-1 rounded">OLD</span>
+                                  </div>
+                                  
+                                  {item.status === 'completed' && item.publicUrl && (
+                                    <>
+                                      <ArrowRight className="h-4 w-4 text-green-500 self-center" />
+                                      {/* New image preview */}
+                                      <div className="relative">
+                                        <img 
+                                          src={item.publicUrl} 
+                                          alt="Nuevo" 
+                                          className="w-12 h-12 rounded object-cover border-2 border-green-500"
+                                        />
+                                        <span className="absolute -bottom-1 -right-1 text-[8px] bg-green-500 text-white px-1 rounded">NEW</span>
+                                      </div>
+                                    </>
+                                  )}
+                                  
+                                  {item.status === 'processing' && (
+                                    <>
+                                      <ArrowRight className="h-4 w-4 text-muted-foreground self-center animate-pulse" />
+                                      <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border">
+                                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                                      </div>
+                                    </>
+                                  )}
+                                  
+                                  {item.status === 'failed' && (
+                                    <>
+                                      <ArrowRight className="h-4 w-4 text-red-500 self-center" />
+                                      <div className="w-12 h-12 rounded bg-red-50 dark:bg-red-950 flex items-center justify-center border border-red-200">
+                                        <AlertCircle className="h-5 w-5 text-red-500" />
+                                      </div>
+                                    </>
+                                  )}
                                 </div>
-                              )}
-                              <div className="flex-1 min-w-0">
-                                <p className="text-xs font-medium truncate">{item.skuInterno}</p>
-                                {item.error && <p className="text-xs text-red-500 truncate">{item.error}</p>}
+                                
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <p className="text-sm font-semibold">{item.skuInterno}</p>
+                                    <Badge variant={
+                                      item.status === 'completed' ? 'default' : 
+                                      item.status === 'failed' ? 'destructive' : 
+                                      item.status === 'processing' ? 'secondary' :
+                                      'outline'
+                                    } className="text-[10px]">
+                                      {item.status === 'completed' ? 'Completado' : 
+                                       item.status === 'failed' ? 'Fallido' : 
+                                       item.status === 'processing' ? 'Procesando...' : 'Pendiente'}
+                                    </Badge>
+                                  </div>
+                                  
+                                  {item.error && (
+                                    <p className="text-xs text-red-500 mb-1">{item.error}</p>
+                                  )}
+                                </div>
+                                
+                                {item.status === 'failed' && item.id && (
+                                  <Button size="sm" variant="outline" onClick={() => assetProcessing.retryItem(item.id!)}>
+                                    <RefreshCw className="h-3 w-3 mr-1" /> Reintentar
+                                  </Button>
+                                )}
                               </div>
-                              {item.status === 'failed' && item.id && (
-                                <Button size="sm" variant="ghost" onClick={() => assetProcessing.retryItem(item.id!)}>
-                                  <RefreshCw className="h-3 w-3" />
-                                </Button>
-                              )}
-                              <Badge variant={
-                                item.status === 'completed' ? 'default' : 
-                                item.status === 'failed' ? 'destructive' : 
-                                'secondary'
-                              } className="text-[10px]">
-                                {item.status === 'completed' ? '✓' : item.status === 'failed' ? '✗' : item.status === 'processing' ? '...' : '○'}
-                              </Badge>
+                              
+                              {/* URL details */}
+                              <div className="space-y-1 text-[10px] font-mono bg-muted/50 p-2 rounded">
+                                <div className="flex items-start gap-2">
+                                  <span className="text-muted-foreground flex-shrink-0 w-12">Original:</span>
+                                  <span className="text-muted-foreground truncate flex-1" title={item.originalUrl}>
+                                    {item.originalUrl}
+                                  </span>
+                                </div>
+                                {item.status === 'completed' && item.publicUrl && (
+                                  <div className="flex items-start gap-2">
+                                    <span className="text-green-600 flex-shrink-0 w-12">Nueva:</span>
+                                    <span className="text-green-600 truncate flex-1" title={item.publicUrl}>
+                                      {item.publicUrl}
+                                    </span>
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           ))}
                         </div>
