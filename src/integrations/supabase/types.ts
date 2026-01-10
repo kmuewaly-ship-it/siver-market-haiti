@@ -149,6 +149,95 @@ export type Database = {
         }
         Relationships: []
       }
+      asset_processing_items: {
+        Row: {
+          created_at: string
+          error_message: string | null
+          id: string
+          job_id: string
+          original_url: string
+          public_url: string | null
+          retry_count: number
+          row_index: number
+          sku_interno: string
+          status: string
+          storage_path: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_id: string
+          original_url: string
+          public_url?: string | null
+          retry_count?: number
+          row_index: number
+          sku_interno: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          job_id?: string
+          original_url?: string
+          public_url?: string | null
+          retry_count?: number
+          row_index?: number
+          sku_interno?: string
+          status?: string
+          storage_path?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "asset_processing_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "asset_processing_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      asset_processing_jobs: {
+        Row: {
+          created_at: string
+          failed_assets: number
+          id: string
+          metadata: Json | null
+          processed_assets: number
+          status: string
+          total_assets: number
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          failed_assets?: number
+          id?: string
+          metadata?: Json | null
+          processed_assets?: number
+          status?: string
+          total_assets?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          failed_assets?: number
+          id?: string
+          metadata?: Json | null
+          processed_assets?: number
+          status?: string
+          total_assets?: number
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       attribute_options: {
         Row: {
           attribute_id: string

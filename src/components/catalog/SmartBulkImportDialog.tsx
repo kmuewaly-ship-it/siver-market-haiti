@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo, useEffect } from 'react';
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,6 +13,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { useCatalog } from '@/hooks/useCatalog';
 import { usePriceEngine } from '@/hooks/usePriceEngine';
 import { useTemplatesForCategory, applyTemplateToImport } from '@/hooks/useCategoryAttributeTemplates';
+import { useAssetProcessing, type AssetItem } from '@/hooks/useAssetProcessing';
 import AttributeConfigCard, { AttributeConfig } from './AttributeConfigCard';
 import { 
   groupProductsByParent, 
@@ -25,7 +26,7 @@ import {
   Download, Upload, FileSpreadsheet, AlertCircle, CheckCircle2, 
   Loader2, Calculator, Layers, Palette, Ruler, Zap, Package,
   ArrowRight, ChevronRight, AlertTriangle, Plus, Sparkles, X,
-  ImageIcon, Table, Settings2
+  ImageIcon, Table, Settings2, RefreshCw, Cloud, CloudOff
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
@@ -67,6 +68,7 @@ const STEPS = [
   { id: 'upload', label: 'Subir', icon: Upload },
   { id: 'mapping', label: 'Mapear', icon: Table },
   { id: 'attributes', label: 'Atributos', icon: Settings2 },
+  { id: 'processing', label: 'Activos', icon: Cloud },
   { id: 'preview', label: 'Confirmar', icon: CheckCircle2 },
 ];
 
@@ -87,7 +89,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const { data: expenses } = useDynamicExpenses();
   const profitMargin = getProfitMargin(priceSettings);
   
-  const [step, setStep] = useState<'upload' | 'mapping' | 'attributes' | 'preview' | 'importing'>('upload');
+  const [step, setStep] = useState<'upload' | 'mapping' | 'attributes' | 'processing' | 'preview' | 'importing'>('upload');
   const [rawData, setRawData] = useState<string[][]>([]);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>(DEFAULT_MAPPING);
@@ -101,6 +103,10 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const [isCheckingDuplicates, setIsCheckingDuplicates] = useState(false);
   const [attributeConfigs, setAttributeConfigs] = useState<AttributeConfig[]>([]);
   const [showTemplateHint, setShowTemplateHint] = useState(false);
+  const [processedUrlMap, setProcessedUrlMap] = useState<Record<string, string>>({});
+  
+  // Asset processing hook
+  const assetProcessing = useAssetProcessing();
   
   const { data: categoryTemplates } = useTemplatesForCategory(defaultCategoryId);
 
@@ -356,6 +362,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     setMapping(autoMapping);
   };
 
+  // Process grouping and prepare for asset processing
   const processGrouping = async () => {
     const rows: RawImportRow[] = rawData.map(row => {
       const obj: RawImportRow = {};
@@ -392,6 +399,83 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     
     setGroupedProducts(groups);
     setDetectedAttributeColumns(attrs);
+    
+    // Move to asset processing step
+    setStep('processing');
+  };
+
+  // Start asset processing
+  const startAssetProcessing = useCallback(async () => {
+    // Collect all unique image URLs with their SKUs
+    const imageItems: Array<{ skuInterno: string; originalUrl: string; rowIndex: number }> = [];
+    const seenUrls = new Set<string>();
+    
+    groupedProducts.forEach((group, groupIdx) => {
+      group.variants.forEach((variant, variantIdx) => {
+        if (variant.imageUrl && !seenUrls.has(variant.imageUrl)) {
+          seenUrls.add(variant.imageUrl);
+          imageItems.push({
+            skuInterno: variant.sku,
+            originalUrl: variant.imageUrl,
+            rowIndex: groupIdx * 100 + variantIdx
+          });
+        }
+      });
+    });
+
+    if (imageItems.length === 0) {
+      toast({ title: 'No hay imágenes para procesar', description: 'Continuando a vista previa...' });
+      setStep('preview');
+      return;
+    }
+
+    try {
+      // Create job and process
+      await assetProcessing.createJob(imageItems);
+      const result = await assetProcessing.processAllItems();
+      
+      // Store URL map for later use
+      setProcessedUrlMap(result.urlMap);
+      
+      // Update grouped products with new URLs
+      setGroupedProducts(prev => prev.map(group => ({
+        ...group,
+        variants: group.variants.map(variant => ({
+          ...variant,
+          imageUrl: result.urlMap[variant.imageUrl || ''] || variant.imageUrl
+        })),
+        detectedAttributes: group.detectedAttributes.map(attr => ({
+          ...attr,
+          valueImageMap: Object.fromEntries(
+            Object.entries(attr.valueImageMap).map(([value, url]) => [
+              value,
+              result.urlMap[url] || url
+            ])
+          )
+        }))
+      })));
+
+      toast({ 
+        title: `Procesamiento completado`, 
+        description: `${result.completed} imágenes subidas, ${result.failed} fallidas`
+      });
+    } catch (error) {
+      console.error('Asset processing error:', error);
+      toast({ 
+        title: 'Error en procesamiento', 
+        description: error instanceof Error ? error.message : 'Error desconocido',
+        variant: 'destructive'
+      });
+    }
+  }, [groupedProducts, assetProcessing, toast]);
+
+  // Skip asset processing and go directly to preview
+  const skipAssetProcessing = () => {
+    setStep('preview');
+  };
+
+  // Proceed to preview after processing
+  const proceedToPreview = () => {
     setStep('preview');
   };
 
@@ -437,6 +521,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     setDuplicateSkus([]);
     setIsCheckingDuplicates(false);
     setAttributeConfigs([]);
+    setProcessedUrlMap({});
+    assetProcessing.reset();
     setShowTemplateHint(false);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
@@ -773,7 +859,123 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
               </>
             )}
 
-            {/* Step 4: Preview */}
+            {/* Step 4: Asset Processing */}
+            {step === 'processing' && (
+              <div className="py-6 space-y-6">
+                <Card className="bg-primary/5 border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <Cloud className="h-4 w-4" />
+                      Procesamiento de Activos
+                    </CardTitle>
+                    <CardDescription>
+                      Las imágenes serán descargadas desde 1688 y subidas a nuestro almacenamiento
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-3 gap-4 text-center mb-4">
+                      <div>
+                        <div className="text-2xl font-bold text-primary">
+                          {assetProcessing.state.items.length || groupedProducts.reduce((sum, g) => sum + g.variants.filter(v => v.imageUrl).length, 0)}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Imágenes totales</p>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-green-600">
+                          {assetProcessing.completedItems.length}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Procesadas</p>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-red-600">
+                          {assetProcessing.state.items.filter(i => i.status === 'failed').length}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Fallidas</p>
+                      </div>
+                    </div>
+
+                    {assetProcessing.state.isProcessing && (
+                      <div className="space-y-2">
+                        <Progress value={assetProcessing.state.progress} />
+                        <p className="text-xs text-center text-muted-foreground">
+                          Procesando imagen {assetProcessing.state.currentItemIndex + 1} de {assetProcessing.state.items.length}
+                        </p>
+                      </div>
+                    )}
+
+                    {!assetProcessing.state.isProcessing && assetProcessing.state.items.length === 0 && (
+                      <div className="flex gap-3 justify-center">
+                        <Button onClick={startAssetProcessing}>
+                          <Cloud className="h-4 w-4 mr-2" />
+                          Iniciar Procesamiento
+                        </Button>
+                        <Button variant="outline" onClick={skipAssetProcessing}>
+                          <CloudOff className="h-4 w-4 mr-2" />
+                          Omitir (usar URLs originales)
+                        </Button>
+                      </div>
+                    )}
+
+                    {assetProcessing.isComplete && (
+                      <div className="text-center space-y-3">
+                        <CheckCircle2 className="h-12 w-12 text-green-500 mx-auto" />
+                        <p className="font-medium">Procesamiento completado</p>
+                        <Button onClick={proceedToPreview}>
+                          Continuar a Vista Previa <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Item status list */}
+                {assetProcessing.state.items.length > 0 && (
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm">Estado de imágenes</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <ScrollArea className="h-64">
+                        <div className="space-y-2">
+                          {assetProcessing.state.items.map((item, idx) => (
+                            <div key={item.id || idx} className="flex items-center gap-3 p-2 rounded bg-muted/30">
+                              {item.status === 'completed' && item.publicUrl ? (
+                                <img src={item.publicUrl} alt="" className="w-8 h-8 rounded object-cover" />
+                              ) : (
+                                <div className="w-8 h-8 rounded bg-muted flex items-center justify-center">
+                                  {item.status === 'processing' && <Loader2 className="h-4 w-4 animate-spin" />}
+                                  {item.status === 'pending' && <ImageIcon className="h-4 w-4 text-muted-foreground" />}
+                                  {item.status === 'failed' && <AlertCircle className="h-4 w-4 text-red-500" />}
+                                  {item.status === 'completed' && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                                </div>
+                              )}
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-medium truncate">{item.skuInterno}</p>
+                                {item.error && <p className="text-xs text-red-500 truncate">{item.error}</p>}
+                              </div>
+                              {item.status === 'failed' && item.id && (
+                                <Button size="sm" variant="ghost" onClick={() => assetProcessing.retryItem(item.id!)}>
+                                  <RefreshCw className="h-3 w-3" />
+                                </Button>
+                              )}
+                              <Badge variant={
+                                item.status === 'completed' ? 'default' : 
+                                item.status === 'failed' ? 'destructive' : 
+                                'secondary'
+                              } className="text-[10px]">
+                                {item.status === 'completed' ? '✓' : item.status === 'failed' ? '✗' : item.status === 'processing' ? '...' : '○'}
+                              </Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </ScrollArea>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
+            )}
+
+            {/* Step 5: Preview */}
             {step === 'preview' && (
               <>
                 <div className="grid grid-cols-3 gap-4">
@@ -952,12 +1154,12 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
         </div>
 
         {/* Footer with Navigation */}
-        {step !== 'upload' && step !== 'importing' && (
+        {step !== 'upload' && step !== 'importing' && step !== 'processing' && (
           <div className="flex justify-between items-center p-6 pt-4 border-t flex-shrink-0 bg-background">
             <Button variant="outline" onClick={() => {
               if (step === 'mapping') setStep('upload');
               else if (step === 'attributes') setStep('mapping');
-              else if (step === 'preview') setStep('attributes');
+              else if (step === 'preview') setStep('processing');
             }}>
               Atrás
             </Button>
@@ -971,7 +1173,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
             {step === 'attributes' && (
               <Button onClick={processGrouping} disabled={isCheckingDuplicates}>
                 {isCheckingDuplicates && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-                Previsualizar <ArrowRight className="h-4 w-4 ml-2" />
+                Procesar Activos <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             )}
             
