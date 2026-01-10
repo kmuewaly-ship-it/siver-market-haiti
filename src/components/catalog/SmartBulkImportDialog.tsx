@@ -828,7 +828,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium">Atributos Configurados ({attributeConfigs.length})</h3>
-                    <Button variant="outline" size="sm" onClick={() => addAttributeConfig()} disabled={unusedColumns.length === 0}>
+                    <Button variant="outline" size="sm" onClick={() => addAttributeConfig()}>
                       <Plus className="h-4 w-4 mr-1" />Agregar
                     </Button>
                   </div>
@@ -845,7 +845,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                           key={config.id}
                           config={config}
                           index={index}
-                          availableColumns={[...unusedColumns, config.valueColumn].filter(Boolean)}
+                          availableColumns={headers.filter(h => !Object.values(mapping).includes(h))}
                           rawData={rawData}
                           headers={headers}
                           imageColumnName={mapping.url_imagen}
