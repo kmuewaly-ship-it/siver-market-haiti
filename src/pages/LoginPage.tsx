@@ -43,6 +43,9 @@ const LoginPage = () => {
         } else {
           setError(error.message);
         }
+      } else {
+        // Login successful - redirect to home
+        navigate("/");
       }
     } catch (err) {
       setError("Error al iniciar sesión. Intenta de nuevo.");
