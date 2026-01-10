@@ -959,13 +959,14 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                                     <span className="absolute -bottom-1 -right-1 text-[8px] bg-muted px-1 rounded">OLD</span>
                                   </div>
                                   
-                                  {item.status === 'completed' && item.publicUrl && (
+                                  {/* Show completed state if has publicUrl from item or processedUrlMap */}
+                                  {(item.publicUrl || processedUrlMap[item.originalUrl]) && (
                                     <>
                                       <ArrowRight className="h-4 w-4 text-green-500 self-center" />
                                       {/* New image preview */}
                                       <div className="relative">
                                         <img 
-                                          src={item.publicUrl} 
+                                          src={item.publicUrl || processedUrlMap[item.originalUrl]} 
                                           alt="Nuevo" 
                                           className="w-12 h-12 rounded object-cover border-2 border-green-500"
                                         />
@@ -974,7 +975,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                                     </>
                                   )}
                                   
-                                  {item.status === 'processing' && (
+                                  {/* Show processing state only if no new URL available */}
+                                  {item.status === 'processing' && !item.publicUrl && !processedUrlMap[item.originalUrl] && (
                                     <>
                                       <ArrowRight className="h-4 w-4 text-muted-foreground self-center animate-pulse" />
                                       <div className="w-12 h-12 rounded bg-muted flex items-center justify-center border">
@@ -983,7 +985,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                                     </>
                                   )}
                                   
-                                  {item.status === 'failed' && (
+                                  {/* Show failed state only if actually failed and no URL */}
+                                  {item.status === 'failed' && !item.publicUrl && !processedUrlMap[item.originalUrl] && (
                                     <>
                                       <ArrowRight className="h-4 w-4 text-red-500 self-center" />
                                       <div className="w-12 h-12 rounded bg-red-50 dark:bg-red-950 flex items-center justify-center border border-red-200">
@@ -996,16 +999,23 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                                 <div className="flex-1 min-w-0">
                                   <div className="flex items-center gap-2 mb-1">
                                     <p className="text-sm font-semibold">{item.skuInterno}</p>
-                                    <Badge variant={
-                                      item.status === 'completed' ? 'default' : 
-                                      item.status === 'failed' ? 'destructive' : 
-                                      item.status === 'processing' ? 'secondary' :
-                                      'outline'
-                                    } className="text-[10px]">
-                                      {item.status === 'completed' ? 'Completado' : 
-                                       item.status === 'failed' ? 'Fallido' : 
-                                       item.status === 'processing' ? 'Procesando...' : 'Pendiente'}
-                                    </Badge>
+                                    {/* Determine actual status based on publicUrl availability as fallback */}
+                                    {(() => {
+                                      const hasNewUrl = item.publicUrl || processedUrlMap[item.originalUrl];
+                                      const effectiveStatus = hasNewUrl ? 'completed' : item.status;
+                                      return (
+                                        <Badge variant={
+                                          effectiveStatus === 'completed' ? 'default' : 
+                                          effectiveStatus === 'failed' ? 'destructive' : 
+                                          effectiveStatus === 'processing' ? 'secondary' :
+                                          'outline'
+                                        } className="text-[10px]">
+                                          {effectiveStatus === 'completed' ? 'Completado' : 
+                                           effectiveStatus === 'failed' ? 'Fallido' : 
+                                           effectiveStatus === 'processing' ? 'Procesando...' : 'Pendiente'}
+                                        </Badge>
+                                      );
+                                    })()}
                                   </div>
                                   
                                   {item.error && (
@@ -1013,7 +1023,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                                   )}
                                 </div>
                                 
-                                {item.status === 'failed' && item.id && (
+                                {/* Only show retry if actually failed and no URL available */}
+                                {item.status === 'failed' && !item.publicUrl && !processedUrlMap[item.originalUrl] && item.id && (
                                   <Button size="sm" variant="outline" onClick={() => assetProcessing.retryItem(item.id!)}>
                                     <RefreshCw className="h-3 w-3 mr-1" /> Reintentar
                                   </Button>
@@ -1024,15 +1035,16 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                               <div className="space-y-1 text-[10px] font-mono bg-muted/50 p-2 rounded">
                                 <div className="flex items-start gap-2">
                                   <span className="text-muted-foreground flex-shrink-0 w-12">Original:</span>
-                                  <span className="text-muted-foreground truncate flex-1" title={item.originalUrl}>
+                                  <span className="text-muted-foreground break-all flex-1" title={item.originalUrl}>
                                     {item.originalUrl}
                                   </span>
                                 </div>
-                                {item.status === 'completed' && item.publicUrl && (
+                                {/* Show new URL if available (completed or has publicUrl from urlMap) */}
+                                {(item.publicUrl || processedUrlMap[item.originalUrl]) && (
                                   <div className="flex items-start gap-2">
                                     <span className="text-green-600 flex-shrink-0 w-12">Nueva:</span>
-                                    <span className="text-green-600 truncate flex-1" title={item.publicUrl}>
-                                      {item.publicUrl}
+                                    <span className="text-green-600 break-all flex-1" title={item.publicUrl || processedUrlMap[item.originalUrl]}>
+                                      {item.publicUrl || processedUrlMap[item.originalUrl]}
                                     </span>
                                   </div>
                                 )}
