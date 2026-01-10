@@ -442,11 +442,32 @@ const GlobalMobileHeader = ({
       </div>
 
       {/* Category tabs - distributed evenly across full width */}
-      <div className="border-b border-gray-200 bg-[#071d7f]">
-        <div className="flex w-full">
+      <div className="border-b border-gray-200 bg-[#071d7f]" style={{ overscrollBehavior: 'none' }}>
+        <div 
+          className="overflow-x-auto overflow-y-hidden scrollbar-hide w-full flex"
+          style={{ 
+            WebkitOverflowScrolling: 'touch',
+            overscrollBehavior: 'contain',
+            touchAction: 'pan-x pinch-zoom',
+            msOverflowStyle: 'none'
+          }}
+          onWheel={(e) => {
+            const element = e.currentTarget;
+            if (element.scrollWidth > element.clientWidth) {
+              e.preventDefault();
+              element.scrollLeft += (e.deltaY > 0 ? 50 : -50);
+            }
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
+          }}
+          onTouchMove={(e) => {
+            e.stopPropagation();
+          }}
+        >
           <button
             onClick={() => navigate("/")}
-            className="flex-1 px-2 py-2 text-white hover:bg-white/20 rounded-none transition-all flex items-center justify-center text-xs border-r border-[#0a3a9f]"
+            className="flex-shrink-0 px-2 py-2 text-white hover:bg-white/20 rounded-none transition-all flex items-center justify-center text-xs border-r border-[#0a3a9f]"
             title="Ir a inicio"
           >
             <Home className="w-4 h-4" />
@@ -454,7 +475,7 @@ const GlobalMobileHeader = ({
           <button
             onClick={() => handleClearFilters()}
             className={cn(
-              "flex-1 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all border-r border-[#0a3a9f] text-center",
+              "flex-shrink-0 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all border-r border-[#0a3a9f] text-center",
               selectedCategory === null
                 ? "bg-white text-[#071d7f] font-medium"
                 : "bg-white text-[#94111f] hover:bg-gray-100"
@@ -467,7 +488,7 @@ const GlobalMobileHeader = ({
               key={cat.id}
               onClick={() => handleCategorySelect(cat.id)}
               className={cn(
-                "flex-1 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all text-center",
+                "flex-shrink-0 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all text-center",
                 index < rootCategories.length - 1 && "border-r border-[#0a3a9f]",
                 selectedCategory === cat.id
                   ? "bg-white text-[#071d7f] font-medium"

@@ -148,32 +148,47 @@ const ProductCarousel = ({
           </div>
         </div>
 
-        {/* Carousel Container - Integrated with header */}
-        <div className="relative p-2 md:p-4 bg-white">
-          {/* Products Grid */}
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 overflow-hidden">
-            {visibleProducts.map((product) => (
-              <ProductCard key={product.id} product={product} />
-            ))}
+        {/* Carousel Container - Desktop Grid / Mobile Scroll */}
+        <div className="relative bg-white">
+          {/* Desktop: Grid with navigation buttons */}
+          <div className="hidden md:block p-2 md:p-4">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 md:gap-3 overflow-hidden">
+              {visibleProducts.map((product) => (
+                <ProductCard key={product.id} product={product} />
+              ))}
+            </div>
+
+            {/* Navigation Arrows - Desktop only */}
+            <div className="flex justify-between items-center mt-3 gap-2">
+              <button
+                onClick={() => scroll("left")}
+                disabled={currentIndex === 0}
+                className="flex-shrink-0 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed p-1.5 md:p-2 rounded-full transition shadow-sm"
+              >
+                <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
+              </button>
+              <div className="flex-1"></div>
+              <button
+                onClick={() => scroll("right")}
+                disabled={currentIndex >= products.length - itemsPerView}
+                className="flex-shrink-0 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed p-1.5 md:p-2 rounded-full transition shadow-sm"
+              >
+                <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
+              </button>
+            </div>
           </div>
 
-          {/* Navigation Arrows - Inside container, no overflow */}
-          <div className="flex justify-between items-center mt-3 gap-2">
-            <button
-              onClick={() => scroll("left")}
-              disabled={currentIndex === 0}
-              className="flex-shrink-0 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed p-1.5 md:p-2 rounded-full transition shadow-sm"
-            >
-              <ChevronLeft className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
-            </button>
-            <div className="flex-1"></div>
-            <button
-              onClick={() => scroll("right")}
-              disabled={currentIndex >= products.length - itemsPerView}
-              className="flex-shrink-0 bg-white border border-gray-300 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed p-1.5 md:p-2 rounded-full transition shadow-sm"
-            >
-              <ChevronRight className="w-4 h-4 md:w-5 md:h-5 text-foreground" />
-            </button>
+          {/* Mobile: Horizontal scroll */}
+          <div className="md:hidden p-3">
+            <div className="overflow-x-auto scrollbar-hide -mx-3 px-3">
+              <div className="flex gap-3 min-w-max">
+                {products.map((product) => (
+                  <div key={product.id} className="w-32 flex-shrink-0">
+                    <ProductCard product={product} />
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </div>
       </div>

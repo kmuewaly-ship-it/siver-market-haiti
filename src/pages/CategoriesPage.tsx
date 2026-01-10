@@ -73,12 +73,12 @@ const CategoriesPage = () => {
   // Mobile Layout
   if (isMobile) {
     return (
-      <div className="flex flex-col min-h-screen bg-white">
-
+      <div className="flex flex-col min-h-screen bg-white overflow-x-hidden">
+        
         {/* Main Content Area */}
         <div className="flex flex-1 overflow-hidden min-h-0">
           {/* Right Sidebar - Secondary Categories */}
-          <aside className="w-[100px] flex-shrink-0 bg-gray-50 overflow-y-auto border-r border-gray-100 pb-24 scrollbar-hide">
+          <aside className="w-[100px] flex-shrink-0 bg-gray-50 overflow-y-auto overflow-x-hidden border-r border-gray-100 scrollbar-hide">
             {secondaryCategories.length > 0 ? (
               secondaryCategories.map(cat => (
                 <div
@@ -102,7 +102,7 @@ const CategoriesPage = () => {
           </aside>
 
           {/* Content Area - Final Subcategories */}
-          <main className="flex-1 overflow-y-auto p-4 pb-20 bg-white">
+          <main className="flex-1 overflow-y-auto overflow-x-hidden p-4 pb-24 bg-white scrollbar-hide">
             {selectedSecondary && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
