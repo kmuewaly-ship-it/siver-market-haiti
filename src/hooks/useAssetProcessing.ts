@@ -110,13 +110,24 @@ export function useAssetProcessing() {
     
     const currentItems = [...state.items];
     
+    // Debug: Log items
+    console.log('Processing items:', currentItems);
+    
     for (let i = 0; i < currentItems.length; i++) {
       if (abortControllerRef.current?.signal.aborted) {
         break;
       }
       
       const item = currentItems[i];
-      if (!item.id) continue;
+      
+      // Debug: Log item
+      console.log(`Processing item ${i}:`, item);
+      
+      if (!item.id) {
+        console.error(`Item ${i} has no ID, skipping. Item:`, item);
+        failed++;
+        continue;
+      }
       
       // Update current item to processing
       setState(prev => ({
@@ -129,6 +140,8 @@ export function useAssetProcessing() {
       }));
       
       const result = await processItem(item.id);
+      
+      console.log(`Result for item ${i}:`, result);
       
       if (result.success && result.publicUrl) {
         completed++;
@@ -173,6 +186,7 @@ export function useAssetProcessing() {
       } : null
     }));
     
+    console.log('Processing complete:', { completed, failed });
     return { completed, failed, urlMap };
   }, [state.items, processItem]);
 
