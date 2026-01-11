@@ -430,9 +430,9 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     }
 
     try {
-      // Create job and process
-      await assetProcessing.createJob(imageItems);
-      const result = await assetProcessing.processAllItems();
+      // Create job and process (pass items explicitly to avoid stale state)
+      const created = await assetProcessing.createJob(imageItems);
+      const result = await assetProcessing.processAllItems(created.items);
       
       console.log('Asset processing result:', result);
       console.log('URL map:', result.urlMap);
