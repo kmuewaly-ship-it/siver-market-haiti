@@ -39,52 +39,56 @@ export function useAssetProcessing() {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   // Create a new processing job
-  const createJob = useCallback(async (items: Array<{ skuInterno: string; originalUrl: string; rowIndex: number }>) => {
+  const createJob = useCallback(async (
+    items: Array<{ skuInterno: string; originalUrl: string; rowIndex: number }>
+  ): Promise<{ jobId: string; items: AssetItem[] }> => {
     try {
       setState(prev => ({ ...prev, isProcessing: true }));
-      
+
       const { data, error } = await supabase.functions.invoke('process-product-images', {
         body: { action: 'create_job', items }
       });
-      
+
       if (error) throw error;
       if (!data.success) throw new Error(data.error);
-      
-      const jobId = data.jobId;
+
+      const jobId: string = data.jobId;
       console.log('Job created:', jobId);
-      
+
       // Fetch the items from database instead of relying on the response
       const { data: createdItems, error: fetchError } = await supabase
         .from('asset_processing_items')
         .select('*')
         .eq('job_id', jobId);
-      
+
       if (fetchError) {
         console.error('Error fetching items:', fetchError);
         throw fetchError;
       }
-      
-      console.log('Fetched items:', createdItems);
-      
+
+      const mappedItems: AssetItem[] = (createdItems || []).map((item: any) => ({
+        id: item.id,
+        skuInterno: item.sku_interno,
+        originalUrl: item.original_url,
+        rowIndex: item.row_index,
+        status: item.status as 'pending' | 'processing' | 'completed' | 'failed',
+        publicUrl: item.public_url || undefined,
+        error: item.error_message || undefined,
+      }));
+
       setState(prev => ({
         ...prev,
         job: {
           id: jobId,
           status: 'processing',
-          totalAssets: createdItems?.length || items.length,
+          totalAssets: mappedItems.length || items.length,
           processedAssets: 0,
-          failedAssets: 0
+          failedAssets: 0,
         },
-        items: (createdItems || []).map(item => ({
-          id: item.id,
-          skuInterno: item.sku_interno,
-          originalUrl: item.original_url,
-          rowIndex: item.row_index,
-          status: item.status as 'pending' | 'processing' | 'completed' | 'failed'
-        }))
+        items: mappedItems,
       }));
-      
-      return jobId;
+
+      return { jobId, items: mappedItems };
     } catch (error) {
       console.error('Error creating job:', error);
       setState(prev => ({ ...prev, isProcessing: false }));
@@ -139,99 +143,116 @@ export function useAssetProcessing() {
 
   // Process all items sequentially with progress updates
   const processAllItems = useCallback(async (
+    itemsOverride?: AssetItem[],
     onItemComplete?: (item: AssetItem, index: number) => void
   ): Promise<{ completed: number; failed: number; urlMap: Record<string, string> }> => {
     abortControllerRef.current = new AbortController();
-    
+
     const urlMap: Record<string, string> = {};
     let completed = 0;
     let failed = 0;
-    
-    const currentItems = [...state.items];
-    
-    // Debug: Log items
+
+    const currentItems = [...(itemsOverride ?? state.items)];
+    const total = currentItems.length;
+
+    // If caller passes an explicit list (e.g. right after createJob), sync it into state first
+    if (itemsOverride) {
+      setState(prev => ({
+        ...prev,
+        isProcessing: true,
+        progress: 0,
+        currentItemIndex: 0,
+        items: currentItems,
+        job: prev.job ? { ...prev.job, totalAssets: total } : prev.job,
+      }));
+    }
+
     console.log('Processing items:', currentItems);
-    
-    for (let i = 0; i < currentItems.length; i++) {
-      if (abortControllerRef.current?.signal.aborted) {
-        break;
-      }
-      
+
+    if (total === 0) {
+      setState(prev => ({
+        ...prev,
+        isProcessing: false,
+        progress: 100,
+        job: prev.job ? { ...prev.job, status: 'completed', processedAssets: 0, failedAssets: 0 } : null,
+      }));
+      return { completed: 0, failed: 0, urlMap };
+    }
+
+    for (let i = 0; i < total; i++) {
+      if (abortControllerRef.current?.signal.aborted) break;
+
       const item = currentItems[i];
-      
-      // Debug: Log item
       console.log(`Processing item ${i}:`, item);
-      
+
       if (!item.id) {
         console.error(`Item ${i} has no ID, skipping. Item:`, item);
         failed++;
         continue;
       }
-      
+
       // Update current item to processing
       setState(prev => ({
         ...prev,
         currentItemIndex: i,
-        progress: Math.round((i / currentItems.length) * 100),
-        items: prev.items.map((it, idx) => 
+        progress: Math.round((i / total) * 100),
+        items: prev.items.map((it, idx) =>
           idx === i ? { ...it, status: 'processing' as const } : it
         )
       }));
-      
+
       const result = await processItem(item.id);
-      
       console.log(`Result for item ${i}:`, result);
-      
+
       if (result.success && result.publicUrl) {
         completed++;
-        // Map both by SKU and original URL for flexibility
         urlMap[item.skuInterno] = result.publicUrl;
         urlMap[item.originalUrl] = result.publicUrl;
-        
+
         console.log(`Mapped URLs for item ${i}:`, {
           skuInterno: item.skuInterno,
           originalUrl: item.originalUrl,
-          publicUrl: result.publicUrl
+          publicUrl: result.publicUrl,
         });
-        
+
         setState(prev => ({
           ...prev,
-          items: prev.items.map((it, idx) => 
+          items: prev.items.map((it, idx) =>
             idx === i ? { ...it, status: 'completed' as const, publicUrl: result.publicUrl } : it
           ),
           job: prev.job ? { ...prev.job, processedAssets: completed, failedAssets: failed } : null
         }));
       } else {
         failed++;
-        
+
         setState(prev => ({
           ...prev,
-          items: prev.items.map((it, idx) => 
+          items: prev.items.map((it, idx) =>
             idx === i ? { ...it, status: 'failed' as const, error: result.error } : it
           ),
           job: prev.job ? { ...prev.job, processedAssets: completed, failedAssets: failed } : null
         }));
       }
-      
+
       onItemComplete?.(
         { ...item, status: result.success ? 'completed' : 'failed', publicUrl: result.publicUrl, error: result.error },
         i
       );
     }
-    
+
     // Final state update
     setState(prev => ({
       ...prev,
       isProcessing: false,
       progress: 100,
-      job: prev.job ? { 
-        ...prev.job, 
-        status: failed === prev.items.length ? 'failed' : 'completed',
+      job: prev.job ? {
+        ...prev.job,
+        status: failed === total ? 'failed' : 'completed',
         processedAssets: completed,
-        failedAssets: failed
+        failedAssets: failed,
       } : null
     }));
-    
+
     console.log('Processing complete:', { completed, failed });
     return { completed, failed, urlMap };
   }, [state.items, processItem]);
