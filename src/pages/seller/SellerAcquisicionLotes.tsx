@@ -187,17 +187,17 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <main className="container mx-auto px-4 pb-24 pt-4">
+      <main className="container mx-auto px-4 pb-12 pt-0">
         {/* Hero Carousel (Mobile Only) */}
         {isMobile && featuredProducts.length > 0 && (
-          <div className="mb-6 -mx-4">
+          <div className="mb-0 -mx-4">
             <FeaturedProductsCarousel products={featuredProducts} />
           </div>
         )}
 
         {/* Encabezado Desktop */}
         {!isMobile && (
-          <div className="mb-6">
+          <div className="mb-2">
             <h1 className="text-2xl font-bold text-gray-900 mb-2">Catálogo Mayorista</h1>
             <p className="text-gray-600">
               Bienvenido, {user?.name || "Vendedor"}. Explora nuestro catálogo de productos al por mayor.
@@ -206,7 +206,7 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
         )}
 
         {/* Filtros inline */}
-        <div className="flex items-center gap-2 mb-6 bg-white px-3 py-2 rounded-lg border border-gray-200 overflow-x-auto">
+        <div className="flex items-center gap-2 mb-1 bg-white px-3 py-1 rounded-lg border border-gray-200 overflow-x-auto">
           <span className="text-xs text-gray-500 whitespace-nowrap">Ordenar:</span>
           <Select value={filters.sortBy} onValueChange={handleSortChange}>
             <SelectTrigger className="w-[130px] h-8 text-xs">
@@ -252,7 +252,7 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
         </div>
 
         {/* Resultados */}
-        <div className="mb-8">
+        <div className="mb-1">
           {productsError ? (
             <div className="bg-red-50 border border-red-200 rounded-lg p-8 text-center">
               <p className="text-red-600 font-medium mb-2">Error al cargar productos</p>
@@ -266,7 +266,7 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
               </Button>
             </div>
           ) : (productsLoading || (isFetching && allProducts.length === 0)) ? (
-            <div className="flex items-center justify-center py-12">
+            <div className="flex items-center justify-center py-4">
               <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
             </div>
           ) : allProducts.length === 0 ? (
@@ -288,7 +288,7 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
             </div>
           ) : (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-1 md:gap-2">
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-0.5 md:gap-1">
                 {allProducts.map(product => (
                   <ProductCardB2B
                     key={product.id}
@@ -301,21 +301,9 @@ const SellerAcquisicionLotesContentWithFilters = ({ filters, setFilters }: Conte
               </div>
 
               {/* Load more section */}
-              <div ref={loadMoreRef} className="flex flex-col items-center gap-3 py-6">
-                {isFetching && (
-                  <Loader2 className="h-6 w-6 animate-spin text-blue-500" />
-                )}
-                {hasMore && !isFetching && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setCurrentPage(prev => prev + 1)}
-                    className="px-8"
-                  >
-                    Cargar más productos
-                  </Button>
-                )}
+              <div ref={loadMoreRef} className="flex flex-col items-center gap-1 py-0.5">
                 {!hasMore && !isFetching && allProducts.length > 0 && (
-                  <p className="text-sm text-gray-500">Mostrando todos los {allProducts.length} productos</p>
+                  <p className="text-xs text-gray-500">Mostrando todos los {allProducts.length} productos</p>
                 )}
               </div>
             </>

@@ -104,46 +104,40 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
         </Link>
 
         {/* Price Section */}
-        <div className="mt-1 space-y-1">
-          {/* B2B Price */}
-          <div className="flex items-baseline gap-2">
+        <div className="mt-1 space-y-0.5">
+          {/* B2B Price - Single Line */}
+          <div className="flex items-center justify-between">
             <span className="inline-flex items-center gap-0.5 bg-destructive/10 border border-destructive/20 px-1.5 py-0.5 rounded-md">
-              <span className="text-destructive font-bold text-sm">
+              <span className="text-destructive font-bold text-xs">
                 {formatPriceRange()}
               </span>
-              <span className="text-[9px] font-medium text-destructive">USD</span>
-            </span>
-            
-            {/* Rating Display */}
-            <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-yellow-500">
-              <span>★</span>
-              {(product.rating || 0).toFixed(1)}
+              <span className="text-[8px] font-medium text-destructive">USD</span>
             </span>
           </div>
           
-          {/* PVP / Suggested Price */}
-          {product.precio_sugerido > 0 && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-green-600 font-semibold">
-                PVP: ${product.precio_sugerido.toFixed(2)}
-              </span>
-              {profit > 0 && (
+          {/* Rating & PVP - Same Line */}
+          <div className="flex items-center gap-2 justify-between">
+            <span className="inline-flex items-center gap-0.5 text-xs font-semibold text-yellow-500">
+              <span>★</span>
+              {(product.rating || 0).toFixed(1)}
+              {product.review_count && (
                 <span className="text-[10px] text-muted-foreground">
-                  ({((profit / product.precio_b2b) * 100).toFixed(0)}% margen)
+                  ({product.review_count})
                 </span>
               )}
-            </div>
-          )}
+            </span>
+            
+            {product.precio_sugerido > 0 && (
+              <span className="text-[10px] text-green-600 font-semibold">
+                PVP: ${product.precio_sugerido.toFixed(2)}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Min Order & Variants Info */}
         <div className="mt-2 text-xs">
-          {/* Flexible MOQ message */}
-          {product.moq > 1 && hasMultipleVariants && (
-            <p className="text-[10px] text-muted-foreground bg-muted/50 px-2 py-1 rounded">
-              💡 Combina tallas y colores para llegar al mínimo
-            </p>
-          )}
+          {/* Flexible MOQ message - removed */}
         </div>
 
         {/* Spacer */}
