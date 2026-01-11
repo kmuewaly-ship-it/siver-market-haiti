@@ -136,10 +136,6 @@ export function useAssetProcessing() {
       };
     }
   }, []);
-        error: error instanceof Error ? error.message : String(error)
-      };
-    }
-  }, []);
 
   // Process all items sequentially with progress updates
   const processAllItems = useCallback(async (
@@ -188,8 +184,15 @@ export function useAssetProcessing() {
       
       if (result.success && result.publicUrl) {
         completed++;
+        // Map both by SKU and original URL for flexibility
         urlMap[item.skuInterno] = result.publicUrl;
-        urlMap[item.originalUrl] = result.publicUrl; // Also map by original URL
+        urlMap[item.originalUrl] = result.publicUrl;
+        
+        console.log(`Mapped URLs for item ${i}:`, {
+          skuInterno: item.skuInterno,
+          originalUrl: item.originalUrl,
+          publicUrl: result.publicUrl
+        });
         
         setState(prev => ({
           ...prev,

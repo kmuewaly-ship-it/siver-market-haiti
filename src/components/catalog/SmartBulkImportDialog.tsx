@@ -434,26 +434,46 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
       await assetProcessing.createJob(imageItems);
       const result = await assetProcessing.processAllItems();
       
+      console.log('Asset processing result:', result);
+      console.log('URL map:', result.urlMap);
+      
       // Store URL map for later use
       setProcessedUrlMap(result.urlMap);
       
-      // Update grouped products with new URLs
-      setGroupedProducts(prev => prev.map(group => ({
-        ...group,
-        variants: group.variants.map(variant => ({
-          ...variant,
-          imageUrl: result.urlMap[variant.imageUrl || ''] || variant.imageUrl
-        })),
-        detectedAttributes: group.detectedAttributes.map(attr => ({
-          ...attr,
-          valueImageMap: Object.fromEntries(
-            Object.entries(attr.valueImageMap).map(([value, url]) => [
-              value,
-              result.urlMap[url] || url
-            ])
-          )
-        }))
-      })));
+      // Update grouped products with new URLs - use functional update to ensure we have latest state
+      setGroupedProducts(prev => {
+        const updatedProducts = prev.map(group => {
+          const updatedVariants = group.variants.map(variant => {
+            const newUrl = result.urlMap[variant.imageUrl || ''];
+            if (newUrl) {
+              console.log(`Updating variant ${variant.sku}: ${variant.imageUrl} -> ${newUrl}`);
+            }
+            return {
+              ...variant,
+              imageUrl: newUrl || variant.imageUrl
+            };
+          });
+          
+          const updatedAttributes = group.detectedAttributes.map(attr => ({
+            ...attr,
+            valueImageMap: Object.fromEntries(
+              Object.entries(attr.valueImageMap).map(([value, url]) => {
+                const newUrl = result.urlMap[url];
+                return [value, newUrl || url];
+              })
+            )
+          }));
+          
+          return {
+            ...group,
+            variants: updatedVariants,
+            detectedAttributes: updatedAttributes
+          };
+        });
+        
+        console.log('Updated grouped products:', updatedProducts.length);
+        return updatedProducts;
+      });
 
       toast({ 
         title: `Procesamiento completado`, 
