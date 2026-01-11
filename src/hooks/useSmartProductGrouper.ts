@@ -360,6 +360,13 @@ export const importGroupedProducts = async (
       
       // Collect all unique images from variants for gallery
       const allImages = [...new Set(group.variants.map(v => v.imageUrl).filter(Boolean))];
+      
+      // Log images being used for debugging
+      console.log(`Importing product ${group.baseSku}:`, {
+        imagen_principal: representativeVariant.imageUrl,
+        galeria_imagenes: allImages,
+        variantCount: group.variants.length
+      });
 
       const { data: product, error: productError } = await supabase
         .from('products')
