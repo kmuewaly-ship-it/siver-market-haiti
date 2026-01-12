@@ -26,6 +26,7 @@ export type Database = {
           notes: string | null
           phone: string | null
           postal_code: string | null
+          preferred_pickup_point_id: string | null
           state: string | null
           street_address: string
           updated_at: string
@@ -42,6 +43,7 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_pickup_point_id?: string | null
           state?: string | null
           street_address: string
           updated_at?: string
@@ -58,12 +60,28 @@ export type Database = {
           notes?: string | null
           phone?: string | null
           postal_code?: string | null
+          preferred_pickup_point_id?: string | null
           state?: string | null
           street_address?: string
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "addresses_preferred_pickup_point_id_fkey"
+            columns: ["preferred_pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_point_pending_deliveries"
+            referencedColumns: ["pickup_point_id"]
+          },
+          {
+            foreignKeyName: "addresses_preferred_pickup_point_id_fkey"
+            columns: ["preferred_pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       admin_approval_requests: {
         Row: {
@@ -1135,6 +1153,72 @@ export type Database = {
           },
         ]
       }
+      delivery_ratings: {
+        Row: {
+          created_at: string | null
+          customer_user_id: string
+          delivery_comment: string | null
+          delivery_rating: number | null
+          id: string
+          is_anonymous: boolean | null
+          metadata: Json | null
+          order_delivery_id: string | null
+          order_id: string
+          order_type: string | null
+          product_comment: string | null
+          product_rating: number | null
+          rated_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_user_id: string
+          delivery_comment?: string | null
+          delivery_rating?: number | null
+          id?: string
+          is_anonymous?: boolean | null
+          metadata?: Json | null
+          order_delivery_id?: string | null
+          order_id: string
+          order_type?: string | null
+          product_comment?: string | null
+          product_rating?: number | null
+          rated_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_user_id?: string
+          delivery_comment?: string | null
+          delivery_rating?: number | null
+          id?: string
+          is_anonymous?: boolean | null
+          metadata?: Json | null
+          order_delivery_id?: string | null
+          order_id?: string
+          order_type?: string | null
+          product_comment?: string | null
+          product_rating?: number | null
+          rated_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "delivery_ratings_order_delivery_id_fkey"
+            columns: ["order_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "order_deliveries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "delivery_ratings_order_delivery_id_fkey"
+            columns: ["order_delivery_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_point_pending_deliveries"
+            referencedColumns: ["delivery_id"]
+          },
+        ]
+      }
       departments: {
         Row: {
           code: string
@@ -1611,56 +1695,80 @@ export type Database = {
       }
       order_deliveries: {
         Row: {
+          assigned_at: string | null
           confirmed_at: string | null
           confirmed_by: string | null
           created_at: string | null
+          customer_qr_code: string | null
           delivery_code: string
+          delivery_method: string | null
           escrow_release_at: string | null
           expires_at: string | null
           funds_released: boolean | null
           funds_released_at: string | null
+          hybrid_tracking_revealed: boolean | null
+          hybrid_tracking_revealed_at: string | null
           id: string
           metadata: Json | null
+          notification_channel: string | null
+          notification_sent_at: string | null
           order_id: string
           order_type: string
           pickup_point_id: string | null
           qr_code_data: string | null
+          security_pin: string | null
           status: string
           updated_at: string | null
         }
         Insert: {
+          assigned_at?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string | null
+          customer_qr_code?: string | null
           delivery_code: string
+          delivery_method?: string | null
           escrow_release_at?: string | null
           expires_at?: string | null
           funds_released?: boolean | null
           funds_released_at?: string | null
+          hybrid_tracking_revealed?: boolean | null
+          hybrid_tracking_revealed_at?: string | null
           id?: string
           metadata?: Json | null
+          notification_channel?: string | null
+          notification_sent_at?: string | null
           order_id: string
           order_type: string
           pickup_point_id?: string | null
           qr_code_data?: string | null
+          security_pin?: string | null
           status?: string
           updated_at?: string | null
         }
         Update: {
+          assigned_at?: string | null
           confirmed_at?: string | null
           confirmed_by?: string | null
           created_at?: string | null
+          customer_qr_code?: string | null
           delivery_code?: string
+          delivery_method?: string | null
           escrow_release_at?: string | null
           expires_at?: string | null
           funds_released?: boolean | null
           funds_released_at?: string | null
+          hybrid_tracking_revealed?: boolean | null
+          hybrid_tracking_revealed_at?: string | null
           id?: string
           metadata?: Json | null
+          notification_channel?: string | null
+          notification_sent_at?: string | null
           order_id?: string
           order_type?: string
           pickup_point_id?: string | null
           qr_code_data?: string | null
+          security_pin?: string | null
           status?: string
           updated_at?: string | null
         }
@@ -1671,6 +1779,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "profiles"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_deliveries_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_point_pending_deliveries"
+            referencedColumns: ["pickup_point_id"]
           },
           {
             foreignKeyName: "order_deliveries_pickup_point_id_fkey"
@@ -2119,6 +2234,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "pickup_point_staff_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_point_pending_deliveries"
+            referencedColumns: ["pickup_point_id"]
+          },
           {
             foreignKeyName: "pickup_point_staff_pickup_point_id_fkey"
             columns: ["pickup_point_id"]
@@ -3659,6 +3781,13 @@ export type Database = {
             foreignKeyName: "shipment_tracking_pickup_point_id_fkey"
             columns: ["pickup_point_id"]
             isOneToOne: false
+            referencedRelation: "pickup_point_pending_deliveries"
+            referencedColumns: ["pickup_point_id"]
+          },
+          {
+            foreignKeyName: "shipment_tracking_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
             referencedRelation: "pickup_points"
             referencedColumns: ["id"]
           },
@@ -5110,6 +5239,26 @@ export type Database = {
       }
     }
     Views: {
+      pickup_point_pending_deliveries: {
+        Row: {
+          assigned_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          customer_qr_code: string | null
+          delivery_id: string | null
+          delivery_method: string | null
+          hybrid_tracking_id: string | null
+          order_id: string | null
+          order_type: string | null
+          pickup_point_address: string | null
+          pickup_point_id: string | null
+          pickup_point_name: string | null
+          security_pin: string | null
+          status: string | null
+          unit_count: number | null
+        }
+        Relationships: []
+      }
       seller_catalog_public: {
         Row: {
           descripcion: string | null
@@ -5279,11 +5428,44 @@ export type Database = {
       }
     }
     Functions: {
+      assign_pickup_point_to_order: {
+        Args: {
+          p_customer_commune_id?: string
+          p_order_id: string
+          p_order_type: string
+          p_preferred_pickup_point_id?: string
+        }
+        Returns: string
+      }
       auto_close_po: {
         Args: { p_close_reason?: string; p_po_id: string }
         Returns: Json
       }
       check_po_auto_close: { Args: never; Returns: Json }
+      confirm_pickup_point_delivery: {
+        Args: {
+          p_operator_id: string
+          p_physical_pin: string
+          p_qr_code: string
+        }
+        Returns: {
+          delivery_id: string
+          escrow_release_at: string
+          message: string
+          order_id: string
+          success: boolean
+        }[]
+      }
+      create_order_delivery_with_assignment: {
+        Args: {
+          p_customer_commune_id?: string
+          p_delivery_method?: string
+          p_order_id: string
+          p_order_type?: string
+          p_preferred_pickup_point_id?: string
+        }
+        Returns: string
+      }
       fn_expire_pending_orders: { Args: never; Returns: number }
       generate_consolidation_number: { Args: never; Returns: string }
       generate_delivery_code: { Args: never; Returns: string }
@@ -5429,6 +5611,17 @@ export type Database = {
       update_po_logistics_stage: {
         Args: { p_new_status: string; p_po_id: string }
         Returns: Json
+      }
+      validate_courier_delivery: {
+        Args: { p_qr_code: string; p_security_pin: string }
+        Returns: {
+          delivery_id: string
+          hybrid_tracking_id: string
+          message: string
+          order_id: string
+          pickup_point_name: string
+          success: boolean
+        }[]
       }
     }
     Enums: {

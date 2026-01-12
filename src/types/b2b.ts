@@ -93,6 +93,7 @@ export interface ProductB2BCard {
   imagen_principal: string;
   categoria_id: string;
   rating?: number; // Average rating
+  review_count?: number; // Number of reviews
   source_product_id?: string; // Reference to products table for variants
   variant_count?: number; // Number of variants
   variant_ids?: string[]; // IDs of all variants
