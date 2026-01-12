@@ -264,7 +264,7 @@ const SellerCheckout = () => {
   const paymentMethods = [
     {
       id: 'stripe' as PaymentMethod,
-      name: 'Tarjeta de Crédito (Stripe)',
+      name: 'Tarjeta de Débito/Crédito',
       description: 'Visa, Mastercard, American Express',
       icon: CreditCard,
       color: 'text-blue-600',
@@ -584,7 +584,7 @@ const SellerCheckout = () => {
         <Header />
 
         {/* Fixed Checkout Header */}
-        <div className="fixed top-25 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-border">
+        <div className="fixed top-24 left-0 right-0 z-40 bg-white border-b border-border">
           <div className="container mx-auto px-4 py-0 flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1">
               <div className="px-3 py-1.5 rounded-lg bg-[#071d7f]">
@@ -603,38 +603,32 @@ const SellerCheckout = () => {
         </div>
 
         <main className="container mx-auto px-4 pb-8 pt-0 space-y-0">
-          <div className="mb-0 mt-12">
-            <Link
-              to="/seller/adquisicion-lotes"
-              className="flex items-center gap-2 text-primary hover:underline mb-2"
-            >
-              <ArrowLeft className="w-4 h-4" />
-              Volver al Catálogo
-            </Link>
-          </div>
-
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-4">
-              {/* Seller Info */}
-              <Card className="p-6">
-                <h2 className="text-xl font-bold mb-4">Información del Comprador</h2>
-                <div className="space-y-2 text-muted-foreground">
-                  <p>
-                    <span className="font-semibold text-foreground">Nombre:</span>{' '}
-                    {user?.name || 'N/A'}
-                  </p>
-                  <p>
-                    <span className="font-semibold text-foreground">Email:</span>{' '}
-                    {user?.email}
-                  </p>
+              {/* Buyer Info */}
+              <Card className="p-4 mt-10">
+                <div className="space-y-3">
+                  <div className="flex items-start gap-3">
+                    <User className="h-5 w-5 text-[#071d7f] flex-shrink-0 mt-1" />
+                    <div>
+                      <p className="font-semibold text-foreground">{user?.name || 'N/A'}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <MapPin className="h-5 w-5 text-[#071d7f] flex-shrink-0 mt-1" />
+                    <div>
+                      <p className="font-semibold text-foreground">
+                        {selectedAddress?.street_address || 'Selecciona una dirección'}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </Card>
 
               {/* Delivery Method Selection */}
               <Card className={`p-6 ${hasFieldError(validationErrors, 'deliveryMethod') ? 'border-red-500' : ''}`}>
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
-                  <Truck className="h-5 w-5 text-primary" />
+                <h2 className="text-lg font-bold mb-3">
                   Opción de Entrega
                 </h2>
                 
@@ -652,12 +646,12 @@ const SellerCheckout = () => {
                     setSelectedAddressId(null);
                     setSelectedPickupPoint(null);
                   }}
-                  className="space-y-3"
+                  className="space-y-2"
                 >
                   <div
-                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                       deliveryMethod === 'address'
-                        ? 'border-primary bg-primary/5'
+                        ? 'border-[#071d7f] bg-[#071d7f]/5'
                         : 'border-border hover:border-muted-foreground'
                     }`}
                     onClick={() => {
@@ -667,19 +661,16 @@ const SellerCheckout = () => {
                     }}
                   >
                     <RadioGroupItem value="address" id="delivery-address" />
-                    <div className="flex items-center gap-3 flex-1">
-                      <Truck className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-semibold">Envío a Domicilio</p>
-                        <p className="text-sm text-muted-foreground">Recibirás tu pedido en la dirección que indiques</p>
-                      </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Truck className="h-4 w-4 text-muted-foreground" />
+                      <p className="font-semibold text-sm">Envío a Domicilio</p>
                     </div>
                   </div>
 
                   <div
-                    className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                       deliveryMethod === 'pickup'
-                        ? 'border-primary bg-primary/5'
+                        ? 'border-[#071d7f] bg-[#071d7f]/5'
                         : 'border-border hover:border-muted-foreground'
                     }`}
                     onClick={() => {
@@ -689,12 +680,9 @@ const SellerCheckout = () => {
                     }}
                   >
                     <RadioGroupItem value="pickup" id="delivery-pickup" />
-                    <div className="flex items-center gap-3 flex-1">
-                      <Store className="h-5 w-5 text-muted-foreground" />
-                      <div>
-                        <p className="font-semibold">Retiro en Punto</p>
-                        <p className="text-sm text-muted-foreground">Retira tu pedido en uno de nuestros puntos</p>
-                      </div>
+                    <div className="flex items-center gap-2 flex-1">
+                      <Store className="h-4 w-4 text-muted-foreground" />
+                      <p className="font-semibold text-sm">Retiro en Punto</p>
                     </div>
                   </div>
                 </RadioGroup>
@@ -703,7 +691,7 @@ const SellerCheckout = () => {
               {/* Shipping Address - Only show if address delivery selected */}
               {deliveryMethod === 'address' && (
               <Card className={`p-6 ${hasFieldError(validationErrors, 'selectedAddress') ? 'border-red-500' : ''}`}>
-                <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+                <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
                   <MapPin className="h-5 w-5 text-primary" />
                   Dirección de Envío
                 </h2>
@@ -920,7 +908,7 @@ const SellerCheckout = () => {
               {/* Pickup Points - Only show if pickup delivery selected */}
               {deliveryMethod === 'pickup' && (
               <Card className="p-6">
-                <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
                   <Store className="h-5 w-5 text-primary" />
                   Punto de Retiro
                 </h2>
@@ -971,7 +959,7 @@ const SellerCheckout = () => {
 
 
               <Card className="p-6">
-                <h2 className="text-xl font-bold mb-4">
+                <h2 className="text-xl font-bold mb-3">
                   Productos ({items.length})
                 </h2>
                 <div className="space-y-3">
@@ -995,11 +983,8 @@ const SellerCheckout = () => {
                         <p className="font-semibold line-clamp-1">{item.name}</p>
                         <p className="text-sm text-muted-foreground mb-1">
                         </p>
-                        <div className="flex items-center gap-4 text-sm">
-                          <span>{item.cantidad} unidades</span>
-                          <span>×</span>
-                          <span>${item.precioB2B.toFixed(2)}</span>
-                          <span>=</span>
+                        <div className="flex items-center justify-between text-sm">
+                          <span className="text-muted-foreground">Cant: {item.cantidad}</span>
                           <span className="font-semibold text-primary">
                             ${item.subtotal.toFixed(2)}
                           </span>
@@ -1012,7 +997,7 @@ const SellerCheckout = () => {
 
               {/* Payment Method */}
               <Card className={`p-6 ${hasFieldError(validationErrors, 'paymentMethod') ? 'border-red-500' : ''}`}>
-                <h2 className="text-xl font-bold mb-4">Método de Pago</h2>
+                <h2 className="text-xl font-bold mb-3">Forma de pago</h2>
 
                 {hasFieldError(validationErrors, 'paymentMethod') && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
@@ -1021,9 +1006,8 @@ const SellerCheckout = () => {
                   </div>
                 )}
                 
-                {/* Show KYC prompt if not verified */}
                 {!isVerified && (
-                  <Alert className="mb-4 border-purple-300 bg-purple-50 dark:bg-purple-950/30">
+                  <Alert className="mb-3 border-purple-300 bg-purple-50 dark:bg-purple-950/30">
                     <Info className="h-4 w-4 text-purple-600" />
                     <AlertDescription className="text-purple-700 dark:text-purple-300">
                       <span className="font-semibold">¿Quieres pagar con crédito?</span>{' '}
@@ -1032,7 +1016,7 @@ const SellerCheckout = () => {
                   </Alert>
                 )}
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {paymentMethods.map((method) => {
                     const Icon = method.icon;
                     const isSelected = paymentMethod === method.id;
@@ -1041,25 +1025,22 @@ const SellerCheckout = () => {
                       <div
                         key={method.id}
                         onClick={() => setPaymentMethod(method.id)}
-                        className={`flex items-center gap-4 p-4 rounded-lg border-2 cursor-pointer transition-all ${
+                        className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
                           isSelected
-                            ? 'border-primary bg-primary/5'
+                            ? 'border-[#071d7f] bg-[#071d7f]/5'
                             : 'border-border hover:border-muted-foreground'
                         }`}
                       >
-                        <div className={`p-2 rounded-lg ${method.bgColor}`}>
-                          <Icon className={`h-5 w-5 ${method.color}`} />
+                        <div className={`p-1.5 rounded-lg ${method.bgColor}`}>
+                          <Icon className={`h-4 w-4 ${method.color}`} />
                         </div>
-                        <div className="flex-1">
-                          <p className="font-semibold">{method.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {method.description}
-                          </p>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-semibold text-sm">{method.name}</p>
                         </div>
                         <div
-                          className={`w-5 h-5 rounded-full border-2 ${
+                          className={`w-4 h-4 rounded-full border-2 flex-shrink-0 ${
                             isSelected
-                              ? 'border-primary bg-primary'
+                              ? 'border-[#071d7f] bg-[#071d7f]'
                               : 'border-muted-foreground'
                           }`}
                         >
