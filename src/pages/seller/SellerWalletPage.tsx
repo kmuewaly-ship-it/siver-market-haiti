@@ -178,26 +178,32 @@ const SellerWalletPage = () => {
             {/* TAB 1: OVERVIEW */}
             <TabsContent value="overview" className="space-y-6 mt-0">
               {/* Main Saldo Card */}
-              <Card className="bg-gradient-to-br from-[#071d7f] to-blue-600 text-white border-none shadow-lg">
-                <CardContent className="pt-8 pb-8">
-                  <div className="space-y-4">
-                    <div className="flex items-center gap-2">
-                      <DollarSign className="h-5 w-5" />
-                      <span className="text-sm md:text-base font-medium opacity-90">Saldo Disponible</span>
+              <Card className="bg-gray-100 border border-gray-200 shadow-md">
+                <CardContent className="pt-4 pb-4 px-4">
+                  <div className="flex items-center justify-between gap-3">
+                    {/* Saldo Section */}
+                    <div className="flex items-center gap-2 flex-1">
+                      <DollarSign className="h-4 w-4 text-[#071d7f] flex-shrink-0" />
+                      <div className="min-w-0">
+                        <Badge variant="outline" className="text-xs bg-white text-gray-700 border-gray-300 mb-1">
+                          Saldo Disponible
+                        </Badge>
+                        <div className="text-xl md:text-2xl font-bold text-[#071d7f] truncate">
+                          ${(wallet?.available_balance || 0).toLocaleString("es-DO", {
+                            minimumFractionDigits: 2,
+                            maximumFractionDigits: 2,
+                          })}
+                        </div>
+                      </div>
                     </div>
-                    <div className="text-4xl md:text-5xl font-bold">
-                      ${(wallet?.available_balance || 0).toLocaleString("es-DO", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      })}
-                    </div>
+                    
+                    {/* Solicitar Retiro Button */}
                     <Button
                       onClick={() => setShowWithdrawalDialog(true)}
-                      className="w-full bg-white text-[#071d7f] hover:bg-gray-100 font-semibold text-base md:text-lg py-6 md:py-8"
-                      size="lg"
+                      className="bg-[#94111f] hover:bg-[#7a0d1a] text-white font-semibold text-xs md:text-sm px-2.5 md:px-3 py-1.5 md:py-2 flex-shrink-0 h-fit whitespace-nowrap"
                     >
-                      <ArrowUpRight className="h-5 w-5 mr-2" />
-                      Solicitar Retiro
+                      <ArrowUpRight className="h-3.5 w-3.5 mr-1" />
+                      Retiro
                     </Button>
                   </div>
                 </CardContent>
