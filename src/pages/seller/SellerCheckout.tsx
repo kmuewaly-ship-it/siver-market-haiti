@@ -583,16 +583,12 @@ const SellerCheckout = () => {
       <div className="min-h-screen bg-background">
         <Header />
 
-        {/* Sticky Checkout Header */}
-        <div className="sticky top-0 z-30 bg-white border-b border-border">
-          <div className="container mx-auto px-4 py-2 flex items-center justify-between">
+        {/* Fixed Checkout Header */}
+        <div className="fixed top-25 left-0 right-0 z-40 bg-white/95 backdrop-blur border-b border-border">
+          <div className="container mx-auto px-4 py-0 flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1">
-              <div className="p-2 rounded-lg bg-[#071d7f]/10">
-                <ShoppingBag className="h-5 w-5 text-[#071d7f]" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold">Checkout B2B</h2>
-                <p className="text-xs text-muted-foreground">Completa tu pedido mayorista</p>
+              <div className="px-3 py-1.5 rounded-lg bg-[#071d7f]">
+                <span className="text-sm font-semibold text-white">Checkout B2B</span>
               </div>
             </div>
             
@@ -606,8 +602,8 @@ const SellerCheckout = () => {
           </div>
         </div>
 
-        <main className="container mx-auto px-4 pb-8 pt-4">
-          <div className="mb-4">
+        <main className="container mx-auto px-4 pb-8 pt-0 space-y-0">
+          <div className="mb-0 mt-12">
             <Link
               to="/seller/adquisicion-lotes"
               className="flex items-center gap-2 text-primary hover:underline mb-2"

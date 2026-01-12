@@ -372,7 +372,7 @@ const Header = ({
             ))}
           </div>
         </header>
-        <div className="h-[100px]" />
+        <div className="h-[8px]" />
       </>
     );
   }
