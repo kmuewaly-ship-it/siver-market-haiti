@@ -12,6 +12,8 @@ interface ShippingLabelData {
   unitCount: number;
   weightGrams: number;
   status: string;
+  securityPin?: string; // PIN de 4 dígitos para validación física
+  customerQrCode?: string; // QR de 6 dígitos del cliente
 }
 
 interface ShippingLabelPrinterProps {
@@ -179,10 +181,20 @@ export const ShippingLabelPrinter: React.FC<ShippingLabelPrinterProps> = ({
               </div>
             </div>
 
-            {/* Units badge */}
-            <div style={{ fontSize: '24px', fontWeight: 'bold', textAlign: 'center', padding: '8px', border: '2px solid #000', margin: '8px 0' }}>
-              <Package className="h-6 w-6 inline mr-2" />
-              {labelData.unitCount} UNIDAD{labelData.unitCount > 1 ? 'ES' : ''}
+            {/* Units badge + Security PIN */}
+            <div style={{ display: 'flex', gap: '8px', margin: '8px 0' }}>
+              <div style={{ flex: 1, fontSize: '20px', fontWeight: 'bold', textAlign: 'center', padding: '8px', border: '2px solid #000' }}>
+                <Package className="h-5 w-5 inline mr-1" />
+                {labelData.unitCount} UNID.
+              </div>
+              {labelData.securityPin && (
+                <div style={{ flex: 1, textAlign: 'center', padding: '8px', border: '2px solid #000', background: '#f5f5f5' }}>
+                  <div className="text-xs text-muted-foreground">PIN SEGURIDAD</div>
+                  <div style={{ fontSize: '24px', fontWeight: 'bold', letterSpacing: '4px', fontFamily: 'monospace' }}>
+                    {labelData.securityPin}
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Customer info */}
