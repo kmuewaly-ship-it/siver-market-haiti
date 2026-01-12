@@ -110,9 +110,9 @@ const SellerCatalogo = () => {
       <div className="min-h-screen bg-background">
         <Header />
 
-        <main className="container mx-auto px-4 pb-8">
+        <main className="container mx-auto px-4 py-4 pb-8">
           {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
             <div>
               <h1 className="text-3xl font-bold text-foreground">Mi Catálogo</h1>
               <p className="text-muted-foreground">
@@ -126,7 +126,7 @@ const SellerCatalogo = () => {
           </div>
 
           {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
             <Card className="p-4">
               <div className="flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-primary/10">
@@ -302,7 +302,7 @@ const SellerCatalogo = () => {
             </DialogHeader>
 
             {editingItem && (
-              <div className="space-y-4 py-4">
+              <div className="space-y-3 py-3">
                 <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                   <div className="w-12 h-12 rounded-lg overflow-hidden bg-background">
                     {editingItem.images[0] ? (

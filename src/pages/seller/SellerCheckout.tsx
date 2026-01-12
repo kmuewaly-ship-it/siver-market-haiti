@@ -386,7 +386,7 @@ const SellerCheckout = () => {
           <main className="container mx-auto px-4 pb-8">
             <div className="max-w-2xl mx-auto">
               <Card className="p-8 text-center">
-                <div className="mb-6">
+                <div className="mb-4">
                   <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto">
                     <Check className="w-10 h-10 text-green-600" />
                   </div>
@@ -396,14 +396,14 @@ const SellerCheckout = () => {
                   Tu pedido ha sido creado exitosamente.
                 </p>
                 {orderId && (
-                  <div className="bg-muted p-4 rounded-lg mb-6">
+                  <div className="bg-muted p-4 rounded-lg mb-4">
                     <p className="text-sm text-muted-foreground">ID del Pedido</p>
                     <p className="font-mono font-bold">{orderId.slice(0, 8).toUpperCase()}</p>
                   </div>
                 )}
                 
                 {paymentMethod !== 'stripe' && (
-                  <div className="text-left bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-6">
+                  <div className="text-left bg-yellow-50 border border-yellow-200 p-4 rounded-lg mb-4">
                     <div className="flex items-start gap-3">
                       <AlertCircle className="h-5 w-5 text-yellow-600 mt-0.5" />
                       <div>
@@ -585,7 +585,7 @@ const SellerCheckout = () => {
 
         {/* Sticky Checkout Header */}
         <div className="sticky top-0 z-30 bg-white border-b border-border">
-          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="container mx-auto px-4 py-2 flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1">
               <div className="p-2 rounded-lg bg-[#071d7f]/10">
                 <ShoppingBag className="h-5 w-5 text-[#071d7f]" />
@@ -607,19 +607,19 @@ const SellerCheckout = () => {
         </div>
 
         <main className="container mx-auto px-4 pb-8 pt-4">
-          <div className="mb-8">
+          <div className="mb-4">
             <Link
               to="/seller/adquisicion-lotes"
-              className="flex items-center gap-2 text-primary hover:underline mb-4"
+              className="flex items-center gap-2 text-primary hover:underline mb-2"
             >
               <ArrowLeft className="w-4 h-4" />
               Volver al Catálogo
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className="lg:col-span-2 space-y-4">
               {/* Seller Info */}
               <Card className="p-6">
                 <h2 className="text-xl font-bold mb-4">Información del Comprador</h2>
@@ -784,7 +784,7 @@ const SellerCheckout = () => {
                     </Button>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-3">
                     {addresses.length > 0 && (
                       <Button
                         variant="ghost"
@@ -978,7 +978,7 @@ const SellerCheckout = () => {
                 <h2 className="text-xl font-bold mb-4">
                   Productos ({items.length})
                 </h2>
-                <div className="space-y-4">
+                <div className="space-y-3">
                   {items.map((item) => (
                     <div
                       key={item.productId}
@@ -1078,7 +1078,7 @@ const SellerCheckout = () => {
 
                 {/* Siver Credit Section - Always visible for verified users */}
                 {canUseCredit && (
-                  <div className="mt-6 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200">
+                  <div className="mt-4 p-4 bg-purple-50 dark:bg-purple-950/30 rounded-lg border border-purple-200">
                     <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold flex items-center gap-2">
                         <Wallet className="h-4 w-4 text-purple-600" />
@@ -1102,7 +1102,7 @@ const SellerCheckout = () => {
                     </div>
                     
                     {useSiverCredit && (
-                      <div className="space-y-4">
+                      <div className="space-y-3">
                         <div>
                           <div className="flex justify-between text-sm mb-2">
                             <span className="text-muted-foreground">Crédito disponible:</span>
@@ -1157,7 +1157,7 @@ const SellerCheckout = () => {
 
                 {/* Payment Instructions */}
                 {paymentMethod === 'transfer' && adminBankMethod && (
-                  <div className="mt-6 p-4 bg-muted rounded-lg">
+                  <div className="mt-4 p-4 bg-muted rounded-lg">
                     <h3 className="font-semibold mb-3">Datos para Transferencia</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
@@ -1193,7 +1193,7 @@ const SellerCheckout = () => {
                 )}
 
                 {paymentMethod === 'moncash' && adminMoncashMethod && (
-                  <div className="mt-6 p-4 rounded-lg" style={{ backgroundColor: 'rgba(148, 17, 31, 0.1)' }}>
+                  <div className="mt-4 p-4 rounded-lg" style={{ backgroundColor: 'rgba(148, 17, 31, 0.1)' }}>
                     <h3 className="font-semibold mb-3" style={{ color: '#94111f' }}>Datos MonCash</h3>
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center justify-between">
@@ -1220,7 +1220,7 @@ const SellerCheckout = () => {
 
                 {/* Payment Reference (for non-Stripe methods) */}
                 {paymentMethod !== 'stripe' && (
-                  <div className="mt-6 space-y-4">
+                  <div className="mt-3 space-y-3">
                     <div>
                       <Label htmlFor="payment-reference">
                         Referencia de Pago *
@@ -1255,10 +1255,10 @@ const SellerCheckout = () => {
             {/* Order Summary */}
             <div className="lg:col-span-1">
               <Card className="p-6 sticky top-8">
-                <h3 className="text-lg font-bold mb-4">Resumen del Pedido</h3>
+                <h3 className="text-lg font-bold mb-3">Resumen del Pedido</h3>
 
                 {/* Items List with Images */}
-                <div className="space-y-3 max-h-64 overflow-y-auto mb-4 pb-4 border-b">
+                <div className="space-y-2 max-h-64 overflow-y-auto mb-3 pb-3 border-b">
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-3 pb-3 border-b last:border-b-0">
                       <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -1280,7 +1280,7 @@ const SellerCheckout = () => {
                   ))}
                 </div>
 
-                <div className="space-y-3 mb-6 pb-6 border-b">
+                <div className="space-y-2 mb-4 pb-4 border-b">
                   <div className="flex justify-between text-muted-foreground">
                     <span>Subtotal:</span>
                     <span className="font-semibold text-foreground">
@@ -1368,7 +1368,7 @@ const SellerCheckout = () => {
                   </div>
                 )}
 
-                <div className="flex justify-between text-xl font-bold mb-6">
+                <div className="flex justify-between text-xl font-bold mb-4">
                   <span>Total a Pagar:</span>
                   <span className="text-primary">
                     ${remainingToPay.toFixed(2)}

@@ -16,8 +16,8 @@ const FavoritesPage = () => {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       {!isMobile && <GlobalHeader />}
-      <main className={`flex-1 container mx-auto px-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
-        <h1 className="text-3xl font-bold mb-8 flex items-center gap-2">
+      <main className={`flex-1 container mx-auto px-4 py-4 ${isMobile ? 'pb-20' : 'pb-8'}`}>
+        <h1 className="text-3xl font-bold mb-5 flex items-center gap-2">
           <Heart className="h-8 w-8 text-red-500 fill-current" />
           Mis Favoritos
         </h1>
