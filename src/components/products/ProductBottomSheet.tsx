@@ -348,7 +348,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
           if (variant) {
             await addItemB2B({
               userId: user.id,
-              sku: variant.sku,
+              productId: product.id || product.source_product_id,
+              sku: product.sku,
               name: `${product.name} - ${variant.label}`,
               priceB2B: variant.precio || priceB2B,
               quantity: sel.quantity,
@@ -366,11 +367,12 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         }
 
         if (isSeller) {
-          // B2B with variations
+          // B2B with variations - use base product SKU only
           for (const v of nonZero) {
             await addItemB2B({
               userId: user.id,
-              sku: `${product.sku}-${v.id}`,
+              productId: product.id || product.source_product_id,
+              sku: product.sku,
               name: `${product.name} - ${v.label}`,
               priceB2B: priceB2B,
               quantity: v.quantity,
@@ -379,11 +381,11 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
           }
           toast.success(`Agregado al carrito B2B: ${nonZero.length} variaciones`);
         } else {
-          // B2C with variations
+          // B2C with variations - use base product SKU only
           for (const v of nonZero) {
             await addItemB2C({
               userId: user.id,
-              sku: `${product.sku}-${v.id}`,
+              sku: product.sku,
               name: `${product.name} - ${v.label}`,
               price: product.price,
               quantity: v.quantity,
@@ -398,7 +400,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         }
       } else {
         // Single product or product with selected variant (EAV variants)
-        const finalSku = selectedVariant?.sku || variantSku;
+        // Always use the base product SKU, not variant SKU
+        const finalSku = product.sku;
         const finalName = variantLabel 
           ? `${product.name} - ${variantLabel}` 
           : product.name;
@@ -409,6 +412,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
           // B2B with or without variant
           await addItemB2B({
             userId: user.id,
+            productId: product.id || product.source_product_id,
             sku: finalSku,
             name: finalName,
             priceB2B: finalPrice,

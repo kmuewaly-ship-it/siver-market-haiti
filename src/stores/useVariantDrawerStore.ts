@@ -11,6 +11,7 @@ export interface VariantDrawerProduct {
   moq?: number;
   stock?: number;
   source_product_id?: string;
+  description?: string;
 }
 
 type State = {

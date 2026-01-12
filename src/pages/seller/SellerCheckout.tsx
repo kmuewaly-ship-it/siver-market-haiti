@@ -45,6 +45,7 @@ import {
   Store,
   Tag,
   X,
+  User,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -582,7 +583,30 @@ const SellerCheckout = () => {
       <div className="min-h-screen bg-background">
         <Header />
 
-        <main className="container mx-auto px-4 pb-8">
+        {/* Sticky Checkout Header */}
+        <div className="sticky top-0 z-30 bg-white border-b border-border">
+          <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div className="flex items-center gap-3 flex-1">
+              <div className="p-2 rounded-lg bg-[#071d7f]/10">
+                <ShoppingBag className="h-5 w-5 text-[#071d7f]" />
+              </div>
+              <div>
+                <h2 className="text-lg font-bold">Checkout B2B</h2>
+                <p className="text-xs text-muted-foreground">Completa tu pedido mayorista</p>
+              </div>
+            </div>
+            
+            {/* Items Counter Badge */}
+            <div className="flex items-center gap-2 bg-blue-50 px-3 py-1.5 rounded-lg">
+              <ShoppingBag className="h-4 w-4 text-[#071d7f]" />
+              <span className="text-sm font-semibold text-[#071d7f]">
+                {items.length} {items.length === 1 ? 'producto' : 'productos'}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <main className="container mx-auto px-4 pb-8 pt-4">
           <div className="mb-8">
             <Link
               to="/seller/adquisicion-lotes"
@@ -591,7 +615,6 @@ const SellerCheckout = () => {
               <ArrowLeft className="w-4 h-4" />
               Volver al Catálogo
             </Link>
-            <h1 className="text-3xl font-bold">Checkout B2B</h1>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

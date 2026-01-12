@@ -329,7 +329,10 @@ const Header = ({
               <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
               <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#071d7f] rounded-full border-2 border-white" />
             </Link>
-
+            {/* Profile */}
+            <Link to={accountLink} className="relative flex-shrink-0 text-gray-700 hover:text-[#071d7f] transition-colors">
+              <User className="w-6 h-6" strokeWidth={1.5} />
+            </Link>
             {/* Cart */}
             <Link to="/carrito" className="relative flex-shrink-0">
               <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />

@@ -42,12 +42,32 @@ export const useB2BCartItems = () => {
 
       console.log('Loading B2B cart items for user:', user.id);
 
-      // Query directly from b2b_cart_items with JOIN to b2b_carts
+      // Get cart first
+      const { data: carts, error: cartsError } = await supabase
+        .from('b2b_carts')
+        .select('id')
+        .eq('buyer_user_id', user.id)
+        .eq('status', 'open');
+
+      if (cartsError) {
+        console.error('Error fetching B2B carts:', cartsError);
+        throw cartsError;
+      }
+
+      const cartIds = (carts || []).map(c => c.id);
+      console.log('Found carts:', cartIds);
+
+      if (cartIds.length === 0) {
+        // No carts found, return empty items
+        setItems([]);
+        return;
+      }
+
+      // Query cart items for these carts
       const { data: cartItems, error: itemsError } = await supabase
         .from('b2b_cart_items')
-        .select('*, image, cart_id!inner(id, buyer_user_id, status), products:product_id(precio_sugerido_venta, moq, imagen_principal)')
-        .eq('cart_id.buyer_user_id', user.id)
-        .eq('cart_id.status', 'open')
+        .select('*')
+        .in('cart_id', cartIds)
         .order('created_at', { ascending: false });
 
       if (itemsError) {
@@ -56,32 +76,20 @@ export const useB2BCartItems = () => {
       }
 
       console.log('B2B Cart items loaded:', cartItems?.length || 0, 'items');
+      console.log('Items data:', cartItems);
 
       const formattedItems: B2BCartItem[] = (cartItems || []).map(item => {
-        // Extract data from joined product
-        let precioVenta = 0;
-        let moq = 1;
-        let productImage: string | null = null;
-        if (item.products && typeof item.products === 'object') {
-          precioVenta = (item.products as any).precio_sugerido_venta || 0;
-          moq = (item.products as any).moq || 1;
-          productImage = (item.products as any).imagen_principal || null;
-        }
-
-        // Prioritize variant image saved on cart item, fallback to product image
-        const itemImage = (item as any).image || productImage;
-
         return {
           id: item.id,
           productId: item.product_id,
           sku: item.sku,
           name: item.nombre,
           precioB2B: typeof item.unit_price === 'string' ? parseFloat(item.unit_price) : item.unit_price,
-          precioVenta: precioVenta,
+          precioVenta: 0, // Will be loaded from product if needed
           cantidad: item.quantity,
           subtotal: typeof item.total_price === 'string' ? parseFloat(item.total_price) : item.total_price,
-          image: itemImage,
-          moq: moq,
+          image: (item as any).image || null,
+          moq: 1,
           color: item.color || null,
           size: item.size || null,
         };

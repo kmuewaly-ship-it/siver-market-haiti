@@ -11,7 +11,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square, TrendingUp } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 import { useB2BCartProductTotals } from "@/hooks/useB2BCartProductTotals";
@@ -20,8 +27,11 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { useCartSelectionStore } from "@/stores/useCartSelectionStore";
 import { Checkbox } from "@/components/ui/checkbox";
+import useVariantDrawerStore from "@/stores/useVariantDrawerStore";
+import VariantDrawer from "@/components/products/VariantDrawer";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
@@ -32,6 +42,8 @@ const SellerCartPage = () => {
   const [showClearCartDialog, setShowClearCartDialog] = useState(false);
   const [showRemoveItemDialog, setShowRemoveItemDialog] = useState(false);
   const [itemToRemove, setItemToRemove] = useState<{ id: string; name: string } | null>(null);
+  const [showSummaryModal, setShowSummaryModal] = useState(false);
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState<any>(null);
 
   // Cart selection store
   const { 
@@ -68,7 +80,8 @@ const SellerCartPage = () => {
 
     selectedItems.forEach(item => {
       const costoItem = item.precioB2B * item.cantidad;
-      const precioVenta = item.precioVenta || item.precioB2B; // Fallback to B2B price if no retail price
+      // Use precioVenta (retail price) if available, otherwise default to cost price
+      const precioVenta = item.precioVenta || item.precioB2B;
       const ventaItem = precioVenta * item.cantidad;
       
       totalInversion += costoItem;
@@ -215,6 +228,125 @@ const SellerCartPage = () => {
     }
   };
 
+  // Open variant drawer for a cart item
+  const handleOpenVariantDrawer = async (item: any) => {
+    try {
+      console.log('Opening variant drawer for item:', item);
+      
+      // Try to find product by productId first, then by SKU
+      let productId: string | undefined = item.productId;
+      let searchedSku: string | undefined;
+      
+      if (!productId && item.sku) {
+        // Extract base SKU - ignore any variant suffixes
+        // SKU format can be like "777795007250-Negro-39" or "777795007-Negro-39"
+        let baseSku = item.sku.split('-')[0]; // Get the first part before color/size
+        
+        // If the SKU has more than 9 digits, try to extract just the main part
+        if (baseSku && baseSku.length > 9 && /^\d+$/.test(baseSku)) {
+          baseSku = baseSku.substring(0, 9);
+          console.log('Base SKU has extra digits. Trying 9-digit version:', baseSku);
+        }
+        
+        console.log('No productId, searching product by SKU:', baseSku);
+        searchedSku = baseSku;
+        
+        try {
+          // Search by SKU in products table
+          const result = await (supabase as any)
+            .from('products')
+            .select('id')
+            .eq('sku', baseSku)
+            .maybeSingle();
+          
+          if (result?.data?.id) {
+            productId = result.data.id;
+            console.log('Found product by SKU:', productId);
+          } else {
+            console.log('Product not found with SKU:', baseSku, '- trying alternative searches');
+            
+            // Try matching the entire SKU without splitting
+            const result2 = await (supabase as any)
+              .from('products')
+              .select('id')
+              .ilike('sku', `%${baseSku}%`)
+              .limit(1)
+              .maybeSingle();
+            
+            if (result2?.data?.id) {
+              productId = result2.data.id;
+              console.log('Found product by partial SKU match:', productId);
+            }
+          }
+        } catch (e) {
+          console.log('Error searching product by SKU:', e);
+        }
+      }
+      
+      if (!productId) {
+        console.error('Could not find productId for item:', item);
+        toast.error('No se pudo encontrar el producto. Intenta recargar la página.');
+        return;
+      }
+      
+      console.log('Found productId:', productId);
+      
+      // Fetch full product data including variants
+      const productResult = await (supabase as any)
+        .from('products')
+        .select('id, sku, nombre, imagen_principal, precio_sugerido_venta, precio_venta, precio_b2b, descripcion, variantes')
+        .eq('id', productId)
+        .maybeSingle();
+
+      if (productResult?.error) {
+        console.error('Error fetching product:', productResult.error);
+        toast.error('No se pudo cargar el producto');
+        return;
+      }
+
+      const product = productResult?.data;
+      if (!product || typeof product !== 'object') {
+        console.error('Product not found:', productId);
+        toast.error('Producto no encontrado');
+        return;
+      }
+
+      const productData = product;
+      console.log('Loaded product:', productData);
+
+      // If mobile, open a modal with variant selection
+      if (isMobile) {
+        // Store product and show variant selection modal
+        setSelectedProductForVariants({
+          id: productData.id,
+          sku: productData.sku,
+          nombre: productData.nombre,
+          images: productData.imagen_principal ? [productData.imagen_principal] : [],
+          price: productData.precio_sugerido_venta || productData.precio_venta || 0,
+          costB2B: productData.precio_b2b || 0,
+          description: productData.descripcion,
+          variantes: productData.variantes || [],
+        });
+      } else {
+        // Desktop: use VariantDrawer
+        useVariantDrawerStore.getState().open({
+          id: productData.id,
+          sku: productData.sku,
+          nombre: productData.nombre,
+          images: productData.imagen_principal ? [productData.imagen_principal] : [],
+          price: productData.precio_sugerido_venta || productData.precio_venta || 0,
+          costB2B: productData.precio_b2b || 0,
+          description: productData.descripcion,
+        });
+      }
+      
+      console.log('Variant drawer/modal opened successfully');
+    } catch (err) {
+      console.error('Error opening variant drawer:', err);
+      toast.error('Error al abrir variantes');
+    }
+  };
+
   return (
     <SellerLayout>
       <div className="min-h-screen bg-background flex flex-col">
@@ -342,8 +474,13 @@ const SellerCartPage = () => {
                               className="data-[state=checked]:bg-[#071d7f] data-[state=checked]:border-[#071d7f]"
                             />
                           </div>
-                          {/* Product Image */}
-                          <div className="w-18 h-18 flex-shrink-0 rounded-md bg-muted overflow-hidden" style={{ width: '72px', height: '72px' }}>
+                          {/* Product Image - Clickable Button */}
+                          <button
+                            onClick={() => handleOpenVariantDrawer(item)}
+                            className="w-18 h-18 flex-shrink-0 rounded-md bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
+                            style={{ width: '72px', height: '72px' }}
+                            title="Ver variantes"
+                          >
                             {item.image ? (
                               <img 
                                 src={item.image} 
@@ -355,40 +492,45 @@ const SellerCartPage = () => {
                                 <Package className="h-5 w-5 text-muted-foreground/50" />
                               </div>
                             )}
-                          </div>
+                          </button>
                           
-                          {/* Product Details */}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex justify-between items-start">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-gray-900 line-clamp-1">
-                                  {item.name}
-                                </p>
-                                <p className="text-xs text-gray-600 mt-0.5">Cantidad: {item.cantidad}</p>
+                          {/* Product Details - Clickable Button and Controls */}
+                          <div className="flex-1 min-w-0 flex flex-col">
+                            <button
+                              onClick={() => handleOpenVariantDrawer(item)}
+                              className="flex-1 hover:opacity-80 transition text-left bg-transparent border-none p-0 cursor-pointer"
+                            >
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm text-gray-900 line-clamp-1">
+                                    {item.name}
+                                  </p>
+                                  <p className="text-xs text-gray-600 mt-0.5">Cantidad: {item.cantidad}</p>
+                                </div>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleRemoveItem(item.id, item.name);
+                                  }}
+                                  className="text-gray-400 hover:text-red-600 transition ml-2 flex-shrink-0"
+                                  title="Eliminar del carrito"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                               </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  handleRemoveItem(item.id, item.name);
-                                }}
-                                className="text-gray-400 hover:text-red-600 transition ml-2 flex-shrink-0"
-                                title="Eliminar del carrito"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            </div>
-                            
-                            {/* Price and Quantity */}
-                            <div className="mt-2 flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-bold" style={{ color: '#29892a' }}>
-                                  ${item.precioB2B.toFixed(2)}
+                              
+                              {/* Price and Quantity */}
+                              <div className="mt-2 flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-sm font-bold" style={{ color: '#29892a' }}>
+                                    ${item.precioB2B.toFixed(2)}
+                                  </span>
+                                </div>
+                                <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
+                                  ${item.subtotal.toFixed(2)}
                                 </span>
                               </div>
-                              <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                                ${item.subtotal.toFixed(2)}
-                              </span>
-                            </div>
+                            </button>
 
                             {/* Quantity Controls */}
                             <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 mt-2 w-fit">
@@ -655,8 +797,12 @@ const SellerCartPage = () => {
                             className="data-[state=checked]:bg-[#071d7f] data-[state=checked]:border-[#071d7f]"
                           />
                         </div>
-                        {/* Product Image */}
-                        <div className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted overflow-hidden">
+                        {/* Product Image - Clickable Button */}
+                        <button
+                          onClick={() => handleOpenVariantDrawer(item)}
+                          className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
+                          title="Ver variantes"
+                        >
                           {item.image ? (
                             <img 
                               src={item.image} 
@@ -668,10 +814,14 @@ const SellerCartPage = () => {
                               <Package className="h-5 w-5 text-muted-foreground/50" />
                             </div>
                           )}
-                        </div>
+                        </button>
                         
-                        {/* Product Details */}
-                        <div className="flex-1 min-w-0">
+                        {/* Product Details and Controls */}
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <button
+                            onClick={() => handleOpenVariantDrawer(item)}
+                            className="flex-1 hover:opacity-80 transition text-left bg-transparent border-none p-0 cursor-pointer"
+                          >
                             <div className="flex justify-between items-start gap-2">
                               <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm text-gray-900 line-clamp-1">
@@ -696,9 +846,10 @@ const SellerCartPage = () => {
                                 ${item.precioB2B.toFixed(2)}
                               </span>
                             </div>
+                          </button>
                             
-                            {/* Quantity Controls */}
-                            <div className="flex items-center justify-between mt-2">
+                          {/* Quantity Controls */}
+                          <div className="flex items-center justify-between mt-2">
                               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                                 <button
                                   onClick={(e) => {
@@ -747,17 +898,30 @@ const SellerCartPage = () => {
                 {productsNotMeetingMOQ.length} producto(s) no alcanzan el mínimo
               </div>
             )}
-            <div className="rounded-lg p-2 border border-gray-300 shadow-md w-full" style={{ backgroundColor: '#efefef' }}>
-              <div className="flex gap-2 justify-between">
+            <div className="rounded-lg p-1 border border-gray-300 shadow-md" style={{ backgroundColor: '#efefef' }}>
+              <div className="flex gap-1 justify-between items-center">
                 {/* Botón WhatsApp */}
                 <button
                   onClick={handleWhatsAppContact}
-                  className="px-3 py-2 rounded-lg font-semibold text-sm transition shadow-lg hover:bg-gray-100 flex items-center justify-center gap-1.5 border border-gray-300 bg-transparent"
-                  style={{ color: '#29892a' }}
+                  className="p-2 rounded-lg font-semibold text-sm transition shadow-lg flex items-center justify-center"
+                  style={{ color: 'white', backgroundColor: '#29892a' }}
                   title="Contactar por WhatsApp"
                 >
-                  <MessageCircle className="w-4 h-4" style={{ color: '#29892a' }} />
-                  WhatsApp
+                  <MessageCircle className="w-5 h-5" />
+                </button>
+
+                {/* Spacer */}
+                <div className="flex-1" />
+
+                {/* Total en el Medio - Clickeable */}
+                <button
+                  onClick={() => setShowSummaryModal(true)}
+                  className="transition-all hover:opacity-80"
+                >
+                  <Badge variant="outline" className="text-sm border-2 px-3 py-1.5 rounded-lg" style={{ borderColor: '#29892a', color: '#29892a' }}>
+                    <DollarSign className="w-3.5 h-3.5 mr-1.5" />
+                    ${subtotal.toFixed(2)}
+                  </Badge>
                 </button>
 
                 {/* Botón Comprar B2B */}
@@ -824,6 +988,192 @@ const SellerCartPage = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Summary Modal */}
+      <Dialog open={showSummaryModal} onOpenChange={setShowSummaryModal}>
+        <DialogContent className="max-w-sm w-full max-h-[80vh] overflow-y-auto">
+          <DialogHeader className="pb-3 border-b">
+            <div className="flex items-center justify-between">
+              <DialogTitle className="text-lg flex items-center gap-2">
+                <ShoppingCart className="w-5 h-5 text-[#071d7f]" />
+                Resumen
+              </DialogTitle>
+              <span className="text-xs bg-[#071d7f]/10 text-[#071d7f] px-2 py-1 rounded-full font-semibold">
+                {selectedItems.length} producto{selectedItems.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            {/* Items List - Miniaturas con scroll horizontal */}
+            <div className="space-y-2">
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Artículos ({selectedItems.length})</p>
+              <div className="flex gap-2 overflow-x-auto pb-1 bg-gray-50 p-2 rounded-lg border border-gray-200 scrollbar-hide">
+                {selectedItems.map((item) => {
+                  return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleOpenVariantDrawer(item)}
+                    className="flex-shrink-0 relative group cursor-pointer transition-transform hover:scale-105 border-none bg-transparent p-0"
+                    title="Ver variantes"
+                  >
+                    <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden border border-gray-300 flex items-center justify-center hover:border-[#071d7f]">
+                      {item.image ? (
+                        <img 
+                          src={item.image} 
+                          alt={item.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <Package className="w-6 h-6 text-gray-400" />
+                      )}
+                    </div>
+                    {/* Cantidad badge */}
+                    <div className="absolute -top-2 -right-2 bg-[#071d7f] text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
+                      {item.cantidad}
+                    </div>
+                    {/* Tooltip en hover */}
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 bg-gray-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+                      {item.name}
+                    </div>
+                  </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Pricing Breakdown */}
+            <div className="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-700">Total artículos:</span>
+                <span className="font-semibold">${subtotal.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-xs">
+                <span className="text-gray-700">Envío:</span>
+                <span className="font-medium text-green-600">Gratis</span>
+              </div>
+              <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between">
+                <span className="font-bold text-sm">Total</span>
+                <span className="font-bold text-lg text-[#071d7f]">${subtotal.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Advanced Info - Ganancia y ROI */}
+            <div className="space-y-2 bg-green-50 p-3 rounded-lg border border-green-200">
+              <p className="text-xs font-semibold text-green-900 flex items-center gap-1.5 uppercase tracking-wide">
+                <TrendingUp className="w-4 h-4" />
+                Análisis de Ganancia
+              </p>
+              <div className="space-y-2 pt-1">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-700">Ganancia Total</span>
+                  <span className="font-bold text-lg text-green-600">
+                    +${profitAnalysis.ganancia.toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-700">ROI</span>
+                  <span className="font-bold text-lg text-green-600">
+                    {profitAnalysis.margen.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="text-xs text-gray-600 pt-2 border-t border-green-200 mt-2">
+                  <p>Inversión: <span className="font-semibold">${profitAnalysis.inversion.toFixed(2)}</span></p>
+                  <p>Venta esperada: <span className="font-semibold">${profitAnalysis.venta.toFixed(2)}</span></p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t pt-4 flex gap-2">
+            <Button
+              onClick={() => setShowSummaryModal(false)}
+              variant="outline"
+              className="flex-1"
+            >
+              Cerrar
+            </Button>
+            <Button
+              asChild
+              className="flex-1 text-white"
+              style={{ backgroundColor: '#071d7f' }}
+            >
+              <Link to="/seller/checkout">
+                Continuar
+              </Link>
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Variant Drawer */}
+      <VariantDrawer />
+
+      {/* Mobile Variant Selection Modal */}
+      {selectedProductForVariants && (
+        <Dialog open={true} onOpenChange={(open) => {
+          if (!open) {
+            setSelectedProductForVariants(null);
+          }
+        }}>
+          <DialogContent className="max-w-sm w-full">
+            <DialogHeader>
+              <DialogTitle>{selectedProductForVariants.nombre}</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              {/* Product Image */}
+              <div className="w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
+                {selectedProductForVariants.images && selectedProductForVariants.images[0] ? (
+                  <img 
+                    src={selectedProductForVariants.images[0]} 
+                    alt={selectedProductForVariants.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Package className="w-8 h-8 text-gray-400" />
+                  </div>
+                )}
+              </div>
+              
+              {/* Price Info */}
+              <div className="space-y-1">
+                <p className="text-sm text-gray-600">Precio B2B:</p>
+                <p className="text-2xl font-bold" style={{ color: '#29892a' }}>
+                  ${selectedProductForVariants.costB2B.toFixed(2)}
+                </p>
+              </div>
+
+              {/* Description */}
+              {selectedProductForVariants.description && (
+                <p className="text-xs text-gray-700 line-clamp-3">
+                  {selectedProductForVariants.description}
+                </p>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => setSelectedProductForVariants(null)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Cerrar
+                </Button>
+                <Button
+                  asChild
+                  className="flex-1 text-white"
+                  style={{ backgroundColor: '#071d7f' }}
+                >
+                  <Link to={`/producto/${selectedProductForVariants.id}`}>
+                    Ver Variantes
+                  </Link>
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </SellerLayout>
   );
 };

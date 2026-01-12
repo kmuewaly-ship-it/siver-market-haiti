@@ -347,7 +347,7 @@ const GlobalMobileHeader = ({
   const buttonColor = showB2BStyle ? "bg-blue-600 hover:bg-blue-700" : "bg-[#071d7f] hover:bg-[#071d7f]/90";
   return <header className="bg-[#ffdcdc] sticky top-0 z-40">
       {/* Top search bar */}
-      <div className="flex items-center gap-3 px-3 py-2.5 bg-[#fff3f3]">
+      <div className="flex items-center gap-2 px-2 py-2 bg-[#fff3f3]">
         {/* Logo/Icon - cambia según el modo */}
         {showB2BStyle ? (
           <button className="relative flex-shrink-0">
@@ -373,22 +373,22 @@ const GlobalMobileHeader = ({
           </button>)}
 
         {/* Search input with dropdown */}
-        <div ref={searchRef} className="flex-1 relative">
+        <div ref={searchRef} className="flex-1 relative min-w-0">
           <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
             <input type="text" value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onFocus={() => searchQuery.length >= 2 && setShowResults(true)} className="flex-1 bg-transparent text-sm text-gray-700 px-3 py-2 outline-none min-w-0" />
-            {searchQuery && <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600">
+            {searchQuery && <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0">
                 <X className="w-4 h-4" />
               </button>}
             {/* Camera/Image search button */}
             <input ref={imageInputRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={handleImageSearch} />
-            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={isImageSearching} className="p-1 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50">
+            <button type="button" onClick={() => imageInputRef.current?.click()} disabled={isImageSearching} className="p-1 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50 flex-shrink-0">
               {isImageSearching ? <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} /> : <Camera className="w-5 h-5" strokeWidth={1.5} />}
             </button>
             {/* Voice search button */}
-            {voiceSupported && <button type="button" onClick={startVoiceSearch} className={cn("p-2 transition-colors", isListening ? "text-[#071d7f] animate-pulse" : "text-gray-500 hover:text-gray-700")}>
+            {voiceSupported && <button type="button" onClick={startVoiceSearch} className={cn("p-1 transition-colors flex-shrink-0", isListening ? "text-[#071d7f] animate-pulse" : "text-gray-500 hover:text-gray-700")}>
                 {isListening ? <MicOff className="w-5 h-5" strokeWidth={1.5} /> : <Mic className="w-5 h-5" strokeWidth={1.5} />}
               </button>}
-            <button type="submit" className={cn(buttonColor, "p-2 rounded-full m-0.5 transition-colors")}>
+            <button type="submit" className={cn(buttonColor, "p-2 rounded-full m-0.5 transition-colors flex-shrink-0")}>
               {isSearching ? <Loader2 className="w-4 h-4 text-white animate-spin" /> : <Search className="w-4 h-4 text-white" strokeWidth={2} />}
             </button>
           </form>
@@ -422,27 +422,27 @@ const GlobalMobileHeader = ({
         {/* Account User - Hide for unauthenticated and USER role users */}
         {(user && (role === UserRole.SELLER || role === UserRole.ADMIN)) && (
           <Link to={accountLink} className="relative flex-shrink-0">
-            <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+            <User className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
           </Link>
         )}
 
         {/* Favorites heart */}
         <Link to={favoritesLink} className="relative flex-shrink-0">
-          <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          <span className={cn("absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-white", accentColor)} />
+          <Heart className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
+          <span className={cn("absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full border border-white", accentColor)} />
         </Link>
 
         {/* Cart */}
         <Link to={cartLink} className="relative flex-shrink-0">
-          <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          {cartCount > 0 && <span className={cn("absolute -top-1 -right-1 min-w-[18px] h-[18px] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1", accentColor, cartBounce && "animate-cart-shake")}>
+          <ShoppingBag className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
+          {cartCount > 0 && <span className={cn("absolute -top-1 -right-1 min-w-[16px] h-[16px] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5", accentColor, cartBounce && "animate-cart-shake")}>
               {cartCount > 99 ? '99+' : cartCount}
             </span>}
         </Link>
       </div>
 
       {/* Category tabs - distributed evenly across full width */}
-      <div className="border-b border-gray-200 bg-[#071d7f]" style={{ overscrollBehavior: 'none' }}>
+      <div className="border-b border-gray-200 bg-[#071d7f] overflow-hidden" style={{ overscrollBehavior: 'none' }}>
         <div 
           className="overflow-x-auto overflow-y-hidden scrollbar-hide w-full flex"
           style={{ 
@@ -467,7 +467,7 @@ const GlobalMobileHeader = ({
         >
           <button
             onClick={() => navigate("/")}
-            className="flex-shrink-0 px-2 py-2 text-white hover:bg-white/20 rounded-none transition-all flex items-center justify-center text-xs border-r border-[#0a3a9f]"
+            className="flex-shrink-0 px-1.5 py-2 text-white hover:bg-white/20 rounded-none transition-all flex items-center justify-center text-xs border-r border-[#0a3a9f]"
             title="Ir a inicio"
           >
             <Home className="w-4 h-4" />
@@ -475,7 +475,7 @@ const GlobalMobileHeader = ({
           <button
             onClick={() => handleClearFilters()}
             className={cn(
-              "flex-shrink-0 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all border-r border-[#0a3a9f] text-center",
+              "flex-shrink-0 px-1.5 py-2 text-xs rounded-none whitespace-nowrap transition-all border-r border-[#0a3a9f] text-center",
               selectedCategory === null
                 ? "bg-white text-[#071d7f] font-medium"
                 : "bg-white text-[#94111f] hover:bg-gray-100"
@@ -488,7 +488,7 @@ const GlobalMobileHeader = ({
               key={cat.id}
               onClick={() => handleCategorySelect(cat.id)}
               className={cn(
-                "flex-shrink-0 px-2 py-2 text-xs rounded-none whitespace-nowrap transition-all text-center",
+                "flex-shrink-0 px-1.5 py-2 text-xs rounded-none whitespace-nowrap transition-all text-center",
                 index < rootCategories.length - 1 && "border-r border-[#0a3a9f]",
                 selectedCategory === cat.id
                   ? "bg-white text-[#071d7f] font-medium"

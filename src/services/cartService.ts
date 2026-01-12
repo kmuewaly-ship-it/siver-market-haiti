@@ -153,11 +153,31 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
     // Insert item
     console.log('B2B: Inserting item:', params.sku, 'to cart:', cart.id);
     
+    // If no productId provided, try to find it by SKU
+    let productId = params.productId;
+    if (!productId && params.sku) {
+      try {
+        const skuBase = params.sku.split('-')[0];
+        const { data: productData } = await supabase
+          .from('products')
+          .select('id')
+          .eq('sku', skuBase)
+          .maybeSingle();
+        
+        if (productData?.id) {
+          productId = productData.id;
+          console.log('B2B: Found productId by SKU:', productId);
+        }
+      } catch (e) {
+        console.log('B2B: Could not find productId by SKU:', e);
+      }
+    }
+    
     const { data: inserted, error: insertError } = await supabase
       .from('b2b_cart_items')
       .insert([{
         cart_id: cart.id,
-        product_id: params.productId || null,
+        product_id: productId || null,
         sku: params.sku,
         nombre: params.name,
         unit_price: params.priceB2B,

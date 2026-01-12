@@ -304,17 +304,17 @@ const SellerMobileHeader = ({
   return (
     <header className="bg-[#ffdcdc] sticky top-0 z-40">
       {/* Top search bar */}
-      <div className="flex items-center gap-3 px-3 py-2.5">
+      <div className="flex items-center gap-2 px-2 py-2">
         {/* Notification/Mail icon */}
         <button className="relative flex-shrink-0">
-          <Mail className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-[#071d7f] text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1">
+          <Mail className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
+          <span className="absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-[#071d7f] text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
             5
           </span>
         </button>
 
         {/* Search input with dropdown */}
-        <div ref={searchRef} className="flex-1 max-w-[60%] relative">
+        <div ref={searchRef} className="flex-1 relative min-w-0">
           <form onSubmit={handleSearch} className="flex items-center bg-gray-100 rounded-full border border-gray-200 overflow-hidden">
             <input
               type="text"
@@ -324,7 +324,7 @@ const SellerMobileHeader = ({
               className="flex-1 bg-transparent text-sm text-gray-700 px-3 py-2 outline-none min-w-0"
             />
             {searchQuery && (
-              <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600">
+              <button type="button" onClick={clearSearch} className="p-1 text-gray-400 hover:text-gray-600 flex-shrink-0">
                 <X className="w-4 h-4" />
               </button>
             )}
@@ -341,7 +341,7 @@ const SellerMobileHeader = ({
               type="button"
               onClick={() => imageInputRef.current?.click()}
               disabled={isImageSearching}
-              className="p-1 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50"
+              className="p-1 text-gray-500 hover:text-gray-700 transition-colors disabled:opacity-50 flex-shrink-0"
             >
               {isImageSearching ? (
                 <Loader2 className="w-5 h-5 animate-spin" strokeWidth={1.5} />
@@ -355,7 +355,7 @@ const SellerMobileHeader = ({
                 type="button" 
                 onClick={startVoiceSearch}
                 className={cn(
-                  "p-2 transition-colors",
+                  "p-1 transition-colors flex-shrink-0",
                   isListening 
                     ? "text-[#071d7f] animate-pulse" 
                     : "text-gray-500 hover:text-gray-700"
@@ -368,7 +368,7 @@ const SellerMobileHeader = ({
                 )}
               </button>
             )}
-            <button type="submit" className="bg-[#071d7f] hover:bg-[#071d7f]/90 p-2 rounded-full m-0.5 transition-colors">
+            <button type="submit" className="bg-[#071d7f] hover:bg-[#071d7f]/90 p-1.5 rounded-full transition-colors flex-shrink-0">
               {isSearching ? (
                 <Loader2 className="w-4 h-4 text-white animate-spin" />
               ) : (
@@ -425,21 +425,21 @@ const SellerMobileHeader = ({
 
         {/* Account User */}
         <Link to="/seller/cuenta" className="relative flex-shrink-0">
-          <User className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+          <User className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
         </Link>
 
         {/* Favorites heart */}
         <Link to="/seller/favoritos" className="relative flex-shrink-0">
-          <Heart className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
-          <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 bg-[#071d7f] rounded-full border-2 border-white" />
+          <Heart className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-[#071d7f] rounded-full border border-white" />
         </Link>
 
         {/* Cart B2B */}
         <Link to="/seller/carrito" className="relative flex-shrink-0">
-          <ShoppingBag className="w-6 h-6 text-gray-700" strokeWidth={1.5} />
+          <ShoppingBag className="w-5 h-5 text-gray-700" strokeWidth={1.5} />
           {cartCount > 0 && (
             <span className={cn(
-              "absolute -top-1 -right-1 min-w-[18px] h-[18px] bg-green-600 text-white text-[10px] font-bold rounded-full flex items-center justify-center px-1",
+              "absolute -top-1 -right-1 min-w-[16px] h-[16px] bg-green-600 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5",
               cartBounce && "animate-cart-shake"
             )}>
               {cartCount > 99 ? '99+' : cartCount}
@@ -449,7 +449,7 @@ const SellerMobileHeader = ({
       </div>
 
       {/* Category tabs - horizontal scroll with black background */}
-      <div className="flex items-center gap-4 px-3 py-2.5 overflow-x-auto scrollbar-hide bg-[#071d7f]">
+      <div className="flex items-center gap-2 px-2 py-2 overflow-x-auto scrollbar-hide bg-[#071d7f]">
         {/* "All" tab */}
         <button
           onClick={() => handleCategoryClick(null)}
