@@ -104,19 +104,39 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
 
       // Fetch all variants for parent products with attribute_combination
       const productIds = parentProducts.map(p => p.id);
-      const { data: variantsData, error: variantsError } = await supabase
-        .from("product_variants")
-        .select("id, product_id, sku, name, option_type, option_value, price, stock, moq, attribute_combination, is_active")
-        .in("product_id", productIds)
-        .eq("is_active", true);
+      
+      // Parallel fetch: variants AND B2C market prices
+      const [variantsResult, marketPricesResult] = await Promise.all([
+        supabase
+          .from("product_variants")
+          .select("id, product_id, sku, name, option_type, option_value, price, stock, moq, attribute_combination, is_active")
+          .in("product_id", productIds)
+          .eq("is_active", true),
+        supabase
+          .from("b2c_max_prices")
+          .select("source_product_id, max_b2c_price, num_sellers, min_b2c_price")
+          .in("source_product_id", productIds)
+      ]);
 
-      if (variantsError) {
-        console.error("Error fetching variants:", variantsError);
+      if (variantsResult.error) {
+        console.error("Error fetching variants:", variantsResult.error);
       }
+
+      // Create B2C market price lookup map
+      const marketPriceMap = new Map<string, { max_b2c_price: number; num_sellers: number; min_b2c_price: number }>();
+      (marketPricesResult.data || []).forEach(mp => {
+        if (mp.source_product_id) {
+          marketPriceMap.set(mp.source_product_id, {
+            max_b2c_price: mp.max_b2c_price,
+            num_sellers: mp.num_sellers,
+            min_b2c_price: mp.min_b2c_price
+          });
+        }
+      });
 
       // Group variants by product_id
       const variantsByProduct = new Map<string, ProductVariantEAV[]>();
-      (variantsData || []).forEach(v => {
+      (variantsResult.data || []).forEach(v => {
         if (!variantsByProduct.has(v.product_id)) {
           variantsByProduct.set(v.product_id, []);
         }
@@ -136,7 +156,7 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
       // Apply pagination
       const paginatedProducts = parentProducts.slice(page * limit, (page + 1) * limit);
 
-      // Map to B2B card format with EAV data
+      // Map to B2B card format with EAV data AND market reference
       const products: ProductB2BCard[] = paginatedProducts.map((p) => {
         const variants = variantsByProduct.get(p.id) || [];
         
@@ -166,13 +186,25 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           attribute_combination: v.attribute_combination,
         }));
 
+        // Get B2C market reference for PVP
+        const marketData = marketPriceMap.get(p.id);
+        const isMarketSynced = !!marketData?.max_b2c_price;
+        
+        // Calculate PVP: Priority = Market > Admin > Calculated (30% margin)
+        const pvpReference = marketData?.max_b2c_price || p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
+        const pvpSource = marketData?.max_b2c_price ? 'market' : (p.precio_sugerido_venta ? 'admin' : 'calculated');
+        
+        // Calculate profit metrics
+        const profitAmount = pvpReference - precioMayorista;
+        const roiPercent = precioMayorista > 0 ? Math.round((profitAmount / precioMayorista) * 100 * 10) / 10 : 0;
+
         return {
           id: p.id,
           sku: p.sku_interno,
           nombre: p.nombre,
           precio_b2b: precioMayorista,
           precio_b2b_max: maxPrice !== minPrice ? maxPrice : undefined,
-          precio_sugerido: precioSugerido,
+          precio_sugerido: pvpReference, // Now using market reference
           moq: p.moq || 1,
           stock_fisico: totalStock > 0 ? totalStock : p.stock_fisico || 0,
           imagen_principal: imagen,
@@ -186,6 +218,13 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           variant_type: attributeTypes[0] || 'unknown',
           variant_types: attributeTypes,
           has_grouped_variants: variants.length > 1,
+          // Market reference fields
+          pvp_reference: pvpReference,
+          pvp_source: pvpSource as 'market' | 'admin' | 'calculated',
+          is_market_synced: isMarketSynced,
+          num_b2c_sellers: marketData?.num_sellers || 0,
+          profit_amount: profitAmount,
+          roi_percent: roiPercent,
           // Store raw attribute options for the selector to use
           variants_by_type: Object.fromEntries(
             attributeTypes.map(type => [

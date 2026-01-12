@@ -106,6 +106,13 @@ export interface ProductB2BCard {
   // Backwards compatibility
   color_options?: VariantOption[];
   has_color_variants?: boolean;
+  // Market reference data (B2C cross-reference)
+  pvp_reference?: number; // MAX price from B2C market
+  pvp_source?: 'market' | 'admin' | 'calculated'; // Source of PVP
+  is_market_synced?: boolean; // True if synced with B2C market
+  num_b2c_sellers?: number; // Number of sellers in B2C with this product
+  profit_amount?: number; // PVP - Costo B2B
+  roi_percent?: number; // ROI percentage
 }
 
 export interface CartItemB2B {
