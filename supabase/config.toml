@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.process-product-images]
 verify_jwt = false
+
+[functions.track-catalog-click]
+verify_jwt = false
