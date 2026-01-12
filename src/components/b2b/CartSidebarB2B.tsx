@@ -1,10 +1,11 @@
-import { useState } from 'react';
-import { ShoppingCart, X, Trash2, AlertCircle, Package, MessageCircle, Loader2 } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { ShoppingCart, X, Trash2, AlertCircle, Package, MessageCircle, Loader2, TrendingUp, ArrowUpRight } from 'lucide-react';
 import { CartB2B, CartItemB2B } from '@/types/b2b';
 import { Link } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
+import { useCartProfitProjection } from '@/hooks/useB2CMarketPrices';
 
 interface CartSidebarB2BProps {
   cart: CartB2B;
@@ -24,6 +25,18 @@ const CartSidebarB2B = ({
   const { user } = useAuth();
   const [isNegotiating, setIsNegotiating] = useState(false);
 
+  // Calculate projected profit using market reference
+  const cartItemsForProfit = useMemo(() => 
+    cart.items.map(item => ({
+      productId: item.productId,
+      sku: item.sku,
+      cantidad: item.cantidad,
+      precioB2B: item.precio_b2b,
+    })),
+    [cart.items]
+  );
+  
+  const { data: profitProjection, isLoading: isProfitLoading } = useCartProfitProjection(cartItemsForProfit);
   const handleNegotiateViaWhatsApp = async () => {
     if (!user?.id || cart.items.length === 0) {
       toast.error('El carrito está vacío');
@@ -260,11 +273,47 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                   <span className="font-bold text-gray-900">{cart.items.length}</span>
                 </div>
                 <div className="border-t border-gray-300 pt-3 flex justify-between text-lg font-bold">
-                  <span className="text-gray-900">Total:</span>
+                  <span className="text-gray-900">Inversión:</span>
                   <span className="font-bold" style={{ color: '#071d7f' }}>
                     ${cart.subtotal.toFixed(2)}
                   </span>
                 </div>
+
+                {/* Profit Projection Section */}
+                {profitProjection && profitProjection.total_profit > 0 && (
+                  <div className="border-t border-green-200 pt-3 mt-2 bg-green-50 -mx-4 px-4 pb-3 rounded-b-lg">
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-green-700 flex items-center gap-1">
+                        <TrendingUp className="w-4 h-4" />
+                        Valor de Venta (PVP):
+                      </span>
+                      <span className="font-semibold text-green-800">
+                        ${profitProjection.total_pvp_value.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-lg font-bold">
+                      <span className="text-green-700 flex items-center gap-1">
+                        📈 Beneficio Potencial:
+                        {profitProjection.items_with_market_price > 0 && (
+                          <ArrowUpRight className="w-4 h-4 text-green-500" />
+                        )}
+                      </span>
+                      <span className="text-green-600">
+                        +${profitProjection.total_profit.toFixed(2)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between text-xs text-green-600 mt-1">
+                      <span>ROI Promedio:</span>
+                      <span className="font-semibold">{profitProjection.avg_roi_percent.toFixed(0)}%</span>
+                    </div>
+                    {profitProjection.items_with_market_price > 0 && (
+                      <p className="text-[10px] text-green-600 mt-2 flex items-center gap-1">
+                        <ArrowUpRight className="w-3 h-3" />
+                        {profitProjection.items_with_market_price}/{profitProjection.items_total} productos con precio de mercado B2C
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
 
               {/* Botón Checkout */}

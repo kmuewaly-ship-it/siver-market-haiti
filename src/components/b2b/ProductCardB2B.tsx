@@ -1,10 +1,11 @@
 import { useState, MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, MessageCircle, ShieldCheck, TrendingUp, Layers } from 'lucide-react';
+import { ShoppingCart, MessageCircle, ShieldCheck, TrendingUp, Layers, ArrowUpRight } from 'lucide-react';
 import { ProductB2BCard, CartItemB2B } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ProductCardB2BProps {
   product: ProductB2BCard;
@@ -20,8 +21,11 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
   const hasMultipleVariants = (product.variant_count || 1) > 1;
   const hasPriceRange = product.precio_b2b_max && product.precio_b2b_max !== product.precio_b2b;
 
-  // Calculate profit based on suggested retail price
-  const profit = (product.precio_sugerido || 0) - product.precio_b2b;
+  // Use market-referenced profit calculation
+  const profit = product.profit_amount ?? ((product.precio_sugerido || 0) - product.precio_b2b);
+  const roiPercent = product.roi_percent ?? (product.precio_b2b > 0 ? (profit / product.precio_b2b) * 100 : 0);
+  const isMarketSynced = product.is_market_synced ?? false;
+  const pvpSource = product.pvp_source ?? 'calculated';
 
   const handleAddToCart = (e: MouseEvent) => {
     e.preventDefault();
@@ -128,15 +132,47 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
             </span>
             
             {product.precio_sugerido > 0 && (
-              <span className="text-[10px] text-green-600 font-semibold">
-                PVP: ${product.precio_sugerido.toFixed(2)}
-              </span>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="inline-flex items-center gap-0.5 text-[10px] text-green-600 font-semibold cursor-help">
+                      {isMarketSynced && (
+                        <ArrowUpRight className="w-3 h-3 text-green-500" />
+                      )}
+                      PVP: ${product.precio_sugerido.toFixed(2)}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="text-xs">
+                    {isMarketSynced ? (
+                      <span className="text-green-600">
+                        ✓ Precio máximo del mercado B2C ({product.num_b2c_sellers || 0} vendedores)
+                      </span>
+                    ) : pvpSource === 'admin' ? (
+                      <span>Precio sugerido por administrador</span>
+                    ) : (
+                      <span>Precio calculado (+30% margen)</span>
+                    )}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             )}
           </div>
+
+          {/* Profit & ROI indicator */}
+          {profit > 0 && (
+            <div className="flex items-center justify-between mt-1 px-1.5 py-0.5 bg-green-50 rounded text-[10px]">
+              <span className="text-green-700 font-medium">
+                Ganancia: +${profit.toFixed(2)}
+              </span>
+              <span className="text-green-600 font-bold">
+                ROI {roiPercent.toFixed(0)}%
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Min Order & Variants Info */}
-        <div className="mt-2 text-xs">
+        <div className="mt-1 text-xs">
           {/* Flexible MOQ message - removed */}
         </div>
 
