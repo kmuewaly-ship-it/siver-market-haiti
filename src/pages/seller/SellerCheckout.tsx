@@ -24,6 +24,7 @@ import { Badge } from '@/components/ui/badge';
 import { Slider } from '@/components/ui/slider';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import {
   ArrowLeft,
@@ -46,6 +47,7 @@ import {
   Tag,
   X,
   User,
+  Edit2,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -97,6 +99,10 @@ const SellerCheckout = () => {
   const [selectedPickupPoint, setSelectedPickupPoint] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<CheckoutValidationError[]>([]);
   const [discountCode, setDiscountCode] = useState('');
+  const [showAddressModal, setShowAddressModal] = useState(false);
+  const [expandedAddressId, setExpandedAddressId] = useState<string | null>(null);
+  const [showPickupModal, setShowPickupModal] = useState(false);
+  const [expandedPickupId, setExpandedPickupId] = useState<string | null>(null);
   
   // Calcular totales desde items de BD
   const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
@@ -228,6 +234,7 @@ const SellerCheckout = () => {
     postal_code: '',
     country: 'Haití',
     notes: '',
+    is_default: false,
   });
   
   // Separate state for department/commune selection (not saved to addresses table)
@@ -331,6 +338,7 @@ const SellerCheckout = () => {
         postal_code: '',
         country: 'Haití',
         notes: '',
+        is_default: false,
       });
       setSelectedDept('');
       setSelectedComm('');
@@ -584,7 +592,7 @@ const SellerCheckout = () => {
         <Header />
 
         {/* Fixed Checkout Header */}
-        <div className="fixed top-24 left-0 right-0 z-40 bg-white border-b border-border">
+        <div className="fixed top-24 left-0 right-0 z-40 bg-white border-b border-border flex items-center">
           <div className="container mx-auto px-4 py-0 flex items-center justify-between">
             <div className="flex items-center gap-3 flex-1">
               <div className="px-3 py-1.5 rounded-lg bg-[#071d7f]">
@@ -602,23 +610,32 @@ const SellerCheckout = () => {
           </div>
         </div>
 
-        <main className="container mx-auto px-4 pb-8 pt-0 space-y-0">
+        <main className="container mx-auto px-4 pb-8 pt-14 space-y-0">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Main Content */}
             <div className="lg:col-span-2 space-y-4">
               {/* Buyer Info */}
-              <Card className="p-4 mt-10">
-                <div className="space-y-3">
-                  <div className="flex items-start gap-3">
-                    <User className="h-5 w-5 text-[#071d7f] flex-shrink-0 mt-1" />
-                    <div>
+              <Card className="p-4">
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <User className="h-4 w-4 text-[#071d7f]" />
                       <p className="font-semibold text-foreground">{user?.name || 'N/A'}</p>
                     </div>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowAddressModal(true)}
+                      className="text-[#071d7f] hover:bg-[#071d7f]/10"
+                    >
+                      <Edit2 className="h-4 w-4 mr-1" />
+                      Editar
+                    </Button>
                   </div>
-                  <div className="flex items-start gap-3">
-                    <MapPin className="h-5 w-5 text-[#071d7f] flex-shrink-0 mt-1" />
-                    <div>
-                      <p className="font-semibold text-foreground">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-[#071d7f]" />
+                      <p className="text-sm text-foreground">
                         {selectedAddress?.street_address || 'Selecciona una dirección'}
                       </p>
                     </div>
@@ -627,11 +644,13 @@ const SellerCheckout = () => {
               </Card>
 
               {/* Delivery Method Selection */}
-              <Card className={`p-6 ${hasFieldError(validationErrors, 'deliveryMethod') ? 'border-red-500' : ''}`}>
-                <h2 className="text-lg font-bold mb-3">
-                  Opción de Entrega
-                </h2>
-                
+              <Card className={`p-0 ${hasFieldError(validationErrors, 'deliveryMethod') ? 'border-red-500' : ''}`}>
+                <div className="bg-gray-200 px-4 py-3">
+                  <h2 className="text-lg font-bold">
+                    Opción de Entrega
+                  </h2>
+                </div>
+                <div className="p-4">
                 {hasFieldError(validationErrors, 'deliveryMethod') && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
                     <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
@@ -658,6 +677,7 @@ const SellerCheckout = () => {
                       setDeliveryMethod('address');
                       setSelectedAddressId(null);
                       setSelectedPickupPoint(null);
+                      setTimeout(() => setShowAddressModal(true), 0);
                     }}
                   >
                     <RadioGroupItem value="address" id="delivery-address" />
@@ -665,6 +685,9 @@ const SellerCheckout = () => {
                       <Truck className="h-4 w-4 text-muted-foreground" />
                       <p className="font-semibold text-sm">Envío a Domicilio</p>
                     </div>
+                    {selectedAddress && (
+                      <p className="text-xs text-muted-foreground">{selectedAddress.full_name}</p>
+                    )}
                   </div>
 
                   <div
@@ -677,6 +700,7 @@ const SellerCheckout = () => {
                       setDeliveryMethod('pickup');
                       setSelectedAddressId(null);
                       setSelectedPickupPoint(null);
+                      setTimeout(() => setShowPickupModal(true), 0);
                     }}
                   >
                     <RadioGroupItem value="pickup" id="delivery-pickup" />
@@ -684,280 +708,15 @@ const SellerCheckout = () => {
                       <Store className="h-4 w-4 text-muted-foreground" />
                       <p className="font-semibold text-sm">Retiro en Punto</p>
                     </div>
+                    {selectedPickupPoint && pickupPoints.find(p => p.id === selectedPickupPoint) && (
+                      <p className="text-xs text-muted-foreground">{pickupPoints.find(p => p.id === selectedPickupPoint)?.name}</p>
+                    )}
                   </div>
                 </RadioGroup>
+                </div>
               </Card>
-
-              {/* Shipping Address - Only show if address delivery selected */}
-              {deliveryMethod === 'address' && (
-              <Card className={`p-6 ${hasFieldError(validationErrors, 'selectedAddress') ? 'border-red-500' : ''}`}>
-                <h2 className="text-xl font-bold mb-3 flex items-center gap-2">
-                  <MapPin className="h-5 w-5 text-primary" />
-                  Dirección de Envío
-                </h2>
-
-                {hasFieldError(validationErrors, 'selectedAddress') && (
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
-                    <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700">{getFieldError(validationErrors, 'selectedAddress')}</p>
-                  </div>
-                )}
-                
-                {addresses.length > 0 && !showNewAddressForm ? (
-                  <div className="space-y-3">
-                    {addresses.map((address) => (
-                      <div
-                        key={address.id}
-                        onClick={() => setSelectedAddressId(address.id)}
-                        className={`p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          selectedAddressId === address.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-muted-foreground'
-                        }`}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="font-semibold">{address.full_name}</span>
-                              {address.is_default && (
-                                <Badge variant="secondary" className="text-xs">
-                                  Predeterminada
-                                </Badge>
-                              )}
-                              <Badge variant="outline" className="text-xs">
-                                {address.label}
-                              </Badge>
-                            </div>
-                            <p className="text-sm text-muted-foreground">
-                              {address.street_address}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {address.city}{address.state ? `, ${address.state}` : ''}{address.postal_code ? ` ${address.postal_code}` : ''}
-                            </p>
-                            <p className="text-sm text-muted-foreground">
-                              {address.country}
-                            </p>
-                            {address.phone && (
-                              <p className="text-sm text-muted-foreground mt-1">
-                                Tel: {address.phone}
-                              </p>
-                            )}
-                          </div>
-                          <div
-                            className={`w-5 h-5 rounded-full border-2 flex-shrink-0 ${
-                              selectedAddressId === address.id
-                                ? 'border-primary bg-primary'
-                                : 'border-muted-foreground'
-                            }`}
-                          >
-                            {selectedAddressId === address.id && (
-                              <Check className="h-full w-full text-primary-foreground p-0.5" />
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <Button
-                      variant="outline"
-                      className="w-full mt-2"
-                      onClick={() => setShowNewAddressForm(true)}
-                    >
-                      <Plus className="h-4 w-4 mr-2" />
-                      Agregar Nueva Dirección
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {addresses.length > 0 && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowNewAddressForm(false)}
-                        className="mb-2"
-                      >
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Volver a direcciones guardadas
-                      </Button>
-                    )}
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="address_name">Nombre completo *</Label>
-                        <Input
-                          id="address_name"
-                          placeholder="Nombre del destinatario"
-                          value={newAddress.full_name}
-                          onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="address_phone">Teléfono</Label>
-                        <Input
-                          id="address_phone"
-                          placeholder="+509 XXXX XXXX"
-                          value={newAddress.phone}
-                          onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="address_street">Dirección *</Label>
-                      <Input
-                        id="address_street"
-                        placeholder="Calle, número, local..."
-                        value={newAddress.street_address}
-                        onChange={(e) => setNewAddress({ ...newAddress, street_address: e.target.value })}
-                      />
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div className="space-y-2">
-                        <Label htmlFor="address_department">Departamento *</Label>
-                        <select
-                          id="address_department"
-                          value={selectedDept}
-                          onChange={(e) => {
-                            const deptId = e.target.value;
-                            setSelectedDept(deptId);
-                            setSelectedComm(''); // Reset commune when department changes
-                            setNewAddress({ 
-                              ...newAddress,
-                              state: departments.find(d => d.id === deptId)?.name || ''
-                            });
-                          }}
-                          className="w-full px-3 py-2 border border-border rounded-md bg-background"
-                        >
-                          <option value="">Seleccionar departamento...</option>
-                          {departments.map(dept => (
-                            <option key={dept.id} value={dept.id}>
-                              {dept.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="address_city">Comuna *</Label>
-                        <select
-                          id="address_city"
-                          value={selectedComm}
-                          onChange={(e) => {
-                            const commId = e.target.value;
-                            setSelectedComm(commId);
-                            setNewAddress({
-                              ...newAddress,
-                              city: communes.find(c => c.id === commId)?.name || ''
-                            });
-                          }}
-                          disabled={!selectedDept}
-                          className="w-full px-3 py-2 border border-border rounded-md bg-background disabled:opacity-50"
-                        >
-                          <option value="">Seleccionar comuna...</option>
-                          {communes.map(comm => (
-                            <option key={comm.id} value={comm.id}>
-                              {comm.name}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="address_postal">Código postal</Label>
-                        <Input
-                          id="address_postal"
-                          placeholder="Código postal"
-                          value={newAddress.postal_code}
-                          onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div className="space-y-2">
-                      <Label htmlFor="address_notes">Notas de entrega</Label>
-                      <Textarea
-                        id="address_notes"
-                        placeholder="Instrucciones especiales para el repartidor..."
-                        value={newAddress.notes}
-                        onChange={(e) => setNewAddress({ ...newAddress, notes: e.target.value })}
-                        rows={2}
-                      />
-                    </div>
-                    
-                    <Button
-                      onClick={handleSaveNewAddress}
-                      disabled={createAddress.isPending}
-                      className="w-full"
-                    >
-                      {createAddress.isPending ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Guardando...
-                        </>
-                      ) : (
-                        <>
-                          <Check className="h-4 w-4 mr-2" />
-                          Guardar Dirección
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                )}
-              </Card>
-              )}
 
               {/* Pickup Points - Only show if pickup delivery selected */}
-              {deliveryMethod === 'pickup' && (
-              <Card className="p-6">
-                <h2 className="text-lg font-bold mb-3 flex items-center gap-2">
-                  <Store className="h-5 w-5 text-primary" />
-                  Punto de Retiro
-                </h2>
-
-                {pickupPoints.length === 0 ? (
-                  <div className="text-center py-6 bg-muted/50 rounded-lg">
-                    <Store className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <p className="text-muted-foreground">No hay puntos de retiro disponibles</p>
-                  </div>
-                ) : (
-                  <RadioGroup 
-                    value={selectedPickupPoint || ''} 
-                    onValueChange={setSelectedPickupPoint}
-                    className="space-y-3"
-                  >
-                    {pickupPoints.map((point) => (
-                      <div
-                        key={point.id}
-                        className={`flex items-start gap-3 p-4 rounded-lg border-2 cursor-pointer transition-all ${
-                          selectedPickupPoint === point.id
-                            ? 'border-primary bg-primary/5'
-                            : 'border-border hover:border-muted-foreground'
-                        }`}
-                        onClick={() => setSelectedPickupPoint(point.id)}
-                      >
-                        <RadioGroupItem value={point.id} id={`pickup-${point.id}`} className="mt-1" />
-                        <div className="flex-1">
-                          <p className="font-semibold">{point.name}</p>
-                          <p className="text-sm text-muted-foreground">{point.address}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {point.city}, {point.country}
-                          </p>
-                          {point.phone && (
-                            <p className="text-sm text-muted-foreground">Tel: {point.phone}</p>
-                          )}
-                        </div>
-                        {point.is_active && (
-                          <Badge variant="outline" className="text-green-600">
-                            Activo
-                          </Badge>
-                        )}
-                      </div>
-                    ))}
-                  </RadioGroup>
-                )}
-              </Card>
-              )}
-
-
               <Card className="p-6">
                 <h2 className="text-xl font-bold mb-3">
                   Productos ({items.length})
@@ -1394,6 +1153,267 @@ const SellerCheckout = () => {
         </main>
 
         <Footer />
+
+        {/* Address Modal */}
+        <Dialog open={showAddressModal} onOpenChange={setShowAddressModal}>
+          <DialogContent className="max-w-sm max-h-96 overflow-y-auto border-2 border-gray-300">
+            <DialogHeader className="border-b-2 pb-3 -mx-6 px-6 border-gray-300">
+              <DialogTitle className="text-lg font-bold">
+                {showNewAddressForm ? 'Agregar Nueva Dirección' : 'Seleccionar Dirección'}
+              </DialogTitle>
+            </DialogHeader>
+            
+            {!showNewAddressForm ? (
+              <div className="space-y-3">
+                <RadioGroup value={selectedAddressId || ''} onValueChange={(id) => {
+                  setSelectedAddressId(id);
+                  setShowAddressModal(false);
+                }} className="space-y-3">
+                  {addresses.length > 0 ? (
+                    addresses.map((address) => (
+                      <div
+                        key={address.id}
+                        className={`border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                          selectedAddressId === address.id
+                            ? 'border-[#071d7f] bg-[#071d7f]/5'
+                            : 'border-border hover:border-[#071d7f]'
+                        }`}
+                      >
+                        <div
+                          className="p-4 flex items-center justify-between gap-3"
+                          onClick={() => {
+                            setSelectedAddressId(address.id);
+                            setShowAddressModal(false);
+                          }}
+                        >
+                          <RadioGroupItem 
+                            value={address.id} 
+                            id={`address-${address.id}`}
+                            className="mt-0.5 flex-shrink-0"
+                          />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <p className="font-semibold">{address.full_name}</p>
+                              {address.is_default && (
+                                <Badge variant="secondary" className="text-xs">Predeterminada</Badge>
+                              )}
+                              <Badge variant="outline" className="text-xs">{address.label}</Badge>
+                            </div>
+                            <p className="text-sm text-muted-foreground line-clamp-1">{address.street_address}</p>
+                          </div>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setExpandedAddressId(expandedAddressId === address.id ? null : address.id);
+                            }}
+                            className="p-2 hover:bg-muted rounded-lg flex-shrink-0"
+                          >
+                            {expandedAddressId === address.id ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        {expandedAddressId === address.id && (
+                          <div className="border-t p-4 bg-muted/50 text-sm space-y-3">
+                            <div className="space-y-1">
+                              <p><span className="font-semibold">Calle:</span> {address.street_address}</p>
+                              <p><span className="font-semibold">Ciudad:</span> {address.city}</p>
+                              {address.state && <p><span className="font-semibold">Estado:</span> {address.state}</p>}
+                              {address.postal_code && <p><span className="font-semibold">Código Postal:</span> {address.postal_code}</p>}
+                              <p><span className="font-semibold">País:</span> {address.country}</p>
+                              {address.phone && <p><span className="font-semibold">Teléfono:</span> {address.phone}</p>}
+                            </div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full text-[#071d7f]"
+                              onClick={() => {
+                                // Aquí iría la lógica para editar la dirección
+                              }}
+                            >
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Editar
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-center text-muted-foreground py-4">No hay direcciones guardadas</p>
+                  )}
+                </RadioGroup>
+                <Button 
+                  onClick={() => setShowNewAddressForm(true)}
+                  className="w-full"
+                  variant="outline"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Agregar Nueva Dirección
+                </Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setShowNewAddressForm(false)}
+                  className="mb-2"
+                >
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Volver a direcciones
+                </Button>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="modal_address_name">Nombre completo *</Label>
+                    <Input
+                      id="modal_address_name"
+                      placeholder="Nombre del destinatario"
+                      value={newAddress.full_name}
+                      onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="modal_address_phone">Teléfono</Label>
+                    <Input
+                      id="modal_address_phone"
+                      placeholder="+509 XXXX XXXX"
+                      value={newAddress.phone}
+                      onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="modal_address_street">Dirección *</Label>
+                  <Input
+                    id="modal_address_street"
+                    placeholder="Calle, número, local..."
+                    value={newAddress.street_address}
+                    onChange={(e) => setNewAddress({ ...newAddress, street_address: e.target.value })}
+                  />
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="space-y-2">
+                    <Label htmlFor="modal_address_city">Ciudad *</Label>
+                    <Input
+                      id="modal_address_city"
+                      placeholder="Ciudad"
+                      value={newAddress.city}
+                      onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="modal_address_postal">Código Postal</Label>
+                    <Input
+                      id="modal_address_postal"
+                      placeholder="Código postal"
+                      value={newAddress.postal_code}
+                      onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
+                    />
+                  </div>
+                </div>
+                
+                <Button 
+                  onClick={async () => {
+                    try {
+                      const address = await createAddress.mutateAsync(newAddress);
+                      setSelectedAddressId(address.id);
+                      setShowAddressModal(false);
+                      setShowNewAddressForm(false);
+                      setNewAddress({
+                        full_name: '',
+                        street_address: '',
+                        city: '',
+                        state: '',
+                        postal_code: '',
+                        phone: '',
+                        country: 'Haití',
+                        label: 'Negocio',
+                        notes: '',
+                        is_default: false,
+                      });
+                    } catch (error) {
+                      console.error('Error adding address:', error);
+                      toast.error('Error al agregar dirección');
+                    }
+                  }}
+                  className="w-full"
+                >
+                  <Check className="h-4 w-4 mr-2" />
+                  Guardar Dirección
+                </Button>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Pickup Points Modal */}
+        <Dialog open={showPickupModal} onOpenChange={setShowPickupModal}>
+          <DialogContent className="max-w-sm border-2 border-gray-300">
+            <DialogHeader className="border-b-2 pb-3 -mx-6 px-6 border-gray-300">
+              <DialogTitle className="flex items-center gap-2 text-lg font-bold">
+                <Store className="h-5 w-5" />
+                Puntos de Retiro
+              </DialogTitle>
+            </DialogHeader>
+            
+            {pickupPoints.length === 0 ? (
+              <div className="text-center py-8">
+                <Store className="h-12 w-12 text-muted-foreground mx-auto mb-3" />
+                <p className="text-muted-foreground">No hay puntos de retiro disponibles</p>
+              </div>
+            ) : (
+              <RadioGroup value={selectedPickupPoint || ''} onValueChange={(id) => {
+                setSelectedPickupPoint(id);
+                setShowPickupModal(false);
+              }} className="space-y-2 max-h-96 overflow-y-auto">
+                {pickupPoints.map((point) => (
+                  <div
+                    key={point.id}
+                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      selectedPickupPoint === point.id
+                        ? 'border-[#071d7f] bg-[#071d7f]/5'
+                        : 'border-border hover:border-muted-foreground'
+                    }`}
+                  >
+                    <div
+                      onClick={() => {
+                        setSelectedPickupPoint(point.id);
+                        setShowPickupModal(false);
+                      }}
+                      className="flex items-start justify-between gap-3"
+                    >
+                      <RadioGroupItem 
+                        value={point.id} 
+                        id={`pickup-${point.id}`}
+                        className="mt-1 flex-shrink-0"
+                      />
+                      <div className="flex-1">
+                        <p className="font-semibold text-sm">{point.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{point.address}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {point.city}, {point.country}
+                        </p>
+                        {point.phone && (
+                          <p className="text-xs text-muted-foreground mt-1">Tel: {point.phone}</p>
+                        )}
+                      </div>
+                      {point.is_active && (
+                        <Badge variant="outline" className="text-green-600 text-xs ml-2 flex-shrink-0">
+                          Activo
+                        </Badge>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </RadioGroup>
+            )}
+          </DialogContent>
+        </Dialog>
       </div>
     </SellerLayout>
   );

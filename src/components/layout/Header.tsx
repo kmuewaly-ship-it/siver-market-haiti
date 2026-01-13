@@ -669,7 +669,7 @@ const Header = ({
     </header>
 
     {/* spacer to push page content below fixed header */}
-    <div aria-hidden style={{ height: headerHeight }} />
+    <div aria-hidden style={{ height: '80px' }} />
     </>
   );
 };
