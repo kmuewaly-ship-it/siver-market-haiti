@@ -1,5 +1,6 @@
 import { Package, PackageCheck, DollarSign, Percent } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { ReactNode } from "react";
 
 interface InventarioStatsProps {
   totalProducts: number;
@@ -7,6 +8,7 @@ interface InventarioStatsProps {
   totalStock: number;
   totalValue: number;
   avgMargin: number;
+  actions?: ReactNode;
 }
 
 export function InventarioStats({ 
@@ -14,63 +16,71 @@ export function InventarioStats({
   activeProducts, 
   totalStock, 
   totalValue, 
-  avgMargin 
+  avgMargin,
+  actions 
 }: InventarioStatsProps) {
   const stats = [
     {
       label: "Total Productos",
       value: totalProducts,
       icon: Package,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+      color: "text-primary",
+      bgColor: "bg-card",
+      borderColor: "border-border",
     },
     {
       label: "Publicados",
       value: activeProducts,
       icon: PackageCheck,
-      color: "text-green-600",
+      color: "text-green-500",
       bgColor: "bg-green-50",
+      borderColor: "border-green-200",
     },
     {
       label: "Stock Total",
       value: totalStock,
       icon: Package,
-      color: "text-purple-600",
+      color: "text-purple-500",
       bgColor: "bg-purple-50",
+      borderColor: "border-purple-200",
     },
     {
       label: "Valor Inventario",
       value: `$${totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
       icon: DollarSign,
-      color: "text-amber-600",
+      color: "text-amber-500",
       bgColor: "bg-amber-50",
+      borderColor: "border-amber-200",
     },
     {
       label: "Margen Promedio",
       value: `${avgMargin.toFixed(1)}%`,
       icon: Percent,
-      color: avgMargin < 0 ? "text-red-600" : "text-emerald-600",
+      color: avgMargin < 0 ? "text-red-500" : "text-emerald-500",
       bgColor: avgMargin < 0 ? "bg-red-50" : "bg-emerald-50",
+      borderColor: avgMargin < 0 ? "border-red-200" : "border-emerald-200",
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-      {stats.map((stat) => (
-        <Card key={stat.label} className="border-0 shadow-sm">
-          <CardContent className="p-4">
-            <div className="flex items-center gap-3">
-              <div className={`p-2 rounded-lg ${stat.bgColor}`}>
-                <stat.icon className={`h-5 w-5 ${stat.color}`} />
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">{stat.label}</p>
-                <p className="text-lg font-semibold">{stat.value}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+    <div className="bg-card border border-border rounded-lg md:mt-14">
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-3 pb-2 border-b">
+          <h2 className="text-lg font-bold text-foreground">Inventario B2C</h2>
+          {actions && <div className="flex gap-2">{actions}</div>}
+        </div>
+        <div className="grid grid-cols-5 gap-1 w-full">
+          {stats.map((stat) => (
+            <Card key={stat.label} className={`${stat.bgColor} ${stat.borderColor} border`}>
+              <CardContent className="p-1.5 text-center">
+                <stat.icon className={`h-3 w-3 ${stat.color} mx-auto mb-0.5`} />
+                <div className={`text-base md:text-lg font-bold ${stat.color}`}>{stat.value}</div>
+                <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">{stat.label}</p>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

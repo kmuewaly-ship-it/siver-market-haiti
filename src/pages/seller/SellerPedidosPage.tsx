@@ -166,53 +166,54 @@ const SellerPedidosPage = () => {
   return (
     <SellerLayout>
       <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-foreground">Mis Ventas B2C</h1>
-          <p className="text-muted-foreground">Gestiona las ventas de tu tienda y confirma pagos</p>
-        </div>
+        {/* Stats Cards with Header */}
+        <div className="bg-card border border-border rounded-lg md:mt-14">
+          <div className="p-3">
+            <div className="border-b pb-2 mb-3">
+              <h1 className="text-lg font-bold text-foreground">Mis Ventas B2C</h1>
+            </div>
+            <div className="grid grid-cols-5 gap-1 w-full">
+              <Card className="bg-card border-border">
+                <CardContent className="p-1.5 text-center">
+                  <Package className="h-3 w-3 text-primary mx-auto mb-0.5" />
+                  <div className="text-base md:text-lg font-bold text-foreground">{stats?.total || 0}</div>
+                  <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Total</p>
+                </CardContent>
+              </Card>
+              
+              <Card className="bg-orange-50 border-orange-200">
+                <CardContent className="p-1.5 text-center">
+                  <AlertCircle className="h-3 w-3 text-orange-500 mx-auto mb-0.5" />
+                  <div className="text-base md:text-lg font-bold text-orange-500">{stats?.pending_validation || 0}</div>
+                  <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Por Validar</p>
+                </CardContent>
+              </Card>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-5 gap-1.5 w-full">
-          <Card className="bg-card border-border">
-            <CardContent className="p-1.5 text-center">
-              <Package className="h-3 w-3 text-primary mx-auto mb-0.5" />
-              <div className="text-base font-bold text-foreground">{stats?.total || 0}</div>
-              <p className="text-[8px] text-muted-foreground leading-tight">Total</p>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-orange-50 border-orange-200">
-            <CardContent className="p-1.5 text-center">
-              <AlertCircle className="h-3 w-3 text-orange-500 mx-auto mb-0.5" />
-              <div className="text-base font-bold text-orange-500">{stats?.pending_validation || 0}</div>
-              <p className="text-[8px] text-muted-foreground leading-tight">Por Validar</p>
-            </CardContent>
-          </Card>
+              <Card className="bg-amber-50 border-amber-200">
+                <CardContent className="p-1.5 text-center">
+                  <CheckCircle className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
+                  <div className="text-base md:text-lg font-bold text-amber-500">{stats?.paid || 0}</div>
+                  <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Pagados</p>
+                </CardContent>
+              </Card>
 
-          <Card className="bg-amber-50 border-amber-200">
-            <CardContent className="p-1.5 text-center">
-              <CheckCircle className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
-              <div className="text-base font-bold text-amber-500">{stats?.paid || 0}</div>
-              <p className="text-[8px] text-muted-foreground leading-tight">Pagados</p>
-            </CardContent>
-          </Card>
+              <Card className="bg-blue-50 border-blue-200">
+                <CardContent className="p-1.5 text-center">
+                  <Truck className="h-3 w-3 text-blue-500 mx-auto mb-0.5" />
+                  <div className="text-base md:text-lg font-bold text-blue-500">{stats?.shipped || 0}</div>
+                  <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Enviados</p>
+                </CardContent>
+              </Card>
 
-          <Card className="bg-blue-50 border-blue-200">
-            <CardContent className="p-1.5 text-center">
-              <Truck className="h-3 w-3 text-blue-500 mx-auto mb-0.5" />
-              <div className="text-base font-bold text-blue-500">{stats?.shipped || 0}</div>
-              <p className="text-[8px] text-muted-foreground leading-tight">Enviados</p>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-red-50 border-red-200">
-            <CardContent className="p-1.5 text-center">
-              <XCircle className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
-              <div className="text-base font-bold text-red-500">{stats?.cancelled || 0}</div>
-              <p className="text-[8px] text-muted-foreground leading-tight">Cancelados</p>
-            </CardContent>
-          </Card>
+              <Card className="bg-red-50 border-red-200">
+                <CardContent className="p-1.5 text-center">
+                  <XCircle className="h-3 w-3 text-red-500 mx-auto mb-0.5" />
+                  <div className="text-base md:text-lg font-bold text-red-500">{stats?.cancelled || 0}</div>
+                  <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Cancelados</p>
+                </CardContent>
+              </Card>
+            </div>
+          </div>
         </div>
 
         {/* Pending Validation Alert */}

@@ -92,38 +92,6 @@ export default function SellerInventarioB2C() {
   return (
     <SellerLayout>
       <div className="p-6 space-y-6">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-bold flex items-center gap-2">
-              <Package className="h-6 w-6" />
-              Gestión de Inventario B2C
-            </h1>
-            <p className="text-muted-foreground">
-              Administra tus productos para venta al público
-            </p>
-          </div>
-          <div className="flex gap-2">
-            {items.length > 0 && (
-              <Button 
-                variant="outline" 
-                onClick={() => setIsBulkPriceOpen(true)}
-              >
-                <DollarSign className="h-4 w-4 mr-2" />
-                Actualizar Precios
-              </Button>
-            )}
-            <Button 
-              variant="outline" 
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-              Actualizar
-            </Button>
-          </div>
-        </div>
-
         {/* No Store Alert */}
         {!storeId && (
           <Alert variant="destructive">
@@ -136,7 +104,30 @@ export default function SellerInventarioB2C() {
         )}
 
         {/* Stats */}
-        <InventarioStats {...stats} />
+        <InventarioStats 
+          {...stats}
+          actions={
+            <>
+              {items.length > 0 && (
+                <Button 
+                  variant="outline" 
+                  onClick={() => setIsBulkPriceOpen(true)}
+                >
+                  <DollarSign className="h-4 w-4 mr-2" />
+                  Actualizar Precios
+                </Button>
+              )}
+              <Button 
+                variant="outline" 
+                onClick={handleRefresh}
+                disabled={isRefreshing}
+              >
+                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+                Actualizar
+              </Button>
+            </>
+          }
+        />
 
         {/* Empty State */}
         {items.length === 0 ? (
