@@ -33,7 +33,7 @@ import {
   Calendar
 } from 'lucide-react';
 import { useCatalogClickTracking, type ClickStats } from '@/hooks/useCatalogClickTracking';
-import { useStore } from '@/hooks/useStore';
+import { useStoreByOwner } from '@/hooks/useStore';
 import { useAuth } from '@/hooks/useAuth';
 import { format, subDays } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -42,16 +42,11 @@ const COLORS = ['#8B5CF6', '#10B981', '#F59E0B', '#EF4444', '#3B82F6'];
 
 export const SellerAnalyticsDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { stores } = useStore();
+  const { data: userStore } = useStoreByOwner(user?.id);
   const { fetchClickStats, isLoading } = useCatalogClickTracking();
   
   const [stats, setStats] = useState<ClickStats | null>(null);
   const [dateRange, setDateRange] = useState<'7d' | '30d' | '90d'>('30d');
-
-  // Get user's store
-  const userStore = useMemo(() => {
-    return stores?.find(s => s.owner_user_id === user?.id);
-  }, [stores, user?.id]);
 
   // Fetch stats
   useEffect(() => {

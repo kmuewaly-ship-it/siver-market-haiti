@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { ShoppingCart, Home, LogOut, ShoppingBag, ChevronLeft, Package, Heart, User, Store, LayoutGrid, ClipboardList, Shield, Wallet, LayoutDashboard, Ticket, Users } from "lucide-react";
+import { ShoppingCart, Home, LogOut, ShoppingBag, ChevronLeft, Package, Heart, User, Store, LayoutGrid, ClipboardList, Shield, Wallet, LayoutDashboard, Ticket, Users, Share2, BarChart3 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -37,6 +37,15 @@ export function SellerSidebar() {
     title: "Inventario B2C",
     url: "/seller/inventario",
     icon: LayoutGrid
+  }, {
+    title: "Marketing",
+    url: "/seller/marketing",
+    icon: Share2,
+    badge: "Nuevo"
+  }, {
+    title: "Analytics",
+    url: "/seller/analytics",
+    icon: BarChart3
   }, {
     title: "Mi Catálogo",
     url: "/seller/catalogo",

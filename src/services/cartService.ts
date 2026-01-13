@@ -158,14 +158,20 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
     if (!productId && params.sku) {
       try {
         const skuBase = params.sku.split('-')[0];
-        const { data: productData } = await supabase
-          .from('products')
-          .select('id')
-          .eq('sku', skuBase)
-          .maybeSingle();
+        // Workaround for TS2589: Type instantiation is excessively deep
+        const client = supabase as unknown as { 
+          from: (table: string) => { 
+            select: (cols: string) => { 
+              eq: (col: string, val: string) => { 
+                maybeSingle: () => Promise<{ data: { id: string } | null; error: unknown }> 
+              } 
+            } 
+          } 
+        };
+        const result = await client.from('products').select('id').eq('sku', skuBase).maybeSingle();
         
-        if (productData?.id) {
-          productId = productData.id;
+        if (result.data?.id) {
+          productId = result.data.id;
           console.log('B2B: Found productId by SKU:', productId);
         }
       } catch (e) {
