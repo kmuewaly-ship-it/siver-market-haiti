@@ -111,73 +111,50 @@ const SellerCatalogo = () => {
         <Header />
 
         <main className="container mx-auto px-4 py-4 pb-8">
-          {/* Header */}
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-5">
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">Mi Catálogo</h1>
-              <p className="text-muted-foreground">
-                Gestiona tus productos importados para venta B2C
-              </p>
+          {/* Stats Box with Actions */}
+          <div className="bg-card border border-border rounded-lg md:mt-14 mb-5">
+            <div className="p-3">
+              <div className="flex items-center justify-between mb-3 pb-2 border-b">
+                <h1 className="text-lg font-bold text-foreground">Mi Catálogo</h1>
+                <Button onClick={refetch} variant="outline" className="gap-2 text-sm h-9">
+                  <RefreshCw className="h-4 w-4" />
+                  Actualizar
+                </Button>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full">
+                <Card className="bg-primary/10 border-primary/20">
+                  <div className="flex flex-col items-center gap-1 p-1.5">
+                    <Package className="h-3 w-3 text-primary" />
+                    <p className="text-base md:text-lg font-bold text-primary">{stats.totalProducts}</p>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Productos</p>
+                  </div>
+                </Card>
+
+                <Card className="bg-green-50 border-green-200">
+                  <div className="flex flex-col items-center gap-1 p-1.5">
+                    <DollarSign className="h-3 w-3 text-green-500" />
+                    <p className="text-base md:text-lg font-bold text-green-500">${stats.totalValue.toFixed(2)}</p>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Valor</p>
+                  </div>
+                </Card>
+
+                <Card className="bg-blue-50 border-blue-200">
+                  <div className="flex flex-col items-center gap-1 p-1.5">
+                    <Package className="h-3 w-3 text-blue-500" />
+                    <p className="text-base md:text-lg font-bold text-blue-500">{stats.totalStock}</p>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Stock</p>
+                  </div>
+                </Card>
+
+                <Card className="bg-amber-50 border-amber-200">
+                  <div className="flex flex-col items-center gap-1 p-1.5">
+                    <TrendingUp className="h-3 w-3 text-amber-500" />
+                    <p className="text-base md:text-lg font-bold text-amber-500">{stats.avgMargin.toFixed(1)}%</p>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Margen</p>
+                  </div>
+                </Card>
+              </div>
             </div>
-            <Button onClick={refetch} variant="outline" className="gap-2">
-              <RefreshCw className="h-4 w-4" />
-              Actualizar
-            </Button>
-          </div>
-
-          {/* Stats Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-primary/10">
-                  <Package className="h-5 w-5 text-primary" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Productos</p>
-                  <p className="text-2xl font-bold">{stats.totalProducts}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {stats.activeProducts} activos
-                  </p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-green-500/10">
-                  <DollarSign className="h-5 w-5 text-green-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Valor Inventario</p>
-                  <p className="text-2xl font-bold">${stats.totalValue.toFixed(2)}</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-blue-500/10">
-                  <Package className="h-5 w-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Stock Total</p>
-                  <p className="text-2xl font-bold">{stats.totalStock}</p>
-                  <p className="text-xs text-muted-foreground">unidades</p>
-                </div>
-              </div>
-            </Card>
-
-            <Card className="p-4">
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-yellow-500/10">
-                  <TrendingUp className="h-5 w-5 text-yellow-600" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Margen Promedio</p>
-                  <p className="text-2xl font-bold">{stats.avgMargin.toFixed(1)}%</p>
-                </div>
-              </div>
-            </Card>
           </div>
 
           {/* Search */}
