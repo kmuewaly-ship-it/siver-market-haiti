@@ -7,10 +7,10 @@ import { InventarioTable } from "@/components/seller/inventory/InventarioTable";
 import { PublicacionDialog } from "@/components/seller/inventory/PublicacionDialog";
 import { StockAdjustDialog } from "@/components/seller/inventory/StockAdjustDialog";
 import { SellerBulkPriceDialog } from "@/components/seller/inventory/SellerBulkPriceDialog";
+import { B2BCatalogImportDialog } from "@/components/seller/B2BCatalogImportDialog";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Package, AlertCircle, DollarSign } from "lucide-react";
+import { RefreshCw, Package, AlertCircle, DollarSign, Download } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-
 export default function SellerInventarioB2C() {
   const { user, isLoading: authLoading } = useAuth();
   const { 
@@ -29,7 +29,11 @@ export default function SellerInventarioB2C() {
   const [isPriceDialogOpen, setIsPriceDialogOpen] = useState(false);
   const [isStockDialogOpen, setIsStockDialogOpen] = useState(false);
   const [isBulkPriceOpen, setIsBulkPriceOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Get existing SKUs to prevent duplicates
+  const existingSkus = items.map(item => item.sku);
 
   const stats = getStats();
 
@@ -108,6 +112,14 @@ export default function SellerInventarioB2C() {
           {...stats}
           actions={
             <>
+              <Button 
+                variant="default" 
+                onClick={() => setIsImportDialogOpen(true)}
+                style={{ backgroundColor: '#071d7f' }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Importar B2B
+              </Button>
               {items.length > 0 && (
                 <Button 
                   variant="outline" 
@@ -134,13 +146,22 @@ export default function SellerInventarioB2C() {
           <div className="text-center py-12 bg-muted/50 rounded-lg">
             <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Sin productos en inventario</h3>
-            <p className="text-muted-foreground max-w-md mx-auto">
-              Tu inventario B2C se llenará automáticamente cuando realices compras 
-              en el catálogo B2B mayorista. ¡Explora nuestros lotes disponibles!
+            <p className="text-muted-foreground max-w-md mx-auto mb-4">
+              Importa productos desde el catálogo B2B para generar materiales de marketing 
+              y comenzar a vender sin necesidad de comprar primero.
             </p>
-            <Button className="mt-4" onClick={() => window.location.href = '/seller/adquisicion-lotes'}>
-              Ir a Comprar Lotes
-            </Button>
+            <div className="flex flex-wrap justify-center gap-2">
+              <Button 
+                onClick={() => setIsImportDialogOpen(true)}
+                style={{ backgroundColor: '#071d7f' }}
+              >
+                <Download className="h-4 w-4 mr-2" />
+                Importar desde B2B
+              </Button>
+              <Button variant="outline" onClick={() => window.location.href = '/seller/adquisicion-lotes'}>
+                Ver Catálogo B2B
+              </Button>
+            </div>
           </div>
         ) : (
           /* Inventory Table */
@@ -174,6 +195,16 @@ export default function SellerInventarioB2C() {
           items={items}
           onSuccess={refetch}
         />
+
+        {storeId && (
+          <B2BCatalogImportDialog
+            open={isImportDialogOpen}
+            onOpenChange={setIsImportDialogOpen}
+            storeId={storeId}
+            existingSkus={existingSkus}
+            onSuccess={refetch}
+          />
+        )}
       </div>
     </SellerLayout>
   );

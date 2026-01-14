@@ -319,14 +319,17 @@ export const SellerMarketingTools: React.FC = () => {
           {products.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground space-y-4">
               <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>No tienes productos en tu catálogo B2C</p>
-              <p className="text-sm">Para generar materiales de marketing, primero debes importar productos desde tus compras B2B a tu inventario B2C.</p>
+              <p className="font-medium">No tienes productos en tu catálogo</p>
+              <p className="text-sm max-w-md mx-auto">
+                Importa productos directamente desde el catálogo B2B para generar materiales de marketing.
+                ¡No necesitas comprar primero!
+              </p>
               <div className="flex flex-wrap justify-center gap-2">
                 <Button asChild variant="default" style={{ backgroundColor: '#071d7f' }}>
-                  <a href="/seller/inventario">Ir a Inventario B2C</a>
-                </Button>
-                <Button asChild variant="outline">
-                  <a href="/seller/adquisicion-lotes">Comprar Lotes B2B</a>
+                  <a href="/seller/inventario">
+                    <Download className="h-4 w-4 mr-2" />
+                    Importar desde B2B
+                  </a>
                 </Button>
               </div>
             </div>
