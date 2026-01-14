@@ -137,7 +137,7 @@ const ProductPage = () => {
     <div className="min-h-screen bg-gray-50">
       <Header />
 
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 py-8 pt-32">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-gray-600 mb-6">
           <button onClick={() => navigate("/")} className="hover:text-blue-600">
@@ -161,6 +161,14 @@ const ProductPage = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           {/* Galería de Imágenes */}
           <div>
+            {/* Botón Volver */}
+            <button 
+              onClick={() => navigate(-1)}
+              className="mb-4 md:mt-24 bg-white/80 hover:bg-white rounded-full p-2 transition inline-block"
+            >
+              <ChevronLeft className="w-6 h-6 text-gray-900" />
+            </button>
+
             {/* Imagen Principal */}
             <div className="relative bg-white rounded-lg overflow-hidden mb-4 aspect-square">
               <img
