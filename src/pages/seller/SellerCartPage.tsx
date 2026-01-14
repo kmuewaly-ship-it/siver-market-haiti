@@ -243,69 +243,76 @@ const SellerCartPage = () => {
   const handleOpenVariantDrawer = async (item: any) => {
     try {
       console.log('Opening variant drawer for item:', item);
-      
-      // Try to find product by productId first, then by SKU
-      let productId: string | undefined = item.productId;
-      let searchedSku: string | undefined;
-      
+
+      // Try to find product by productId first, then by SKU/variant SKU
+      let productId: string | undefined = item.productId || item.product_id || undefined;
+
+      // 1) If cart SKU looks like a variant SKU, resolve product_id from product_variants
       if (!productId && item.sku) {
-        // Extract base SKU - ignore any variant suffixes
-        // SKU format can be like "777795007250-Negro-39" or "777795007-Negro-39"
-        let baseSku = item.sku.split('-')[0]; // Get the first part before color/size
-        
-        // If the SKU has more than 9 digits, try to extract just the main part
-        if (baseSku && baseSku.length > 9 && /^\d+$/.test(baseSku)) {
-          baseSku = baseSku.substring(0, 9);
-          console.log('Base SKU has extra digits. Trying 9-digit version:', baseSku);
-        }
-        
-        console.log('No productId, searching product by SKU:', baseSku);
-        searchedSku = baseSku;
-        
         try {
-          // Search by SKU in products table
+          const pvResult = await (supabase as any)
+            .from('product_variants')
+            .select('product_id')
+            .eq('sku', item.sku)
+            .maybeSingle();
+
+          if (pvResult?.data?.product_id) {
+            productId = pvResult.data.product_id;
+            console.log('Resolved productId from variant SKU:', productId);
+          }
+        } catch (e) {
+          console.log('Error searching product_variants by SKU:', e);
+        }
+      }
+
+      // 2) Fallback: match base SKU against products.sku_interno
+      if (!productId && item.sku) {
+        // SKU format can be like "777795007250-Negro-39" or "777795007-Negro-39"
+        const baseSku = item.sku.split('-')[0];
+        console.log('No productId, searching product by base SKU:', baseSku);
+
+        try {
           const result = await (supabase as any)
             .from('products')
             .select('id')
-            .eq('sku', baseSku)
+            .eq('sku_interno', baseSku)
             .maybeSingle();
-          
+
           if (result?.data?.id) {
             productId = result.data.id;
-            console.log('Found product by SKU:', productId);
+            console.log('Found product by sku_interno:', productId);
           } else {
-            console.log('Product not found with SKU:', baseSku, '- trying alternative searches');
-            
-            // Try matching the entire SKU without splitting
             const result2 = await (supabase as any)
               .from('products')
               .select('id')
-              .ilike('sku', `%${baseSku}%`)
+              .ilike('sku_interno', `%${baseSku}%`)
               .limit(1)
               .maybeSingle();
-            
+
             if (result2?.data?.id) {
               productId = result2.data.id;
-              console.log('Found product by partial SKU match:', productId);
+              console.log('Found product by partial sku_interno match:', productId);
             }
           }
         } catch (e) {
-          console.log('Error searching product by SKU:', e);
+          console.log('Error searching products by sku_interno:', e);
         }
       }
-      
+
       if (!productId) {
         console.error('Could not find productId for item:', item);
         toast.error('No se pudo encontrar el producto. Intenta recargar la página.');
         return;
       }
-      
+
       console.log('Found productId:', productId);
-      
-      // Fetch full product data including variants
+
+      // Fetch minimal product data for variant UI
       const productResult = await (supabase as any)
         .from('products')
-        .select('id, sku, nombre, imagen_principal, precio_sugerido_venta, precio_venta, precio_b2b, descripcion, variantes')
+        .select(
+          'id, sku_interno, nombre, imagen_principal, precio_sugerido_venta, precio_mayorista, descripcion_larga, descripcion_corta'
+        )
         .eq('id', productId)
         .maybeSingle();
 
@@ -315,42 +322,36 @@ const SellerCartPage = () => {
         return;
       }
 
-      const product = productResult?.data;
-      if (!product || typeof product !== 'object') {
+      const productData = productResult?.data;
+      if (!productData || typeof productData !== 'object') {
         console.error('Product not found:', productId);
         toast.error('Producto no encontrado');
         return;
       }
 
-      const productData = product;
-      console.log('Loaded product:', productData);
+      const description =
+        (productData as any).descripcion_larga || (productData as any).descripcion_corta || '';
+
+      const uiProduct = {
+        id: (productData as any).id,
+        sku: (productData as any).sku_interno,
+        nombre: (productData as any).nombre,
+        images: (productData as any).imagen_principal ? [(productData as any).imagen_principal] : [],
+        price: (productData as any).precio_sugerido_venta || 0,
+        costB2B: (productData as any).precio_mayorista || 0,
+        description,
+      };
+
+      console.log('Loaded product:', uiProduct);
 
       // If mobile, open a modal with variant selection
       if (isMobile) {
-        // Store product and show variant selection modal
-        setSelectedProductForVariants({
-          id: productData.id,
-          sku: productData.sku,
-          nombre: productData.nombre,
-          images: productData.imagen_principal ? [productData.imagen_principal] : [],
-          price: productData.precio_sugerido_venta || productData.precio_venta || 0,
-          costB2B: productData.precio_b2b || 0,
-          description: productData.descripcion,
-          variantes: productData.variantes || [],
-        });
+        setSelectedProductForVariants(uiProduct);
       } else {
         // Desktop: use VariantDrawer
-        useVariantDrawerStore.getState().open({
-          id: productData.id,
-          sku: productData.sku,
-          nombre: productData.nombre,
-          images: productData.imagen_principal ? [productData.imagen_principal] : [],
-          price: productData.precio_sugerido_venta || productData.precio_venta || 0,
-          costB2B: productData.precio_b2b || 0,
-          description: productData.descripcion,
-        });
+        useVariantDrawerStore.getState().open(uiProduct);
       }
-      
+
       console.log('Variant drawer/modal opened successfully');
     } catch (err) {
       console.error('Error opening variant drawer:', err);
