@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { SellerLayout } from "@/components/seller/SellerLayout";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square, TrendingUp } from "lucide-react";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square, TrendingUp, Loader2, ShoppingBag } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 import { useB2BCartProductTotals } from "@/hooks/useB2BCartProductTotals";
@@ -32,6 +33,8 @@ import { useCartSelectionStore } from "@/stores/useCartSelectionStore";
 import { Checkbox } from "@/components/ui/checkbox";
 import useVariantDrawerStore from "@/stores/useVariantDrawerStore";
 import VariantDrawer from "@/components/products/VariantDrawer";
+import VariantSelectorB2B from "@/components/products/VariantSelectorB2B";
+import { useProductVariants } from "@/hooks/useProductVariants";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
@@ -44,6 +47,14 @@ const SellerCartPage = () => {
   const [itemToRemove, setItemToRemove] = useState<{ id: string; name: string } | null>(null);
   const [showSummaryModal, setShowSummaryModal] = useState(false);
   const [selectedProductForVariants, setSelectedProductForVariants] = useState<any>(null);
+  const [variantSelections, setVariantSelections] = useState<any[]>([]);
+  const [isAddingVariant, setIsAddingVariant] = useState(false);
+  const [variantImage, setVariantImage] = useState<string | null>(null);
+
+  // Fetch variants for the selected product
+  const { data: productVariants, isLoading: isLoadingVariants } = useProductVariants(
+    selectedProductForVariants?.id
+  );
 
   // Cart selection store
   const { 
@@ -346,6 +357,87 @@ const SellerCartPage = () => {
       toast.error('Error al abrir variantes');
     }
   };
+
+  // Handle adding selected variants to cart
+  const handleAddVariantsToCart = useCallback(async () => {
+    if (!user?.id || !selectedProductForVariants || variantSelections.length === 0) {
+      toast.error('Selecciona al menos una variante');
+      return;
+    }
+
+    setIsAddingVariant(true);
+    try {
+      // Get or create cart for user
+      let cartId: string | null = null;
+      const cartResult = await (supabase as any)
+        .from('b2b_carts')
+        .select('id')
+        .eq('buyer_user_id', user.id)
+        .eq('status', 'open')
+        .limit(1)
+        .order('created_at', { ascending: false });
+
+      if (cartResult.data && cartResult.data.length > 0) {
+        cartId = cartResult.data[0].id;
+      } else {
+        const newCartResult = await (supabase as any)
+          .from('b2b_carts')
+          .insert([{ buyer_user_id: user.id, status: 'open' }])
+          .select()
+          .single();
+        
+        if (newCartResult.error) throw newCartResult.error;
+        cartId = newCartResult.data.id;
+      }
+
+      // Add each selected variant to cart
+      let addedCount = 0;
+      for (const selection of variantSelections) {
+        if (selection.quantity <= 0) continue;
+
+        const { error } = await supabase
+          .from('b2b_cart_items')
+          .insert([{
+            cart_id: cartId,
+            product_id: selectedProductForVariants.id,
+            sku: selection.sku,
+            nombre: `${selectedProductForVariants.nombre} - ${selection.label}`,
+            unit_price: selection.price,
+            total_price: selection.price * selection.quantity,
+            quantity: selection.quantity,
+            image: variantImage || selectedProductForVariants.images?.[0] || null,
+            color: selection.colorLabel || null,
+            size: selection.label.includes('/') ? selection.label.split('/')[1]?.trim() : null,
+          }]);
+
+        if (error) {
+          console.error('Error adding variant:', error);
+        } else {
+          addedCount++;
+        }
+      }
+
+      if (addedCount > 0) {
+        toast.success(`${addedCount} variante(s) agregada(s) al carrito`);
+        setSelectedProductForVariants(null);
+        setVariantSelections([]);
+        setVariantImage(null);
+        refetch();
+      } else {
+        toast.error('No se pudieron agregar las variantes');
+      }
+    } catch (error) {
+      console.error('Error adding variants to cart:', error);
+      toast.error('Error al agregar variantes');
+    } finally {
+      setIsAddingVariant(false);
+    }
+  }, [user?.id, selectedProductForVariants, variantSelections, variantImage, refetch]);
+
+  // Handle variant selection change from VariantSelectorB2B
+  const handleVariantSelectionChange = useCallback((selections: any[], totalQty: number, totalPrice: number) => {
+    setVariantSelections(selections);
+  }, []);
 
   return (
     <SellerLayout>
@@ -1114,62 +1206,120 @@ const SellerCartPage = () => {
         <Dialog open={true} onOpenChange={(open) => {
           if (!open) {
             setSelectedProductForVariants(null);
+            setVariantSelections([]);
+            setVariantImage(null);
           }
         }}>
-          <DialogContent className="max-w-sm w-full">
-            <DialogHeader>
-              <DialogTitle>{selectedProductForVariants.nombre}</DialogTitle>
+          <DialogContent className="max-w-md w-full max-h-[90vh] flex flex-col p-0">
+            <DialogHeader className="p-4 pb-2 border-b">
+              <DialogTitle className="text-lg line-clamp-1">{selectedProductForVariants.nombre}</DialogTitle>
+              <DialogDescription className="text-xs">
+                Selecciona variantes para agregar al carrito
+              </DialogDescription>
             </DialogHeader>
-            <div className="space-y-4">
-              {/* Product Image */}
-              <div className="w-full aspect-square bg-gray-100 rounded-lg overflow-hidden">
-                {selectedProductForVariants.images && selectedProductForVariants.images[0] ? (
+            
+            <ScrollArea className="flex-1 px-4">
+              <div className="space-y-4 py-4">
+                {/* Product Image */}
+                <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden max-h-40">
                   <img 
-                    src={selectedProductForVariants.images[0]} 
+                    src={variantImage || selectedProductForVariants.images?.[0] || '/placeholder.svg'} 
                     alt={selectedProductForVariants.nombre}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
+                  />
+                </div>
+                
+                {/* Price Info */}
+                <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Precio B2B</p>
+                    <p className="text-xl font-bold" style={{ color: '#29892a' }}>
+                      ${selectedProductForVariants.costB2B?.toFixed(2) || '0.00'}
+                    </p>
+                  </div>
+                  {variantSelections.length > 0 && (
+                    <div className="text-right">
+                      <p className="text-xs text-muted-foreground">Seleccionado</p>
+                      <p className="text-lg font-bold text-primary">
+                        {variantSelections.reduce((sum, s) => sum + s.quantity, 0)} uds
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Variant Selector */}
+                {isLoadingVariants ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
+                    <span className="ml-2 text-sm text-muted-foreground">Cargando variantes...</span>
+                  </div>
+                ) : productVariants && productVariants.length > 0 ? (
+                  <VariantSelectorB2B
+                    productId={selectedProductForVariants.id}
+                    variants={productVariants.map(v => {
+                      // Extract color and size from attribute_combination
+                      const attrCombo = v.attribute_combination || {};
+                      const colorVal = attrCombo.color || v.option_value || '';
+                      const sizeVal = attrCombo.size || '';
+                      const labelParts = [colorVal, sizeVal].filter(Boolean);
+                      const label = v.name || labelParts.join(' / ') || v.sku;
+                      
+                      return {
+                        id: v.id,
+                        sku: v.sku,
+                        label,
+                        precio: v.cost_price || v.price || selectedProductForVariants.costB2B || 0,
+                        stock: v.stock || 999,
+                        attribute_combination: attrCombo,
+                        images: v.images || [],
+                        image_url: v.images?.[0] || undefined,
+                      };
+                    })}
+                    basePrice={selectedProductForVariants.costB2B || 0}
+                    baseImage={selectedProductForVariants.images?.[0]}
+                    onSelectionChange={handleVariantSelectionChange}
+                    onVariantImageChange={setVariantImage}
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Package className="w-8 h-8 text-gray-400" />
+                  <div className="text-center py-6 text-muted-foreground">
+                    <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No hay variantes disponibles</p>
                   </div>
                 )}
               </div>
-              
-              {/* Price Info */}
-              <div className="space-y-1">
-                <p className="text-sm text-gray-600">Precio B2B:</p>
-                <p className="text-2xl font-bold" style={{ color: '#29892a' }}>
-                  ${selectedProductForVariants.costB2B.toFixed(2)}
-                </p>
-              </div>
+            </ScrollArea>
 
-              {/* Description */}
-              {selectedProductForVariants.description && (
-                <p className="text-xs text-gray-700 line-clamp-3">
-                  {selectedProductForVariants.description}
-                </p>
-              )}
-
-              {/* Actions */}
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => setSelectedProductForVariants(null)}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Cerrar
-                </Button>
-                <Button
-                  asChild
-                  className="flex-1 text-white"
-                  style={{ backgroundColor: '#071d7f' }}
-                >
-                  <Link to={`/producto/${selectedProductForVariants.id}`}>
-                    Ver Variantes
-                  </Link>
-                </Button>
-              </div>
+            {/* Actions Footer */}
+            <div className="p-4 border-t bg-background flex gap-2">
+              <Button
+                onClick={() => {
+                  setSelectedProductForVariants(null);
+                  setVariantSelections([]);
+                  setVariantImage(null);
+                }}
+                variant="outline"
+                className="flex-1"
+              >
+                Cancelar
+              </Button>
+              <Button
+                onClick={handleAddVariantsToCart}
+                disabled={isAddingVariant || variantSelections.length === 0}
+                className="flex-1 text-white"
+                style={{ backgroundColor: '#071d7f' }}
+              >
+                {isAddingVariant ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Agregando...
+                  </>
+                ) : (
+                  <>
+                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    Agregar ({variantSelections.reduce((sum, s) => sum + s.quantity, 0)})
+                  </>
+                )}
+              </Button>
             </div>
           </DialogContent>
         </Dialog>

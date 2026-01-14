@@ -49,7 +49,7 @@ interface CatalogProduct {
 export const SellerMarketingTools: React.FC = () => {
   const { user } = useAuth();
   const { items: catalogItems, storeId } = useSellerCatalog();
-  const { store } = useStore(storeId || undefined);
+  const { data: store } = useStore(storeId || undefined);
   
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
@@ -109,7 +109,7 @@ export const SellerMarketingTools: React.FC = () => {
         products: selectedProductsData,
         storeId: storeId || '',
         storeName: store?.name || 'Mi Tienda',
-        storeLogo: store?.logo_url || undefined,
+        storeLogo: store?.logo || undefined,
         storeSlug: store?.slug || '',
         primaryColor: '#8B5CF6',
         showQR: true,
@@ -131,7 +131,7 @@ export const SellerMarketingTools: React.FC = () => {
         product,
         storeId: storeId || '',
         storeName: store?.name || 'Mi Tienda',
-        storeLogo: store?.logo_url || undefined,
+        storeLogo: store?.logo || undefined,
         storeSlug: store?.slug || '',
       });
       toast.success('Imagen descargada');
@@ -157,7 +157,7 @@ export const SellerMarketingTools: React.FC = () => {
         {
           storeId: storeId || '',
           storeName: store?.name || 'Mi Tienda',
-          storeLogo: store?.logo_url || undefined,
+          storeLogo: store?.logo || undefined,
           storeSlug: store?.slug || '',
         },
         (current, total) => setDownloadProgress({ current, total })

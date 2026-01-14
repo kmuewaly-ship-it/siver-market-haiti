@@ -90,6 +90,8 @@ const SellerMisComprasPage = lazy(() => import("./pages/seller/SellerMisComprasP
 const SellerCreditPage = lazy(() => import("./pages/seller/SellerCreditPage"));
 const SellerDiscountCodes = lazy(() => import("./pages/seller/SellerDiscountCodes"));
 const SellerCustomerDiscounts = lazy(() => import("./pages/seller/SellerCustomerDiscounts"));
+const SellerMarketingPage = lazy(() => import("./pages/seller/SellerMarketingPage"));
+const SellerAnalyticsPage = lazy(() => import("./pages/seller/SellerAnalyticsPage"));
 
 const AppContent = () => {
   const { toasts, removeToast } = useToast();
@@ -430,6 +432,22 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
                   <LazyRoute><SellerCustomerDiscounts /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/seller/marketing" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
+                  <LazyRoute><SellerMarketingPage /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/seller/analytics" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.SELLER, UserRole.ADMIN]}>
+                  <LazyRoute><SellerAnalyticsPage /></LazyRoute>
                 </ProtectedRoute>
               } 
             />
