@@ -177,7 +177,10 @@ export const SellerMarketingTools: React.FC = () => {
       <Card>
         <CardContent className="py-12 text-center">
           <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-          <p className="text-muted-foreground">Necesitas tener una tienda configurada</p>
+          <p className="text-muted-foreground mb-4">Necesitas tener una tienda configurada</p>
+          <Button asChild variant="outline">
+            <a href="/seller/cuenta">Configurar tienda</a>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -314,9 +317,18 @@ export const SellerMarketingTools: React.FC = () => {
         </CardHeader>
         <CardContent>
           {products.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-center py-8 text-muted-foreground space-y-4">
               <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
-              <p>No tienes productos en tu catálogo</p>
+              <p>No tienes productos en tu catálogo B2C</p>
+              <p className="text-sm">Para generar materiales de marketing, primero debes importar productos desde tus compras B2B a tu inventario B2C.</p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild variant="default" style={{ backgroundColor: '#071d7f' }}>
+                  <a href="/seller/inventario">Ir a Inventario B2C</a>
+                </Button>
+                <Button asChild variant="outline">
+                  <a href="/seller/adquisicion-lotes">Comprar Lotes B2B</a>
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
