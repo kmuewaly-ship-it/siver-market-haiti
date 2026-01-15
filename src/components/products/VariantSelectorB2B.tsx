@@ -143,6 +143,30 @@ const VariantSelectorB2B = ({
     return result;
   }, [variants]);
 
+  // Build attribute-value-to-image map from variants
+  const attributeImageMap = useMemo(() => {
+    const map: Record<string, Record<string, string>> = {};
+    
+    variants.forEach(variant => {
+      const combo = variant.attribute_combination || {};
+      const variantImage = variant.image_url || variant.images?.[0];
+      
+      if (variantImage) {
+        Object.entries(combo).forEach(([attrKey, attrValue]) => {
+          if (attrValue) {
+            if (!map[attrKey]) map[attrKey] = {};
+            // Only set if not already set (keep first found image)
+            if (!map[attrKey][attrValue]) {
+              map[attrKey][attrValue] = variantImage;
+            }
+          }
+        });
+      }
+    });
+    
+    return map;
+  }, [variants]);
+
   // Get ordered list of attribute types
   const orderedAttributeTypes = useMemo(() => {
     const types = Object.keys(attributeOptions);
@@ -371,13 +395,15 @@ const VariantSelectorB2B = ({
             </h4>
 
             {type === 'color' ? (
-              // Color swatches
+              // Color swatches - with IMAGE THUMBNAILS support
               <div className="flex flex-wrap gap-2">
                 {allOptions.map(value => {
                   const isSelected = selectedValue === value;
                   const isAvailable = availableOptions.includes(value);
                   const stock = getOptionStock(type, value);
                   const colorHex = getColorHex(value);
+                  // Get variant image for this color
+                  const optionImage = attributeImageMap[type]?.[value] || attributeImageMap['color']?.[value];
                   
                   return (
                     <button
@@ -385,25 +411,62 @@ const VariantSelectorB2B = ({
                       onClick={() => isAvailable && handleSelectAttribute(type, value)}
                       disabled={!isAvailable}
                       className={cn(
-                        "relative w-10 h-10 rounded-full border-2 transition-all",
-                        "flex items-center justify-center overflow-hidden",
+                        "relative w-12 h-12 rounded-lg border-2 transition-all",
+                        "flex items-center justify-center overflow-hidden group",
                         isSelected 
-                          ? "border-primary ring-2 ring-primary/30" 
+                          ? "border-primary ring-2 ring-primary/30 scale-105" 
                           : "border-border hover:border-primary/50",
                         !isAvailable && "opacity-30 cursor-not-allowed"
                       )}
                       title={`${value} - ${stock} disponibles`}
                     >
-                      {colorHex ? (
-                        <div className="w-full h-full rounded-full" style={{ backgroundColor: colorHex }} />
+                      {/* Priority: Image > Color Hex > Letter fallback */}
+                      {optionImage ? (
+                        <img 
+                          src={optionImage} 
+                          alt={value}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                          onError={(e) => {
+                            // If image fails, hide it and show color/letter fallback
+                            e.currentTarget.style.display = 'none';
+                            const parent = e.currentTarget.parentElement;
+                            if (parent) {
+                              const fallback = document.createElement('div');
+                              fallback.className = 'w-full h-full rounded-lg flex items-center justify-center';
+                              fallback.style.backgroundColor = colorHex || '#E5E7EB';
+                              if (!colorHex) {
+                                fallback.innerHTML = `<span class="text-[10px] font-bold uppercase text-gray-600">${value.charAt(0)}</span>`;
+                              }
+                              parent.appendChild(fallback);
+                            }
+                          }}
+                        />
+                      ) : colorHex ? (
+                        <div className="w-full h-full rounded-lg" style={{ backgroundColor: colorHex }} />
                       ) : (
-                        <span className="text-[10px] font-bold uppercase">
+                        <span className="text-[10px] font-bold uppercase text-muted-foreground">
                           {value.charAt(0)}
                         </span>
                       )}
+                      {/* Selection indicator */}
                       {isSelected && (
-                        <Check className="absolute w-4 h-4 text-white drop-shadow-md" />
+                        <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
+                          <Check className="w-4 h-4 text-primary drop-shadow-md" />
+                        </div>
                       )}
+                      {/* Out of stock overlay */}
+                      {!isAvailable && (
+                        <div className="absolute inset-0 bg-background/60 flex items-center justify-center">
+                          <div className="w-6 h-0.5 bg-destructive rotate-45 rounded" />
+                        </div>
+                      )}
+                      {/* Color name tooltip on hover */}
+                      <div className="absolute inset-x-0 -bottom-6 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                        <span className="text-[9px] text-muted-foreground font-medium capitalize truncate block text-center">
+                          {value}
+                        </span>
+                      </div>
                     </button>
                   );
                 })}

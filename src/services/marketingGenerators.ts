@@ -50,7 +50,9 @@ const formatPrice = (price: number): string => {
   return `$${price.toFixed(2)}`;
 };
 
-// Generate Interactive PDF Catalog
+// Generate Interactive PDF Catalog - Ultra-Minimalist Design
+// ONLY includes: Main Image, Variant Thumbnails, Price, Buy Button
+// NO title, NO description as per design specs
 export const generatePDFCatalog = async (options: PDFGeneratorOptions): Promise<string> => {
   const { products, storeId, storeName, storeLogo, storeSlug, primaryColor = '#8B5CF6', showQR = true, trackingEnabled = true } = options;
   
@@ -64,18 +66,22 @@ export const generatePDFCatalog = async (options: PDFGeneratorOptions): Promise<
   for (const product of products) {
     const mainImage = product.images[0] || '/placeholder.svg';
     const productLink = getProductLink(product, storeSlug);
-    const qrUrl = showQR ? await generateQRCode(productLink) : null;
+    const qrUrl = showQR ? await generateQRCode(productLink, 80) : null;
     
-    // Generate variant thumbnails HTML
+    // Generate variant thumbnails HTML - circular mini thumbnails
     let variantThumbnails = '';
     if (product.variants && product.variants.length > 1) {
       variantThumbnails = `
         <div class="variants-row">
-          ${product.variants.slice(0, 6).map((v, idx) => `
-            <div class="variant-thumb" data-variant-idx="${idx}" data-variant-image="${v.image || mainImage}">
-              <img src="${v.image || mainImage}" alt="${v.color || v.size || 'Variante'}" />
-              <span class="variant-label">${v.color || v.size || ''}</span>
-            </div>
+          ${product.variants.slice(0, 8).map((v, idx) => `
+            <button class="variant-thumb ${idx === 0 ? 'active' : ''}" 
+                    data-variant-idx="${idx}" 
+                    data-variant-image="${v.image || mainImage}"
+                    data-variant-id="${v.id}"
+                    onclick="switchVariant(this, '${productLink}${v.id ? `?variant=${v.id}` : ''}')"
+                    title="${v.color || v.size || 'Variante'}">
+              <img src="${v.image || mainImage}" alt="" />
+            </button>
           `).join('')}
         </div>
       `;
@@ -86,25 +92,23 @@ export const generatePDFCatalog = async (options: PDFGeneratorOptions): Promise<
       ? `<img src="${trackingBaseUrl}?sid=${storeId}&pid=${product.id}&src=pdf_catalog" width="1" height="1" style="position:absolute;opacity:0;" />`
       : '';
 
+    // Ultra-minimalist product card: Image + Variants + Price + Buy Button ONLY
     productsHtml += `
       <div class="product-card" data-product-id="${product.id}">
         ${trackingPixel}
-        <div class="product-image-container">
-          <img class="main-image" src="${mainImage}" alt="${product.nombre}" />
-        </div>
-        ${variantThumbnails}
-        <div class="product-info">
-          <h3 class="product-name">${product.nombre}</h3>
-          <div class="product-price">${formatPrice(product.precio_venta)}</div>
-          ${product.descripcion ? `<p class="product-desc">${product.descripcion.substring(0, 100)}${product.descripcion.length > 100 ? '...' : ''}</p>` : ''}
-        </div>
-        ${qrUrl ? `
-          <div class="qr-container">
-            <img src="${qrUrl}" alt="QR Code" class="qr-code" />
-            <span class="qr-label">Escanea para comprar</span>
+        <a href="${productLink}" class="image-link" target="_blank">
+          <div class="product-image-container">
+            <img class="main-image" src="${mainImage}" alt="" />
           </div>
-        ` : ''}
-        <a href="${productLink}" class="buy-link" target="_blank">Ver Producto →</a>
+        </a>
+        ${variantThumbnails}
+        <div class="product-footer">
+          <div class="price-qr-row">
+            <span class="product-price">${formatPrice(product.precio_venta)}</span>
+            ${qrUrl ? `<img src="${qrUrl}" alt="" class="mini-qr" />` : ''}
+          </div>
+          <a href="${productLink}" class="buy-button" target="_blank">COMPRAR</a>
+        </div>
       </div>
     `;
   }
@@ -114,223 +118,207 @@ export const generatePDFCatalog = async (options: PDFGeneratorOptions): Promise<
     <html>
     <head>
       <meta charset="UTF-8">
-      <title>Catálogo - ${storeName}</title>
+      <title>${storeName}</title>
       <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500;700;800&display=swap');
         
         * { margin: 0; padding: 0; box-sizing: border-box; }
         
         body {
           font-family: 'Inter', sans-serif;
-          background: #f8fafc;
-          color: #1e293b;
-          line-height: 1.5;
+          background: #ffffff;
+          color: #0a0a0a;
         }
         
         .catalog-header {
-          background: linear-gradient(135deg, ${primaryColor}, ${primaryColor}dd);
-          color: white;
-          padding: 40px 20px;
-          text-align: center;
-          margin-bottom: 30px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 16px;
+          padding: 24px 20px;
+          border-bottom: 1px solid #e5e5e5;
         }
         
         .store-logo {
-          width: 80px;
-          height: 80px;
+          width: 48px;
+          height: 48px;
           border-radius: 50%;
-          background: white;
           object-fit: cover;
-          margin-bottom: 16px;
         }
         
         .store-name {
-          font-size: 32px;
-          font-weight: 700;
-          margin-bottom: 8px;
-        }
-        
-        .catalog-title {
-          font-size: 18px;
-          opacity: 0.9;
+          font-size: 24px;
+          font-weight: 800;
+          letter-spacing: -0.5px;
         }
         
         .products-grid {
           display: grid;
-          grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-          gap: 24px;
-          padding: 0 20px 40px;
-          max-width: 1200px;
+          grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+          gap: 16px;
+          padding: 20px;
+          max-width: 1100px;
           margin: 0 auto;
         }
         
         .product-card {
-          background: white;
-          border-radius: 16px;
+          background: #fafafa;
+          border-radius: 12px;
           overflow: hidden;
-          box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
-          transition: transform 0.2s, box-shadow 0.2s;
           position: relative;
+          transition: transform 0.2s, box-shadow 0.2s;
         }
         
         .product-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15);
+          transform: translateY(-2px);
+          box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        }
+        
+        .image-link {
+          display: block;
+          text-decoration: none;
         }
         
         .product-image-container {
           aspect-ratio: 1;
           overflow: hidden;
-          background: #f1f5f9;
+          background: #f0f0f0;
         }
         
         .main-image {
           width: 100%;
           height: 100%;
           object-fit: cover;
-          transition: transform 0.3s;
+          transition: opacity 0.2s ease;
         }
         
-        .product-card:hover .main-image {
-          transform: scale(1.05);
-        }
-        
+        /* Variant Thumbnails - Circular mini swatches */
         .variants-row {
           display: flex;
-          gap: 8px;
-          padding: 12px;
-          overflow-x: auto;
-          border-bottom: 1px solid #e2e8f0;
+          gap: 6px;
+          padding: 10px 12px;
+          background: #ffffff;
+          justify-content: center;
+          flex-wrap: wrap;
         }
         
         .variant-thumb {
-          flex-shrink: 0;
-          width: 48px;
-          text-align: center;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          border: 2px solid transparent;
+          padding: 0;
           cursor: pointer;
-          opacity: 0.7;
-          transition: opacity 0.2s;
+          overflow: hidden;
+          background: none;
+          transition: all 0.15s ease;
         }
         
-        .variant-thumb:hover, .variant-thumb.active {
-          opacity: 1;
+        .variant-thumb:hover {
+          transform: scale(1.1);
+        }
+        
+        .variant-thumb.active {
+          border-color: ${primaryColor};
+          box-shadow: 0 0 0 2px ${primaryColor}33;
         }
         
         .variant-thumb img {
-          width: 40px;
-          height: 40px;
-          border-radius: 8px;
+          width: 100%;
+          height: 100%;
           object-fit: cover;
-          border: 2px solid transparent;
+          border-radius: 50%;
         }
         
-        .variant-thumb.active img {
-          border-color: ${primaryColor};
+        /* Footer: Price + QR + Buy Button */
+        .product-footer {
+          padding: 12px;
+          background: #ffffff;
         }
         
-        .variant-label {
-          font-size: 10px;
-          color: #64748b;
-          display: block;
-          margin-top: 4px;
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        
-        .product-info {
-          padding: 16px;
-        }
-        
-        .product-name {
-          font-size: 16px;
-          font-weight: 600;
-          color: #1e293b;
-          margin-bottom: 8px;
-          display: -webkit-box;
-          -webkit-line-clamp: 2;
-          -webkit-box-orient: vertical;
-          overflow: hidden;
+        .price-qr-row {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 10px;
         }
         
         .product-price {
-          font-size: 24px;
-          font-weight: 700;
+          font-size: 28px;
+          font-weight: 800;
           color: ${primaryColor};
-          margin-bottom: 8px;
+          letter-spacing: -1px;
         }
         
-        .product-desc {
-          font-size: 13px;
-          color: #64748b;
-          margin-bottom: 12px;
+        .mini-qr {
+          width: 48px;
+          height: 48px;
+          border-radius: 6px;
         }
         
-        .qr-container {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-          padding: 12px 16px;
-          background: #f8fafc;
-          border-top: 1px solid #e2e8f0;
-        }
-        
-        .qr-code {
-          width: 60px;
-          height: 60px;
-        }
-        
-        .qr-label {
-          font-size: 12px;
-          color: #64748b;
-        }
-        
-        .buy-link {
+        .buy-button {
           display: block;
+          width: 100%;
           text-align: center;
-          padding: 14px;
+          padding: 12px;
           background: ${primaryColor};
           color: white;
           text-decoration: none;
-          font-weight: 600;
-          transition: background 0.2s;
+          font-weight: 700;
+          font-size: 14px;
+          letter-spacing: 0.5px;
+          border-radius: 8px;
+          transition: background 0.2s, transform 0.1s;
         }
         
-        .buy-link:hover {
+        .buy-button:hover {
           background: ${primaryColor}dd;
+          transform: scale(1.02);
+        }
+        
+        .buy-button:active {
+          transform: scale(0.98);
         }
         
         @media print {
-          .product-card { break-inside: avoid; }
-          .buy-link { display: none; }
+          .product-card { break-inside: avoid; page-break-inside: avoid; }
+          .buy-button { background: ${primaryColor} !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+          .product-price { color: ${primaryColor} !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+        
+        @page {
+          margin: 0.5cm;
         }
       </style>
       <script>
-        document.addEventListener('DOMContentLoaded', function() {
-          document.querySelectorAll('.variant-thumb').forEach(thumb => {
-            thumb.addEventListener('click', function() {
-              const card = this.closest('.product-card');
-              const mainImg = card.querySelector('.main-image');
-              const newSrc = this.dataset.variantImage;
-              
-              card.querySelectorAll('.variant-thumb').forEach(t => t.classList.remove('active'));
-              this.classList.add('active');
-              
-              mainImg.style.opacity = '0';
-              setTimeout(() => {
-                mainImg.src = newSrc;
-                mainImg.style.opacity = '1';
-              }, 150);
-            });
-          });
-        });
+        function switchVariant(thumb, link) {
+          const card = thumb.closest('.product-card');
+          const mainImg = card.querySelector('.main-image');
+          const imageLink = card.querySelector('.image-link');
+          const buyButton = card.querySelector('.buy-button');
+          const newSrc = thumb.dataset.variantImage;
+          
+          // Update active state
+          card.querySelectorAll('.variant-thumb').forEach(t => t.classList.remove('active'));
+          thumb.classList.add('active');
+          
+          // Smooth image transition
+          mainImg.style.opacity = '0.5';
+          setTimeout(() => {
+            mainImg.src = newSrc;
+            mainImg.style.opacity = '1';
+          }, 100);
+          
+          // Update links to include variant
+          imageLink.href = link;
+          buyButton.href = link;
+        }
       </script>
     </head>
     <body>
       <header class="catalog-header">
-        ${storeLogo ? `<img src="${storeLogo}" alt="${storeName}" class="store-logo" />` : ''}
+        ${storeLogo ? `<img src="${storeLogo}" alt="" class="store-logo" />` : ''}
         <h1 class="store-name">${storeName}</h1>
-        <p class="catalog-title">Catálogo de Productos</p>
       </header>
       
       <main class="products-grid">
@@ -368,6 +356,9 @@ export interface WhatsAppStatusOptions {
   showQR?: boolean;
 }
 
+// Generate WhatsApp Status image (9:16 aspect ratio) - Ultra-Minimalist
+// ONLY includes: Full-screen product image, Price overlay, QR code at bottom
+// NO title, NO description - image speaks for itself
 export const generateWhatsAppStatusImage = async (options: WhatsAppStatusOptions): Promise<HTMLCanvasElement> => {
   const { product, storeId, storeName, storeSlug, variantIndex = 0, primaryColor = '#8B5CF6', showQR = true } = options;
   
@@ -380,118 +371,83 @@ export const generateWhatsAppStatusImage = async (options: WhatsAppStatusOptions
   canvas.height = height;
   const ctx = canvas.getContext('2d')!;
   
-  // Background gradient
-  const gradient = ctx.createLinearGradient(0, 0, 0, height);
-  gradient.addColorStop(0, '#1e1e2e');
-  gradient.addColorStop(1, '#0f0f1a');
-  ctx.fillStyle = gradient;
-  ctx.fillRect(0, 0, width, height);
-  
-  // Load and draw product image
+  // Load and draw product image FULL SCREEN
   const variant = product.variants?.[variantIndex];
   const imageUrl = variant?.image || product.images[0] || '/placeholder.svg';
   
   try {
     const img = await loadImage(imageUrl);
     
-    // Draw product image (centered, covering top portion)
-    const imgSize = 900;
-    const imgX = (width - imgSize) / 2;
-    const imgY = 180;
-    
-    // Add subtle rounded corners effect
-    ctx.save();
-    roundedRect(ctx, imgX, imgY, imgSize, imgSize, 24);
-    ctx.clip();
-    
-    // Calculate cover dimensions
-    const scale = Math.max(imgSize / img.width, imgSize / img.height);
+    // Draw product image covering the entire canvas
+    const scale = Math.max(width / img.width, height / img.height);
     const scaledWidth = img.width * scale;
     const scaledHeight = img.height * scale;
-    const offsetX = (imgSize - scaledWidth) / 2;
-    const offsetY = (imgSize - scaledHeight) / 2;
+    const offsetX = (width - scaledWidth) / 2;
+    const offsetY = (height - scaledHeight) / 2;
     
-    ctx.drawImage(img, imgX + offsetX, imgY + offsetY, scaledWidth, scaledHeight);
-    ctx.restore();
-    
-    // Add subtle shadow/glow under image
-    ctx.shadowColor = primaryColor;
-    ctx.shadowBlur = 40;
-    ctx.shadowOffsetY = 20;
+    ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
   } catch (e) {
-    // Draw placeholder
-    ctx.fillStyle = '#374151';
-    roundedRect(ctx, 90, 180, 900, 900, 24);
-    ctx.fill();
+    // Draw solid background if image fails
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, width, height);
   }
   
+  // Create elegant gradient overlay at bottom for price/QR
+  const overlayHeight = 480;
+  const bottomGradient = ctx.createLinearGradient(0, height - overlayHeight, 0, height);
+  bottomGradient.addColorStop(0, 'rgba(0, 0, 0, 0)');
+  bottomGradient.addColorStop(0.3, 'rgba(0, 0, 0, 0.4)');
+  bottomGradient.addColorStop(1, 'rgba(0, 0, 0, 0.85)');
+  ctx.fillStyle = bottomGradient;
+  ctx.fillRect(0, height - overlayHeight, width, overlayHeight);
+  
+  // Price - Large, prominent, bottom section
+  const priceY = height - 280;
+  ctx.font = 'bold 120px Inter, system-ui, sans-serif';
+  ctx.fillStyle = '#ffffff';
+  ctx.textAlign = 'center';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 20;
+  ctx.shadowOffsetY = 4;
+  ctx.fillText(formatPrice(product.precio_venta), width / 2, priceY);
+  
+  // Reset shadow
   ctx.shadowColor = 'transparent';
   ctx.shadowBlur = 0;
   ctx.shadowOffsetY = 0;
   
-  // Store name at top
-  ctx.font = 'bold 42px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  ctx.fillText(storeName.toUpperCase(), width / 2, 100);
-  
-  // Product info section
-  const infoY = 1150;
-  
-  // Product name
-  ctx.font = 'bold 56px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#ffffff';
-  ctx.textAlign = 'center';
-  
-  const productName = product.nombre.length > 35 
-    ? product.nombre.substring(0, 35) + '...' 
-    : product.nombre;
-  ctx.fillText(productName, width / 2, infoY);
-  
-  // Variant info if applicable
-  if (variant?.color || variant?.size) {
-    ctx.font = '36px Inter, system-ui, sans-serif';
-    ctx.fillStyle = '#9ca3af';
-    const variantText = [variant.color, variant.size].filter(Boolean).join(' • ');
-    ctx.fillText(variantText, width / 2, infoY + 60);
-  }
-  
-  // Price (large and prominent)
-  ctx.font = 'bold 96px Inter, system-ui, sans-serif';
-  ctx.fillStyle = primaryColor;
-  ctx.fillText(formatPrice(product.precio_venta), width / 2, infoY + 180);
-  
-  // QR Code
+  // QR Code - positioned elegantly at bottom right
   if (showQR) {
     const productLink = getProductLink(product, storeSlug, variant?.id);
     const trackingUrl = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/track-catalog-click?sid=${storeId}&pid=${product.id}&src=whatsapp_status&redirect=${encodeURIComponent(productLink)}`;
     
     try {
-      const qrImg = await loadImage(await generateQRCode(trackingUrl, 200));
-      const qrSize = 180;
-      const qrX = (width - qrSize) / 2;
-      const qrY = 1420;
+      const qrImg = await loadImage(await generateQRCode(trackingUrl, 180));
+      const qrSize = 140;
+      const qrX = width - qrSize - 40;
+      const qrY = height - qrSize - 40;
       
-      // White background for QR
+      // White background for QR with rounded corners
       ctx.fillStyle = '#ffffff';
-      roundedRect(ctx, qrX - 15, qrY - 15, qrSize + 30, qrSize + 30, 16);
+      roundedRect(ctx, qrX - 10, qrY - 10, qrSize + 20, qrSize + 20, 12);
       ctx.fill();
       
       ctx.drawImage(qrImg, qrX, qrY, qrSize, qrSize);
-      
-      // CTA text
-      ctx.font = 'bold 32px Inter, system-ui, sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('Escanea para comprar', width / 2, qrY + qrSize + 60);
     } catch (e) {
       console.error('Error loading QR:', e);
     }
   }
   
-  // Swipe up indicator
-  ctx.font = '28px Inter, system-ui, sans-serif';
-  ctx.fillStyle = '#6b7280';
-  ctx.fillText('↑ Desliza para más', width / 2, height - 60);
+  // Minimal store watermark at top (small, subtle)
+  ctx.font = '600 28px Inter, system-ui, sans-serif';
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+  ctx.textAlign = 'left';
+  ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
+  ctx.shadowBlur = 10;
+  ctx.fillText(storeName, 40, 60);
+  
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
   
   return canvas;
 };
