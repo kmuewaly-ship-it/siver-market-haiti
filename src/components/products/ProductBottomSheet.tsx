@@ -463,9 +463,9 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         <Drawer open={isOpen} onOpenChange={(open) => !open && onClose()}>
           <DrawerContent className="max-h-[95vh] flex flex-col p-0">
             {product ? (
-              <div className="mx-auto w-full max-w-sm flex flex-col max-h-[95vh] gap-0">
+              <div className="mx-auto w-full max-w-sm flex flex-col h-screen gap-0">
                 {/* Header */}
-                <DrawerHeader className="flex-shrink-0 pb-2 flex items-center justify-between">
+                <DrawerHeader className="flex-shrink-0 pb-2 flex items-center justify-between border-b">
                   <div className="flex gap-3 items-start text-left flex-1">
                     <div className="w-16 h-16 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
                       <img src={product.image} alt={product.name} className="w-full h-full object-cover" />
@@ -488,7 +488,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 </DrawerHeader>
 
                 {/* Content */}
-                <div className="px-4 pb-24 overflow-y-auto flex-1">
+                <div className="px-4 overflow-y-auto flex-1">
                   <div className="mb-4">
                     {/* Unified VariantSelector - same as product page */}
                     <VariantSelector 
@@ -557,8 +557,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                   )}
                 </div>
 
-                {/* Footer - Fixed Position */}
-                <div className="fixed bottom-0 left-0 right-0 z-50 px-4 py-4 border-t bg-white max-w-sm mx-auto">
+                {/* Footer - Flexbox Footer */}
+                <div className="flex-shrink-0 px-4 py-4 border-t bg-white">
                   {/* Show simplified footer when using B2B variant selector with multiple variants */}
                   {product?.variants && product.variants.length > 1 ? (
                     <div className="flex items-center justify-between gap-3">
