@@ -541,7 +541,7 @@ const VariantSelector = ({
                           onClick={() => !isOutOfStock && handleAttributeSelect(attrType, option)}
                           disabled={isOutOfStock}
                           className={cn(
-                            "relative w-12 h-12 rounded-lg border-2 transition-all overflow-hidden group",
+                            "relative w-16 h-16 sm:w-12 sm:h-12 rounded-lg border-2 transition-all overflow-hidden group",
                             isSelected 
                               ? "border-primary ring-2 ring-primary/30 scale-105" 
                               : "border-border hover:border-primary/50",
@@ -549,23 +549,31 @@ const VariantSelector = ({
                           )}
                           title={`${option}${isOutOfStock ? ' (Agotado)' : ''}`}
                         >
-                          <img 
-                            src={optionImage} 
-                            alt={option}
-                            className="w-full h-full object-cover"
-                            loading="lazy"
-                            referrerPolicy="no-referrer"
-                            crossOrigin="anonymous"
-                            onError={(e) => {
-                              // If image fails, hide it and show fallback color
-                              const target = e.currentTarget;
-                              target.style.display = 'none';
-                              const parent = target.parentElement;
-                              if (parent) {
-                                parent.style.backgroundColor = getColorHex(option) || '#E5E7EB';
-                              }
-                            }}
-                          />
+                          {optionImage && (
+                            <img 
+                              src={optionImage} 
+                              alt={option}
+                              className="w-full h-full object-cover"
+                              loading="eager"
+                              crossOrigin="anonymous"
+                              decoding="sync"
+                              onError={(e) => {
+                                // If image fails, show fallback color
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.style.backgroundColor = getColorHex(option) || '#E5E7EB';
+                                }
+                              }}
+                            />
+                          )}
+                          {!optionImage && (
+                            <div 
+                              className="w-full h-full" 
+                              style={{ backgroundColor: getColorHex(option) || '#E5E7EB' }}
+                            />
+                          )}
                           {/* Selection indicator */}
                           {isSelected && (
                             <div className="absolute inset-0 bg-primary/20 flex items-center justify-center">
