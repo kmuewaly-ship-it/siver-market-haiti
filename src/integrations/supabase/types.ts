@@ -1081,6 +1081,63 @@ export type Database = {
           },
         ]
       }
+      commission_overrides: {
+        Row: {
+          category_id: string | null
+          commission_rate: number
+          created_at: string | null
+          created_by: string | null
+          id: string
+          is_active: boolean | null
+          reason: string | null
+          seller_id: string | null
+          updated_at: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          category_id?: string | null
+          commission_rate: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          seller_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          category_id?: string | null
+          commission_rate?: number
+          created_at?: string | null
+          created_by?: string | null
+          id?: string
+          is_active?: boolean | null
+          reason?: string | null
+          seller_id?: string | null
+          updated_at?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "commission_overrides_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "commission_overrides_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       communes: {
         Row: {
           code: string
@@ -2015,6 +2072,77 @@ export type Database = {
           },
         ]
       }
+      order_items_b2c: {
+        Row: {
+          cantidad: number
+          created_at: string | null
+          descuento_percent: number | null
+          id: string
+          metadata: Json | null
+          nombre: string
+          order_id: string
+          precio_unitario: number
+          seller_catalog_id: string | null
+          sku: string
+          subtotal: number
+        }
+        Insert: {
+          cantidad: number
+          created_at?: string | null
+          descuento_percent?: number | null
+          id?: string
+          metadata?: Json | null
+          nombre: string
+          order_id: string
+          precio_unitario: number
+          seller_catalog_id?: string | null
+          sku: string
+          subtotal: number
+        }
+        Update: {
+          cantidad?: number
+          created_at?: string | null
+          descuento_percent?: number | null
+          id?: string
+          metadata?: Json | null
+          nombre?: string
+          order_id?: string
+          precio_unitario?: number
+          seller_catalog_id?: string | null
+          sku?: string
+          subtotal?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_b2c_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders_b2c"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_b2c_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_b2c_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog_marketing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_b2c_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_refunds: {
         Row: {
           amount: number
@@ -2261,6 +2389,138 @@ export type Database = {
             columns: ["seller_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      orders_b2c: {
+        Row: {
+          cancelled_at: string | null
+          confirmed_at: string | null
+          created_at: string | null
+          currency: string | null
+          customer_id: string
+          customer_notes: string | null
+          delivered_at: string | null
+          delivery_method: string | null
+          discount_amount: number | null
+          estimated_delivery_at: string | null
+          id: string
+          metadata: Json | null
+          notes: string | null
+          order_number: string
+          paid_at: string | null
+          payment_method: string | null
+          payment_reference: string | null
+          payment_status: string | null
+          pickup_point_id: string | null
+          seller_id: string | null
+          shipped_at: string | null
+          shipping_address: Json | null
+          shipping_cost: number | null
+          status: string | null
+          store_id: string | null
+          subtotal: number | null
+          tax_amount: number | null
+          total_amount: number
+          updated_at: string | null
+        }
+        Insert: {
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_id: string
+          customer_notes?: string | null
+          delivered_at?: string | null
+          delivery_method?: string | null
+          discount_amount?: number | null
+          estimated_delivery_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          order_number: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          pickup_point_id?: string | null
+          seller_id?: string | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          status?: string | null
+          store_id?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount: number
+          updated_at?: string | null
+        }
+        Update: {
+          cancelled_at?: string | null
+          confirmed_at?: string | null
+          created_at?: string | null
+          currency?: string | null
+          customer_id?: string
+          customer_notes?: string | null
+          delivered_at?: string | null
+          delivery_method?: string | null
+          discount_amount?: number | null
+          estimated_delivery_at?: string | null
+          id?: string
+          metadata?: Json | null
+          notes?: string | null
+          order_number?: string
+          paid_at?: string | null
+          payment_method?: string | null
+          payment_reference?: string | null
+          payment_status?: string | null
+          pickup_point_id?: string | null
+          seller_id?: string | null
+          shipped_at?: string | null
+          shipping_address?: Json | null
+          shipping_cost?: number | null
+          status?: string | null
+          store_id?: string | null
+          subtotal?: number | null
+          tax_amount?: number | null
+          total_amount?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_b2c_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_point_pending_deliveries"
+            referencedColumns: ["pickup_point_id"]
+          },
+          {
+            foreignKeyName: "orders_b2c_pickup_point_id_fkey"
+            columns: ["pickup_point_id"]
+            isOneToOne: false
+            referencedRelation: "pickup_points"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_b2c_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_b2c_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "orders_b2c_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
             referencedColumns: ["id"]
           },
         ]
@@ -3852,6 +4112,94 @@ export type Database = {
         }
         Relationships: []
       }
+      seller_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          product_id: string | null
+          seller_id: string
+          variant_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          seller_id: string
+          variant_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          product_id?: string | null
+          seller_id?: string
+          variant_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_eta_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_b2b_enriched"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_seller_id_fkey"
+            columns: ["seller_id"]
+            isOneToOne: false
+            referencedRelation: "sellers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "seller_favorites_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
+          },
+        ]
+      }
       seller_statuses: {
         Row: {
           caption: string | null
@@ -5326,6 +5674,66 @@ export type Database = {
         }
         Relationships: []
       }
+      user_favorites: {
+        Row: {
+          created_at: string | null
+          id: string
+          seller_catalog_id: string | null
+          store_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          seller_catalog_id?: string | null
+          store_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          seller_catalog_id?: string | null
+          store_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_favorites_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog_marketing"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_seller_catalog_id_fkey"
+            columns: ["seller_catalog_id"]
+            isOneToOne: false
+            referencedRelation: "seller_catalog_public"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_notification_preferences: {
         Row: {
           created_at: string | null
@@ -6229,6 +6637,7 @@ export type Database = {
         | "depleted"
         | "cancelled"
       stock_status: "in_stock" | "low_stock" | "out_of_stock"
+      user_role: "admin" | "seller" | "buyer" | "gestor" | "investor"
       verification_status:
         | "unverified"
         | "pending_verification"
@@ -6432,6 +6841,7 @@ export const Constants = {
         "cancelled",
       ],
       stock_status: ["in_stock", "low_stock", "out_of_stock"],
+      user_role: ["admin", "seller", "buyer", "gestor", "investor"],
       verification_status: [
         "unverified",
         "pending_verification",
