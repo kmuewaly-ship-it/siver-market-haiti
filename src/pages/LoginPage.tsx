@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { UserRole } from "@/types/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -27,8 +28,21 @@ const LoginPage = () => {
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   
-  const { signIn, signUp } = useAuth();
+  const { signIn, signUp, user, role, isLoading: authLoading } = useAuth();
   const navigate = useNavigate();
+
+  // Redirigir si el usuario ya está autenticado
+  useEffect(() => {
+    if (!authLoading && user) {
+      if (role === UserRole.SELLER) {
+        navigate('/seller/adquisicion-lotes', { replace: true });
+      } else if (role === UserRole.ADMIN) {
+        navigate('/admin/dashboard', { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
+  }, [user, role, authLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
