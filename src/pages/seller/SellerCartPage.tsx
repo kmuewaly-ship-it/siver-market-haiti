@@ -1219,17 +1219,18 @@ const SellerCartPage = () => {
             setVariantImage(null);
           }
         }}>
-          <DrawerContent className="flex flex-col max-h-[85vh] p-0">
-            <DrawerHeader className="p-4 pb-2 border-b flex-shrink-0">
-              <DrawerTitle className="text-lg line-clamp-1">{selectedProductForVariants.nombre}</DrawerTitle>
+          <DrawerContent className="flex flex-col max-h-[90vh] p-0 gap-0">
+            {/* Header - Fixed */}
+            <DrawerHeader className="py-3 px-4 pb-2 border-b flex-shrink-0 bg-white">
+              <DrawerTitle className="text-base line-clamp-1">{selectedProductForVariants.nombre}</DrawerTitle>
               <DrawerDescription className="text-xs">
                 Selecciona variantes para agregar al carrito
               </DrawerDescription>
             </DrawerHeader>
             
-            {/* Fixed Product Image */}
-            <div className="px-4 pt-3 pb-2 border-b flex-shrink-0">
-              <div className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden">
+            {/* Product Image - Fixed Above Box */}
+            <div className="px-3 pt-2 pb-2 flex-shrink-0 bg-white">
+              <div className="w-full h-32 bg-gray-100 rounded-lg overflow-hidden">
                 <img 
                   src={variantImage || selectedProductForVariants.images?.[0] || '/placeholder.svg'} 
                   alt={selectedProductForVariants.nombre}
@@ -1238,71 +1239,75 @@ const SellerCartPage = () => {
               </div>
             </div>
             
-            {/* Scrollable Content */}
-            <ScrollArea className="flex-1 px-4">
-              <div className="space-y-2 py-3">
-                {/* Price Info */}
-                <div className="flex items-center justify-between bg-muted/50 p-2 rounded-lg text-sm">
-                  <div>
-                    <p className="text-[10px] text-muted-foreground">Precio B2B</p>
-                    <p className="font-bold" style={{ color: '#29892a' }}>
-                      ${selectedProductForVariants.costB2B?.toFixed(2) || '0.00'}
-                    </p>
-                  </div>
-                  {variantSelections.length > 0 && (
-                    <div className="text-right">
-                      <p className="text-[10px] text-muted-foreground">Seleccionado</p>
-                      <p className="font-bold text-primary">
-                        {variantSelections.reduce((sum, s) => sum + s.quantity, 0)} uds
-                      </p>
+            {/* Main Content Box with Scroll */}
+            <div className="flex-1 min-h-0 px-3 py-2 overflow-hidden">
+              <div className="w-full h-full border border-gray-200 rounded-lg bg-white overflow-hidden flex flex-col">
+                <ScrollArea className="flex-1">
+                  <div className="p-3 space-y-2">
+                    {/* Price Info */}
+                    <div className="flex items-center justify-between bg-muted/50 p-2 rounded-lg text-sm">
+                      <div>
+                        <p className="text-[10px] text-muted-foreground">Precio B2B</p>
+                        <p className="font-bold" style={{ color: '#29892a' }}>
+                          ${selectedProductForVariants.costB2B?.toFixed(2) || '0.00'}
+                        </p>
+                      </div>
+                      {variantSelections.length > 0 && (
+                        <div className="text-right">
+                          <p className="text-[10px] text-muted-foreground">Seleccionado</p>
+                          <p className="font-bold text-primary text-sm">
+                            {variantSelections.reduce((sum, s) => sum + s.quantity, 0)} uds
+                          </p>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
 
-                {/* Variant Selector */}
-                {isLoadingVariants ? (
-                  <div className="flex items-center justify-center py-6">
-                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    <span className="ml-2 text-xs text-muted-foreground">Cargando variantes...</span>
+                    {/* Variant Selector */}
+                    {isLoadingVariants ? (
+                      <div className="flex items-center justify-center py-4">
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                        <span className="ml-2 text-xs text-muted-foreground">Cargando variantes...</span>
+                      </div>
+                    ) : productVariants && productVariants.length > 0 ? (
+                      <VariantSelectorB2B
+                        productId={selectedProductForVariants.id}
+                        variants={productVariants.map(v => {
+                          // Extract color and size from attribute_combination
+                          const attrCombo = v.attribute_combination || {};
+                          const colorVal = attrCombo.color || v.option_value || '';
+                          const sizeVal = attrCombo.size || '';
+                          const labelParts = [colorVal, sizeVal].filter(Boolean);
+                          const label = v.name || labelParts.join(' / ') || v.sku;
+                          
+                          return {
+                            id: v.id,
+                            sku: v.sku,
+                            label,
+                            precio: v.cost_price || v.price || selectedProductForVariants.costB2B || 0,
+                            stock: v.stock || 999,
+                            attribute_combination: attrCombo,
+                            images: v.images || [],
+                            image_url: v.images?.[0] || undefined,
+                          };
+                        })}
+                        basePrice={selectedProductForVariants.costB2B || 0}
+                        baseImage={selectedProductForVariants.images?.[0]}
+                        onSelectionChange={handleVariantSelectionChange}
+                        onVariantImageChange={setVariantImage}
+                      />
+                    ) : (
+                      <div className="text-center py-3 text-muted-foreground">
+                        <Package className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                        <p className="text-xs">No hay variantes disponibles</p>
+                      </div>
+                    )}
                   </div>
-                ) : productVariants && productVariants.length > 0 ? (
-                  <VariantSelectorB2B
-                    productId={selectedProductForVariants.id}
-                    variants={productVariants.map(v => {
-                      // Extract color and size from attribute_combination
-                      const attrCombo = v.attribute_combination || {};
-                      const colorVal = attrCombo.color || v.option_value || '';
-                      const sizeVal = attrCombo.size || '';
-                      const labelParts = [colorVal, sizeVal].filter(Boolean);
-                      const label = v.name || labelParts.join(' / ') || v.sku;
-                      
-                      return {
-                        id: v.id,
-                        sku: v.sku,
-                        label,
-                        precio: v.cost_price || v.price || selectedProductForVariants.costB2B || 0,
-                        stock: v.stock || 999,
-                        attribute_combination: attrCombo,
-                        images: v.images || [],
-                        image_url: v.images?.[0] || undefined,
-                      };
-                    })}
-                    basePrice={selectedProductForVariants.costB2B || 0}
-                    baseImage={selectedProductForVariants.images?.[0]}
-                    onSelectionChange={handleVariantSelectionChange}
-                    onVariantImageChange={setVariantImage}
-                  />
-                ) : (
-                  <div className="text-center py-4 text-muted-foreground">
-                    <Package className="h-6 w-6 mx-auto mb-1 opacity-50" />
-                    <p className="text-xs">No hay variantes disponibles</p>
-                  </div>
-                )}
+                </ScrollArea>
               </div>
-            </ScrollArea>
+            </div>
 
             {/* Actions Footer */}
-            <div className="p-3 border-t bg-background flex gap-2 flex-shrink-0">
+            <div className="p-2 border-t bg-background flex gap-2 flex-shrink-0">
               <Button
                 onClick={() => {
                   setSelectedProductForVariants(null);
