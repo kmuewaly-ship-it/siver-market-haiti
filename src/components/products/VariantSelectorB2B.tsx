@@ -512,8 +512,8 @@ const VariantSelectorB2B = ({
       {/* Show matching variant with quantity controls */}
       {matchingVariant && (
         <div className="p-4 bg-green-50 dark:bg-green-950/30 rounded-lg border border-green-200 dark:border-green-800">
-          <div className="flex items-center justify-between mb-3">
-            <div>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <div className="flex-1">
               <div className="text-sm font-medium text-green-800 dark:text-green-200">
                 {Object.values(selectedAttributes).join(' / ')}
               </div>
@@ -521,34 +521,31 @@ const VariantSelectorB2B = ({
                 <span className="font-bold text-lg text-green-700 dark:text-green-300">
                   ${matchingVariant.precio.toFixed(2)}
                 </span>
-                <span>· {matchingVariant.stock} disponibles</span>
+                <span>· {matchingVariant.stock} disp.</span>
               </div>
             </div>
-          </div>
-          
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-green-700 dark:text-green-300">Cantidad:</span>
-            <div className="flex items-center gap-2">
+            
+            <div className="flex items-center justify-end gap-1 flex-shrink-0">
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="h-9 w-9 border-green-300"
+                className="h-8 w-8 border-green-300"
                 onClick={() => handleQuantityChange(matchingVariant.id, -1, matchingVariant.stock)}
                 disabled={(quantities[matchingVariant.id] || 0) === 0}
               >
-                <Minus className="h-4 w-4" />
+                <Minus className="h-3 w-3" />
               </Button>
-              <div className="w-12 text-center text-lg font-bold">
+              <div className="w-8 text-center text-sm font-bold">
                 {quantities[matchingVariant.id] || 0}
               </div>
               <Button 
                 variant="outline" 
                 size="icon" 
-                className="h-9 w-9 border-green-300"
+                className="h-8 w-8 border-green-300"
                 onClick={() => handleQuantityChange(matchingVariant.id, 1, matchingVariant.stock)}
                 disabled={(quantities[matchingVariant.id] || 0) >= matchingVariant.stock}
               >
-                <Plus className="h-4 w-4" />
+                <Plus className="h-3 w-3" />
               </Button>
             </div>
           </div>
