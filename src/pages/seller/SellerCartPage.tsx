@@ -18,6 +18,14 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerDescription,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square, TrendingUp, Loader2, ShoppingBag } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
@@ -1202,22 +1210,22 @@ const SellerCartPage = () => {
       {/* Variant Drawer */}
       <VariantDrawer />
 
-      {/* Mobile Variant Selection Modal */}
+      {/* Mobile Variant Selection Drawer */}
       {selectedProductForVariants && (
-        <Dialog open={true} onOpenChange={(open) => {
+        <Drawer open={true} onOpenChange={(open) => {
           if (!open) {
             setSelectedProductForVariants(null);
             setVariantSelections([]);
             setVariantImage(null);
           }
         }}>
-          <DialogContent className="max-w-md w-full max-h-[90vh] flex flex-col p-0">
-            <DialogHeader className="p-4 pb-2 border-b">
-              <DialogTitle className="text-lg line-clamp-1">{selectedProductForVariants.nombre}</DialogTitle>
-              <DialogDescription className="text-xs">
+          <DrawerContent className="flex flex-col max-h-[85vh] p-0">
+            <DrawerHeader className="p-4 pb-2 border-b">
+              <DrawerTitle className="text-lg line-clamp-1">{selectedProductForVariants.nombre}</DrawerTitle>
+              <DrawerDescription className="text-xs">
                 Selecciona variantes para agregar al carrito
-              </DialogDescription>
-            </DialogHeader>
+              </DrawerDescription>
+            </DrawerHeader>
             
             <ScrollArea className="flex-1 px-4">
               <div className="space-y-4 py-4">
@@ -1322,8 +1330,8 @@ const SellerCartPage = () => {
                 )}
               </Button>
             </div>
-          </DialogContent>
-        </Dialog>
+          </DrawerContent>
+        </Drawer>
       )}
     </SellerLayout>
   );
