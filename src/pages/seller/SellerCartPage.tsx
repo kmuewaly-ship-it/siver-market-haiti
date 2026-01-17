@@ -1220,36 +1220,39 @@ const SellerCartPage = () => {
           }
         }}>
           <DrawerContent className="flex flex-col max-h-[85vh] p-0">
-            <DrawerHeader className="p-4 pb-2 border-b">
+            <DrawerHeader className="p-4 pb-2 border-b flex-shrink-0">
               <DrawerTitle className="text-lg line-clamp-1">{selectedProductForVariants.nombre}</DrawerTitle>
               <DrawerDescription className="text-xs">
                 Selecciona variantes para agregar al carrito
               </DrawerDescription>
             </DrawerHeader>
             
+            {/* Fixed Product Image */}
+            <div className="px-4 pt-3 pb-2 border-b flex-shrink-0">
+              <div className="w-full h-40 bg-gray-100 rounded-lg overflow-hidden">
+                <img 
+                  src={variantImage || selectedProductForVariants.images?.[0] || '/placeholder.svg'} 
+                  alt={selectedProductForVariants.nombre}
+                  className="w-full h-full object-contain"
+                />
+              </div>
+            </div>
+            
+            {/* Scrollable Content */}
             <ScrollArea className="flex-1 px-4">
-              <div className="space-y-4 py-4">
-                {/* Product Image */}
-                <div className="w-full aspect-video bg-gray-100 rounded-lg overflow-hidden max-h-40">
-                  <img 
-                    src={variantImage || selectedProductForVariants.images?.[0] || '/placeholder.svg'} 
-                    alt={selectedProductForVariants.nombre}
-                    className="w-full h-full object-contain"
-                  />
-                </div>
-                
+              <div className="space-y-2 py-3">
                 {/* Price Info */}
-                <div className="flex items-center justify-between bg-muted/50 p-3 rounded-lg">
+                <div className="flex items-center justify-between bg-muted/50 p-2 rounded-lg text-sm">
                   <div>
-                    <p className="text-xs text-muted-foreground">Precio B2B</p>
-                    <p className="text-xl font-bold" style={{ color: '#29892a' }}>
+                    <p className="text-[10px] text-muted-foreground">Precio B2B</p>
+                    <p className="font-bold" style={{ color: '#29892a' }}>
                       ${selectedProductForVariants.costB2B?.toFixed(2) || '0.00'}
                     </p>
                   </div>
                   {variantSelections.length > 0 && (
                     <div className="text-right">
-                      <p className="text-xs text-muted-foreground">Seleccionado</p>
-                      <p className="text-lg font-bold text-primary">
+                      <p className="text-[10px] text-muted-foreground">Seleccionado</p>
+                      <p className="font-bold text-primary">
                         {variantSelections.reduce((sum, s) => sum + s.quantity, 0)} uds
                       </p>
                     </div>
@@ -1258,9 +1261,9 @@ const SellerCartPage = () => {
 
                 {/* Variant Selector */}
                 {isLoadingVariants ? (
-                  <div className="flex items-center justify-center py-8">
-                    <Loader2 className="h-6 w-6 animate-spin text-primary" />
-                    <span className="ml-2 text-sm text-muted-foreground">Cargando variantes...</span>
+                  <div className="flex items-center justify-center py-6">
+                    <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    <span className="ml-2 text-xs text-muted-foreground">Cargando variantes...</span>
                   </div>
                 ) : productVariants && productVariants.length > 0 ? (
                   <VariantSelectorB2B
@@ -1290,16 +1293,16 @@ const SellerCartPage = () => {
                     onVariantImageChange={setVariantImage}
                   />
                 ) : (
-                  <div className="text-center py-6 text-muted-foreground">
-                    <Package className="h-8 w-8 mx-auto mb-2 opacity-50" />
-                    <p className="text-sm">No hay variantes disponibles</p>
+                  <div className="text-center py-4 text-muted-foreground">
+                    <Package className="h-6 w-6 mx-auto mb-1 opacity-50" />
+                    <p className="text-xs">No hay variantes disponibles</p>
                   </div>
                 )}
               </div>
             </ScrollArea>
 
             {/* Actions Footer */}
-            <div className="p-4 border-t bg-background flex gap-2">
+            <div className="p-3 border-t bg-background flex gap-2 flex-shrink-0">
               <Button
                 onClick={() => {
                   setSelectedProductForVariants(null);
@@ -1307,24 +1310,24 @@ const SellerCartPage = () => {
                   setVariantImage(null);
                 }}
                 variant="outline"
-                className="flex-1"
+                className="flex-1 h-9 text-sm"
               >
                 Cancelar
               </Button>
               <Button
                 onClick={handleAddVariantsToCart}
                 disabled={isAddingVariant || variantSelections.length === 0}
-                className="flex-1 text-white"
+                className="flex-1 h-9 text-sm text-white"
                 style={{ backgroundColor: '#071d7f' }}
               >
                 {isAddingVariant ? (
                   <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    <Loader2 className="h-3 w-3 mr-1 animate-spin" />
                     Agregando...
                   </>
                 ) : (
                   <>
-                    <ShoppingBag className="h-4 w-4 mr-2" />
+                    <ShoppingBag className="h-3 w-3 mr-1" />
                     Agregar ({variantSelections.reduce((sum, s) => sum + s.quantity, 0)})
                   </>
                 )}
