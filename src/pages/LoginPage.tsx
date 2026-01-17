@@ -38,6 +38,8 @@ const LoginPage = () => {
         navigate('/seller/adquisicion-lotes', { replace: true });
       } else if (role === UserRole.ADMIN) {
         navigate('/admin/dashboard', { replace: true });
+      } else if (role === UserRole.USER) {
+        navigate('/perfil', { replace: true });
       } else {
         navigate('/', { replace: true });
       }
