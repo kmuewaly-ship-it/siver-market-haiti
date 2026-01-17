@@ -45,6 +45,8 @@ const TrendsPage = lazy(() => import("./pages/TrendsPage"));
 const MarketplacePage = lazy(() => import("./pages/MarketplacePage"));
 const MyPurchasesPage = lazy(() => import("./pages/MyPurchasesPage"));
 const CheckoutPage = lazy(() => import("./pages/CheckoutPage"));
+const UserProfilePage = lazy(() => import("./pages/UserProfilePage"));
+const EditProfilePage = lazy(() => import("./pages/EditProfilePage"));
 
 // Lazy loaded - Siver Match Pages (B2B2C Ecosystem)
 const SiverMatchHub = lazy(() => import("./pages/siver-match/SiverMatchHub"));
@@ -120,6 +122,8 @@ const AppContent = () => {
             <Route path="/producto/:sku" element={<LazyRoute><ProductPage /></LazyRoute>} />
             <Route path="/producto/catalogo/:catalogId" element={<LazyRoute><ProductPage /></LazyRoute>} />
             <Route path="/cuenta" element={<LoginPage />} />
+            <Route path="/perfil" element={<ProtectedRoute><LazyRoute><UserProfilePage /></LazyRoute></ProtectedRoute>} />
+            <Route path="/editar-perfil" element={<ProtectedRoute><LazyRoute><EditProfilePage /></LazyRoute></ProtectedRoute>} />
             <Route path="/mis-compras" element={<LazyRoute><MyPurchasesPage /></LazyRoute>} />
             <Route path="/carrito" element={<LazyRoute><CartPage /></LazyRoute>} />
             <Route path="/checkout" element={<LazyRoute><CheckoutPage /></LazyRoute>} />
