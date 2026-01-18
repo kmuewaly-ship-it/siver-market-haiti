@@ -1419,6 +1419,36 @@ export type Database = {
         }
         Relationships: []
       }
+      destination_countries: {
+        Row: {
+          code: string
+          created_at: string
+          currency: string
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          currency?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       discount_code_uses: {
         Row: {
           discount_applied: number
@@ -3908,6 +3938,59 @@ export type Database = {
         }
         Relationships: []
       }
+      route_logistics_costs: {
+        Row: {
+          cost_per_cbm: number
+          cost_per_kg: number
+          created_at: string
+          estimated_days_max: number
+          estimated_days_min: number
+          id: string
+          is_active: boolean
+          min_cost: number
+          notes: string | null
+          segment: string
+          shipping_route_id: string
+          updated_at: string
+        }
+        Insert: {
+          cost_per_cbm?: number
+          cost_per_kg?: number
+          created_at?: string
+          estimated_days_max?: number
+          estimated_days_min?: number
+          id?: string
+          is_active?: boolean
+          min_cost?: number
+          notes?: string | null
+          segment: string
+          shipping_route_id: string
+          updated_at?: string
+        }
+        Update: {
+          cost_per_cbm?: number
+          cost_per_kg?: number
+          created_at?: string
+          estimated_days_max?: number
+          estimated_days_min?: number
+          id?: string
+          is_active?: boolean
+          min_cost?: number
+          notes?: string | null
+          segment?: string
+          shipping_route_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "route_logistics_costs_shipping_route_id_fkey"
+            columns: ["shipping_route_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_routes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       seller_catalog: {
         Row: {
           descripcion: string | null
@@ -4458,6 +4541,51 @@ export type Database = {
           value?: number
         }
         Relationships: []
+      }
+      shipping_routes: {
+        Row: {
+          created_at: string
+          destination_country_id: string
+          id: string
+          is_active: boolean
+          is_direct: boolean
+          transit_hub_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          destination_country_id: string
+          id?: string
+          is_active?: boolean
+          is_direct?: boolean
+          transit_hub_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          destination_country_id?: string
+          id?: string
+          is_active?: boolean
+          is_direct?: boolean
+          transit_hub_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shipping_routes_destination_country_id_fkey"
+            columns: ["destination_country_id"]
+            isOneToOne: true
+            referencedRelation: "destination_countries"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "shipping_routes_transit_hub_id_fkey"
+            columns: ["transit_hub_id"]
+            isOneToOne: false
+            referencedRelation: "transit_hubs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       siver_match_assignments: {
         Row: {
@@ -5670,6 +5798,36 @@ export type Database = {
           id?: string
           name?: string
           notes?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      transit_hubs: {
+        Row: {
+          code: string
+          created_at: string
+          description: string | null
+          id: string
+          is_active: boolean
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          description?: string | null
+          id?: string
+          is_active?: boolean
+          name?: string
           updated_at?: string
         }
         Relationships: []

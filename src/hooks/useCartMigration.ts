@@ -93,7 +93,7 @@ export const useCartMigration = () => {
             window.location.reload(); // Simple way to refresh all states for now
           }
 
-        } else if (role === UserRole.CLIENT) {
+        } else if (role === UserRole.USER) {
           // Migration to B2C Cart
           let cartId = b2cCart.cart.id;
           if (!cartId) {
