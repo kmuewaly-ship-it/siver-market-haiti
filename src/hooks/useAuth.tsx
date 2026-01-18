@@ -45,21 +45,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       if (error) {
         console.error('Error checking user role:', error);
-        return UserRole.CLIENT;
+        return UserRole.USER;
       }
 
       if (!data || data.length === 0) {
-        return UserRole.CLIENT;
+        return UserRole.USER;
       }
 
-      // Priority: admin > seller > client
+      // Priority: admin > seller > user
       const roles = data.map(r => r.role as string);
       if (roles.includes('admin')) return UserRole.ADMIN;
       if (roles.includes('seller')) return UserRole.SELLER;
-      return UserRole.CLIENT;
+      return UserRole.USER;
     } catch (error) {
       console.error('Error checking user role:', error);
-      return UserRole.CLIENT;
+      return UserRole.USER;
     }
   };
 
@@ -83,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         id: data.id,
         email: data.email || '',
         name: data.full_name || 'Usuario',
-        role: UserRole.CLIENT, // Se obtiene de la tabla user_roles
+        role: UserRole.USER, // Se obtiene de la tabla user_roles
         avatar_url: data.avatar_url || null,
         banner_url: data.banner_url || null,
         created_at: data.created_at,
@@ -142,7 +142,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
                 } else if (userRole === UserRole.ADMIN) {
                   navigate('/admin/dashboard');
                 } else {
-                  navigate('/');
+                  navigate('/perfil');
                 }
               }
               // En cualquier otra página, NO redirigir - el usuario se queda donde está

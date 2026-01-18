@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 export function EditProfilePage() {
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -22,9 +22,9 @@ export function EditProfilePage() {
   useEffect(() => {
     if (user) {
       setFormData({
-        nombre: user.user_metadata?.nombre || "",
+        nombre: user.name || "",
         email: user.email || "",
-        telefono: user.user_metadata?.telefono || "",
+        telefono: "",
       });
     }
   }, [user]);
@@ -43,19 +43,25 @@ export function EditProfilePage() {
       return;
     }
 
+    if (!user?.id) {
+      toast.error("Error: Usuario no encontrado");
+      return;
+    }
+
     try {
       setIsLoading(true);
 
-      const { error } = await supabase.auth.updateUser({
-        data: {
-          nombre: formData.nombre,
-          telefono: formData.telefono,
-        },
-      });
+      // Update profile in profiles table
+      const { error } = await supabase
+        .from('profiles')
+        .update({
+          full_name: formData.nombre,
+          phone: formData.telefono,
+        })
+        .eq('id', user.id);
 
       if (error) throw error;
 
-      await refreshUser();
       toast.success("Perfil actualizado correctamente");
       navigate("/perfil");
     } catch (error) {
@@ -78,7 +84,7 @@ export function EditProfilePage() {
   };
 
   return (
-    <PageWrapper>
+    <PageWrapper seo={{ title: "Editar Perfil - Siver Market", description: "Edita tu información personal" }}>
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
         <div className="bg-white border-b sticky top-0 z-10 px-4 py-3 flex items-center gap-3">
@@ -96,7 +102,7 @@ export function EditProfilePage() {
           {/* Avatar Section */}
           <div className="bg-white rounded-lg p-6 text-center">
             <Avatar className="w-24 h-24 mx-auto border-4 border-blue-100 mb-4">
-              <AvatarImage src={user?.user_metadata?.avatar_url} />
+              <AvatarImage src={user?.avatar_url || undefined} />
               <AvatarFallback className="bg-blue-600 text-white text-2xl font-bold">
                 {getInitials()}
               </AvatarFallback>

@@ -15,7 +15,7 @@ import { PageLoader } from "@/components/ui/PageLoader";
 const ProtectedRoute = ({
   children,
   requiredRoles,
-  fallbackPath = "/login",
+  fallbackPath = "/cuenta",
 }: ProtectedRouteProps) => {
   const { user, isLoading } = useAuth();
 
@@ -28,8 +28,8 @@ const ProtectedRoute = ({
     return <Navigate to={fallbackPath} replace />;
   }
 
-  // Si el usuario no tiene el rol requerido
-  if (!requiredRoles.includes(user.role as UserRole)) {
+  // Si se especificaron roles requeridos y el usuario no tiene el rol requerido
+  if (requiredRoles && requiredRoles.length > 0 && !requiredRoles.includes(user.role as UserRole)) {
     // Redirigir según su rol
     const redirectPath = getRoleRedirectPath(user.role as UserRole);
     return <Navigate to={redirectPath} replace />;
@@ -47,9 +47,9 @@ export const getRoleRedirectPath = (role: UserRole): string => {
       return "/admin/dashboard";
     case UserRole.SELLER:
       return "/seller/adquisicion-lotes";
-    case UserRole.CLIENT:
+    case UserRole.USER:
     default:
-      return "/";
+      return "/perfil";
   }
 };
 

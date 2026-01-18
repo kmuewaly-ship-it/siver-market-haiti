@@ -41,7 +41,7 @@ const LoginPage = () => {
       } else if (role === UserRole.USER) {
         navigate('/perfil', { replace: true });
       } else {
-        navigate('/', { replace: true });
+        navigate('/perfil', { replace: true });
       }
     }
   }, [user, role, authLoading, navigate]);

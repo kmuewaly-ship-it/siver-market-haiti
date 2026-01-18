@@ -15,10 +15,7 @@ import {
   ChevronRight,
   Bell,
   HelpCircle,
-  Wallet
 } from "lucide-react";
-import { useIsMobile } from "@/hooks/use-mobile";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 interface MenuItem {
@@ -30,15 +27,14 @@ interface MenuItem {
 }
 
 export function UserProfilePage() {
-  const { user, logout } = useAuth();
+  const { user, signOut } = useAuth();
   const navigate = useNavigate();
-  const isMobile = useIsMobile();
   const [isLoading, setIsLoading] = useState(false);
 
   const handleLogout = async () => {
     try {
       setIsLoading(true);
-      await logout();
+      await signOut();
       toast.success("Sesión cerrada");
       navigate("/");
     } catch (error) {
@@ -95,8 +91,8 @@ export function UserProfilePage() {
   ];
 
   const getInitials = () => {
-    if (!user?.user_metadata?.nombre && !user?.email) return "U";
-    const name = user?.user_metadata?.nombre || user?.email || "";
+    if (!user?.name && !user?.email) return "U";
+    const name = user?.name || user?.email || "";
     return name
       .split(" ")
       .map((n: string) => n[0])
@@ -106,7 +102,7 @@ export function UserProfilePage() {
   };
 
   return (
-    <PageWrapper>
+    <PageWrapper seo={{ title: "Mi Cuenta - Siver Market", description: "Gestiona tu cuenta y perfil" }}>
       <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
         {/* Header Profile Section */}
         <div className="bg-white border-b sticky top-0 z-10 shadow-sm">
@@ -116,7 +112,7 @@ export function UserProfilePage() {
             {/* Profile Card */}
             <div className="flex items-center gap-4 p-4 bg-gradient-to-r from-blue-50 to-blue-100 rounded-lg border border-blue-200">
               <Avatar className="w-16 h-16 border-2 border-white shadow-md">
-                <AvatarImage src={user?.user_metadata?.avatar_url} />
+                <AvatarImage src={user?.avatar_url || undefined} />
                 <AvatarFallback className="bg-blue-600 text-white text-xl font-bold">
                   {getInitials()}
                 </AvatarFallback>
@@ -124,7 +120,7 @@ export function UserProfilePage() {
               
               <div className="flex-1">
                 <h2 className="text-lg font-bold text-gray-900">
-                  {user?.user_metadata?.nombre || "Usuario"}
+                  {user?.name || "Usuario"}
                 </h2>
                 <p className="text-sm text-gray-600">{user?.email}</p>
                 <Button
