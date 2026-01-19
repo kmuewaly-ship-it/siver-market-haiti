@@ -116,9 +116,10 @@ export default function SellerInventarioB2C() {
                 variant="default" 
                 onClick={() => setIsImportDialogOpen(true)}
                 style={{ backgroundColor: '#071d7f' }}
+                size="icon"
+                className="rounded-full"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Importar B2B
+                <Download className="h-4 w-4" />
               </Button>
               {items.length > 0 && (
                 <Button 
@@ -133,9 +134,10 @@ export default function SellerInventarioB2C() {
                 variant="outline" 
                 onClick={handleRefresh}
                 disabled={isRefreshing}
+                size="icon"
+                className="rounded-full"
               >
-                <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
-                Actualizar
+                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               </Button>
             </>
           }
@@ -146,17 +148,14 @@ export default function SellerInventarioB2C() {
           <div className="text-center py-12 bg-muted/50 rounded-lg">
             <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
             <h3 className="text-lg font-medium mb-2">Sin productos en inventario</h3>
-            <p className="text-muted-foreground max-w-md mx-auto mb-4">
-              Importa productos desde el catálogo B2B para generar materiales de marketing 
-              y comenzar a vender sin necesidad de comprar primero.
-            </p>
-            <div className="flex flex-wrap justify-center gap-2">
+            <div className="flex flex-wrap justify-center gap-2 mt-4">
               <Button 
                 onClick={() => setIsImportDialogOpen(true)}
                 style={{ backgroundColor: '#071d7f' }}
+                size="icon"
+                className="rounded-full"
               >
-                <Download className="h-4 w-4 mr-2" />
-                Importar desde B2B
+                <Download className="h-4 w-4" />
               </Button>
               <Button variant="outline" onClick={() => window.location.href = '/seller/adquisicion-lotes'}>
                 Ver Catálogo B2B

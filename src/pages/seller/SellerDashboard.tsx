@@ -6,7 +6,7 @@ import { useKYC } from '@/hooks/useKYC';
 import { SellerLayout } from '@/components/seller/SellerLayout';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
-import { Card } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -22,6 +22,7 @@ import {
   User,
   Zap,
   Loader2,
+  DollarSign,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -60,13 +61,10 @@ const SellerDashboard = () => {
 
         <main className="container mx-auto px-4 py-6 mt-3">
           {/* Welcome Section */}
-          <div className="mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-2">
-              ¡Bienvenido de vuelta, {user?.name?.split(' ')[0]}!
+          <div className="mb-4">
+            <h1 className="text-2xl font-bold text-foreground">
+              ¡Bienvenido, {user?.name?.split(' ')[0]}!
             </h1>
-            <p className="text-muted-foreground">
-              Aquí puedes ver un resumen de tu actividad como vendedor en Siver Market.
-            </p>
           </div>
 
           {/* KYC Alert */}
@@ -90,66 +88,53 @@ const SellerDashboard = () => {
             </Card>
           )}
 
-          {/* Stats Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-            {/* Total Orders Card */}
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Total de Compras</p>
-                  <p className="text-3xl font-bold text-foreground">{totalOrders}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Órdenes realizadas</p>
-                </div>
-                <div className="p-3 rounded-lg bg-blue-100">
-                  <ShoppingCart className="h-6 w-6 text-blue-600" />
-                </div>
+          {/* Stats Cards - Mis Ventas (Mismo diseño que SellerPedidosPage) */}
+          <div className="bg-card border border-border rounded-lg md:mt-14">
+            <div className="p-3">
+              <div className="border-b pb-2 mb-3">
+                <h1 className="text-lg font-bold text-foreground">Mi Actividad</h1>
               </div>
-            </Card>
+              <div className="grid grid-cols-4 gap-1 w-full">
+                {/* Total Compras - Azul */}
+                <Card className="bg-blue-50 border-blue-200">
+                  <CardContent className="p-1.5 text-center">
+                    <ShoppingCart className="h-3 w-3 text-blue-600 mx-auto mb-0.5" />
+                    <div className="text-base md:text-lg font-bold text-blue-600">{totalOrders}</div>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Compras</p>
+                  </CardContent>
+                </Card>
 
-            {/* Total Spent Card */}
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Monto Total Gastado</p>
-                  <p className="text-3xl font-bold text-foreground">${totalSpent.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground mt-2">En todas tus compras</p>
-                </div>
-                <div className="p-3 rounded-lg bg-green-100">
-                  <TrendingUp className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </Card>
+                {/* Inversión Total - Verde */}
+                <Card className="bg-green-50 border-green-200">
+                  <CardContent className="p-1.5 text-center">
+                    <DollarSign className="h-3 w-3 text-green-600 mx-auto mb-0.5" />
+                    <div className="text-base md:text-lg font-bold text-green-600">${totalSpent.toFixed(0)}</div>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Inversión</p>
+                  </CardContent>
+                </Card>
 
-            {/* Pending Orders Card */}
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Pedidos Pendientes</p>
-                  <p className="text-3xl font-bold text-foreground">{pendingOrders}</p>
-                  <p className="text-xs text-muted-foreground mt-2">En proceso</p>
-                </div>
-                <div className="p-3 rounded-lg bg-yellow-100">
-                  <Clock className="h-6 w-6 text-yellow-600" />
-                </div>
-              </div>
-            </Card>
+                {/* Pendientes - Amarillo/Naranja */}
+                <Card className="bg-amber-50 border-amber-200">
+                  <CardContent className="p-1.5 text-center">
+                    <Clock className="h-3 w-3 text-amber-600 mx-auto mb-0.5" />
+                    <div className="text-base md:text-lg font-bold text-amber-600">{pendingOrders}</div>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Pendientes</p>
+                  </CardContent>
+                </Card>
 
-            {/* Available Credit Card */}
-            <Card className="p-6 hover:shadow-lg transition-shadow">
-              <div className="flex items-start justify-between">
-                <div>
-                  <p className="text-sm font-medium text-muted-foreground mb-2">Crédito Disponible</p>
-                  <p className="text-3xl font-bold text-foreground">${availableCredit.toFixed(2)}</p>
-                  <p className="text-xs text-muted-foreground mt-2">Para usar en compras</p>
-                </div>
-                <div className="p-3 rounded-lg bg-purple-100">
-                  <CreditCard className="h-6 w-6 text-purple-600" />
-                </div>
+                {/* Crédito - Púrpura */}
+                <Card className="bg-purple-50 border-purple-200">
+                  <CardContent className="p-1.5 text-center">
+                    <CreditCard className="h-3 w-3 text-purple-600 mx-auto mb-0.5" />
+                    <div className="text-base md:text-lg font-bold text-purple-600">${availableCredit.toFixed(0)}</div>
+                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Crédito</p>
+                  </CardContent>
+                </Card>
               </div>
-            </Card>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
             {/* Recent Orders */}
             <div className="lg:col-span-2">
               <Card>
@@ -230,90 +215,95 @@ const SellerDashboard = () => {
             <div>
               <Card>
                 <div className="p-6">
-                  <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
-                    <Zap className="h-5 w-5 text-[#071d7f]" />
+                  <h2 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <Zap className="h-4 w-4 text-[#071d7f]" />
                     Acciones Rápidas
                   </h2>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2">
                     <Button
                       asChild
+                      size="sm"
                       variant="outline"
-                      className="w-full justify-start border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
+                      className="w-full justify-start text-xs border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
                     >
                       <Link to="/seller/adquisicion-lotes">
-                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        <ShoppingCart className="h-3 w-3 mr-2" />
                         Comprar Lotes
                       </Link>
                     </Button>
 
                     <Button
                       asChild
+                      size="sm"
                       variant="outline"
-                      className="w-full justify-start border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
+                      className="w-full justify-start text-xs border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
                     >
                       <Link to="/seller/catalogo">
-                        <Package className="h-4 w-4 mr-2" />
+                        <Package className="h-3 w-3 mr-2" />
                         Mi Catálogo
                       </Link>
                     </Button>
 
                     <Button
                       asChild
+                      size="sm"
                       variant="outline"
-                      className="w-full justify-start border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
-                    >
-                      <Link to="/seller/wallet">
-                        <CreditCard className="h-4 w-4 mr-2" />
-                        Mi Billetera
-                      </Link>
-                    </Button>
-
-                    <Button
-                      asChild
-                      variant="outline"
-                      className="w-full justify-start border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
+                      className="w-full justify-start text-xs border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
                     >
                       <Link to="/seller/inventario">
-                        <Package className="h-4 w-4 mr-2" />
-                        Inventario B2C
+                        <Package className="h-3 w-3 mr-2" />
+                        Inventario
                       </Link>
                     </Button>
 
                     <Button
                       asChild
+                      size="sm"
                       variant="outline"
-                      className="w-full justify-start border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
+                      className="w-full justify-start text-xs border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
+                    >
+                      <Link to="/seller/wallet">
+                        <CreditCard className="h-3 w-3 mr-2" />
+                        Billetera
+                      </Link>
+                    </Button>
+
+                    <Button
+                      asChild
+                      size="sm"
+                      variant="outline"
+                      className="w-full justify-start text-xs border-[#071d7f] text-[#071d7f] hover:bg-blue-50"
                     >
                       <Link to="/seller/cuenta">
-                        <User className="h-4 w-4 mr-2" />
-                        KYC & Créditos
+                        <User className="h-3 w-3 mr-2" />
+                        Verificación
                       </Link>
                     </Button>
                   </div>
 
-                  <Separator className="my-6" />
+                  <Separator className="my-4" />
 
-                  <div className="space-y-3">
-                    <h3 className="font-semibold text-sm text-foreground mb-3">Estado de Verificación</h3>
-                    <div className="space-y-2">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold text-xs text-foreground">Estado</h3>
+                    <div className="space-y-1 text-xs">
                       <div className="flex items-center gap-2">
                         {isVerified ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <CheckCircle2 className="h-3 w-3 text-green-600" />
                         ) : (
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
+                          <AlertCircle className="h-3 w-3 text-yellow-600" />
                         )}
-                        <span className="text-sm">
+                        <span>
                           {isVerified ? 'KYC Verificado' : 'KYC Pendiente'}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         {credit ? (
-                          <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          <CheckCircle2 className="h-3 w-3 text-green-600" />
                         ) : (
-                          <AlertCircle className="h-4 w-4 text-yellow-600" />
+                          <AlertCircle className="h-3 w-3 text-yellow-600" />
                         )}
-                        <span className="text-sm">
+                        <span>
                           {credit ? 'Crédito Activo' : 'Sin Crédito'}
                         </span>
                       </div>

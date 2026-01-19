@@ -29,13 +29,27 @@ export const useCartB2B = () => {
   }, [calculateTotals]);
 
   const addItem = useCallback((item: CartItemB2B) => {
+    console.log('🛒 useCartB2B.addItem called with:', {
+      name: item.nombre,
+      color: item.color,
+      size: item.size,
+      variantId: item.variantId,
+      quantity: item.cantidad
+    });
+
     setCart((prevCart) => {
-      const existingItem = prevCart.items.find((i) => i.productId === item.productId);
+      // Match by productId AND variant combination (color + size) to allow same product with different variants
+      const existingItem = prevCart.items.find((i) => 
+        i.productId === item.productId && 
+        i.color === item.color && 
+        i.size === item.size
+      );
 
       if (existingItem) {
-        // Actualizar cantidad si ya existe
+        console.log('📦 Item variant already exists, updating quantity...');
+        // Actualizar cantidad si ya existe la misma variante
         const updatedItems = prevCart.items.map((i) =>
-          i.productId === item.productId
+          (i.productId === item.productId && i.color === item.color && i.size === item.size)
             ? {
                 ...i,
                 cantidad: i.cantidad + item.cantidad,
@@ -46,7 +60,8 @@ export const useCartB2B = () => {
         saveCart(updatedItems);
         return { ...prevCart, items: updatedItems };
       } else {
-        // Agregar nuevo producto
+        // Agregar nuevo producto o nueva variante
+        console.log('✨ Adding new item/variant to cart');
         const updatedItems = [...prevCart.items, item];
         saveCart(updatedItems);
         return { ...prevCart, items: updatedItems };
@@ -54,16 +69,23 @@ export const useCartB2B = () => {
     });
   }, [saveCart]);
 
-  const updateQuantity = useCallback((productId: string, cantidad: number) => {
+  const updateQuantity = useCallback((productId: string, cantidad: number, color?: string, size?: string) => {
     setCart((prevCart) => {
-      const item = prevCart.items.find((i) => i.productId === productId);
+      // Match by productId and variant if provided
+      const item = prevCart.items.find((i) => 
+        i.productId === productId && 
+        (color === undefined || i.color === color) &&
+        (size === undefined || i.size === size)
+      );
       if (!item) return prevCart;
       
       // Validar que no baje del MOQ
       const validCantidad = Math.max(cantidad, item.moq);
       
       const updatedItems = prevCart.items.map((i) =>
-        i.productId === productId
+        (i.productId === productId && 
+         (color === undefined || i.color === color) &&
+         (size === undefined || i.size === size))
           ? {
               ...i,
               cantidad: validCantidad,
@@ -76,9 +98,14 @@ export const useCartB2B = () => {
     });
   }, [saveCart]);
 
-  const removeItem = useCallback((productId: string) => {
+  const removeItem = useCallback((productId: string, color?: string, size?: string) => {
     setCart((prevCart) => {
-      const updatedItems = prevCart.items.filter((item) => item.productId !== productId);
+      // Match by productId and variant if provided
+      const updatedItems = prevCart.items.filter((item) => 
+        !(item.productId === productId && 
+          (color === undefined || item.color === color) &&
+          (size === undefined || item.size === size))
+      );
       saveCart(updatedItems);
       return { ...prevCart, items: updatedItems };
     });

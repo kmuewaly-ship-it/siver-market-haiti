@@ -171,11 +171,14 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
     let productId: string | undefined = params.productId;
     if (!productId && params.sku) {
       const skuBase = params.sku.split('-')[0];
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const queryResult: any = await (supabase as any).from('products').select('id').eq('sku', skuBase).limit(1);
+      const { data } = await supabase
+        .from('products')
+        .select('id')
+        .eq('sku', skuBase)
+        .limit(1);
       
-      if (queryResult?.data?.[0]?.id) {
-        productId = queryResult.data[0].id as string;
+      if ((data as any[])?.[0]?.id) {
+        productId = (data as any[])[0].id as string;
         console.log('B2B: Found productId by SKU:', productId);
       }
     }

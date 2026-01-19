@@ -146,16 +146,13 @@ export function B2BCatalogImportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] flex flex-col">
+      <DialogContent className="max-w-sm max-h-[90vh] flex flex-col w-[95vw] sm:w-full">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="h-5 w-5" />
-            Importar desde Catálogo B2B
+            Importar
           </DialogTitle>
-          <DialogDescription>
-            Importa productos directamente del catálogo mayorista para generar materiales de marketing.
-            No necesitas comprar primero - solo selecciona los productos que quieres promocionar.
-          </DialogDescription>
+          <div className="sr-only">Selecciona productos del catálogo B2B para importar</div>
         </DialogHeader>
 
         {/* Search */}
@@ -241,32 +238,27 @@ export function B2BCatalogImportDialog({
         </ScrollArea>
 
         {/* Footer */}
-        <div className="flex items-center justify-between pt-4 border-t">
-          <p className="text-sm text-muted-foreground">
-            {selectedProducts.size} productos seleccionados
-          </p>
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handleImport}
-              disabled={selectedProducts.size === 0 || isImporting}
-              style={{ backgroundColor: '#071d7f' }}
-            >
-              {isImporting ? (
-                <>
-                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                  Importando...
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Importar Seleccionados
-                </>
-              )}
-            </Button>
-          </div>
+        <div className="flex items-center justify-end gap-2 pt-4 border-t">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleImport}
+            disabled={selectedProducts.size === 0 || isImporting}
+            style={{ backgroundColor: '#071d7f' }}
+          >
+            {isImporting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Importando...
+              </>
+            ) : (
+              <>
+                <Plus className="h-4 w-4 mr-2" />
+                Importar {selectedProducts.size}
+              </>
+            )}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

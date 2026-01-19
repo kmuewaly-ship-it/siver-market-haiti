@@ -128,6 +128,10 @@ export interface CartItemB2B {
   variantLabel?: string; // Label of the variant (e.g., "S", "M", "4-5Y")
   color?: string; // Color if applicable
   size?: string; // Size if applicable
+  // Variant fields from database
+  variantId?: string; // Reference to product_variants.id
+  variantAttributes?: Record<string, any>; // Full variant attributes
+  unit_price?: number; // B2B unit price from cart
 }
 
 export interface CartB2B {

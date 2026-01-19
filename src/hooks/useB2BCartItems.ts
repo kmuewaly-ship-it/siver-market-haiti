@@ -79,7 +79,7 @@ export const useB2BCartItems = () => {
       }
 
       console.log('B2B Cart items loaded:', cartItems?.length || 0, 'items');
-      console.log('Items data:', cartItems);
+      console.log('🔍 Datos brutos de la DB (incluyendo variantes):', cartItems);
 
       const formattedItems: B2BCartItem[] = (cartItems || []).map(item => {
         return {
@@ -93,13 +93,20 @@ export const useB2BCartItems = () => {
           subtotal: typeof item.total_price === 'string' ? parseFloat(item.total_price) : item.total_price,
           image: (item as any).image || null,
           moq: 1,
-          // Variant fields
+          // Variant fields - CRITICAL FOR UI DISPLAY
           variantId: item.variant_id || null,
           color: item.color || null,
           size: item.size || null,
           variantAttributes: item.variant_attributes as Record<string, any> | null,
         };
       });
+
+      console.log('✅ Variantes después del map:', formattedItems.map(item => ({ 
+        name: item.name,
+        color: item.color,
+        size: item.size,
+        variantId: item.variantId
+      })));
 
       setItems(formattedItems);
     } catch (err) {

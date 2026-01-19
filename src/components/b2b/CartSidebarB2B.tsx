@@ -9,8 +9,8 @@ import { useCartProfitProjection } from '@/hooks/useB2CMarketPrices';
 
 interface CartSidebarB2BProps {
   cart: CartB2B;
-  onUpdateQuantity: (productId: string, cantidad: number) => void;
-  onRemoveItem: (productId: string) => void;
+  onUpdateQuantity: (productId: string, cantidad: number, color?: string, size?: string) => void;
+  onRemoveItem: (productId: string, color?: string, size?: string) => void;
   isOpen: boolean;
   onToggle: () => void;
 }
@@ -213,7 +213,7 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             </div>
                           </div>
                           <button
-                            onClick={() => onRemoveItem(item.productId)}
+                            onClick={() => onRemoveItem(item.productId, item.color, item.size)}
                             className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 rounded transition ml-2"
                             title="Eliminar del carrito"
                           >
@@ -221,13 +221,13 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                           </button>
                         </div>
                         
-                        {/* Price */}
+                        {/* Price - Using unit_price (B2B special price) */}
                         <div className="flex items-center justify-between mt-1">
                           <span className="text-xs text-gray-600">
-                            ${item.precio_b2b.toFixed(2)} × {item.cantidad}
+                            ${(item as any).unit_price ? (item as any).unit_price.toFixed(2) : item.precio_b2b.toFixed(2)} × {item.cantidad}
                           </span>
                           <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                            ${item.subtotal.toFixed(2)}
+                            ${((item as any).unit_price ? (item as any).unit_price * item.cantidad : item.subtotal).toFixed(2)}
                           </span>
                         </div>
                         
@@ -237,7 +237,9 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             onClick={() =>
                               onUpdateQuantity(
                                 item.productId,
-                                Math.max(item.moq, item.cantidad - 1)
+                                Math.max(item.moq, item.cantidad - 1),
+                                item.color,
+                                item.size
                               )
                             }
                             className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-100 text-xs font-medium transition"
@@ -252,7 +254,9 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             onChange={(e) =>
                               onUpdateQuantity(
                                 item.productId,
-                                parseInt(e.target.value) || item.moq
+                                parseInt(e.target.value) || item.moq,
+                                item.color,
+                                item.size
                               )
                             }
                             className="w-12 px-1 py-0.5 border border-gray-300 rounded text-center text-xs font-medium"
@@ -261,7 +265,9 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             onClick={() =>
                               onUpdateQuantity(
                                 item.productId,
-                                Math.min(item.stock_fisico, item.cantidad + 1)
+                                Math.min(item.stock_fisico, item.cantidad + 1),
+                                item.color,
+                                item.size
                               )
                             }
                             className="px-2 py-0.5 border border-gray-300 rounded hover:bg-gray-100 text-xs font-medium transition"

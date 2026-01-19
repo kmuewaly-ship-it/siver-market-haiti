@@ -4,6 +4,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { UserRole } from "@/types/auth";
 import { addItemB2C, addItemB2B } from "@/services/cartService";
+import { useCartB2B } from "@/hooks/useCartB2B";
 import VariantSelector from './VariantSelector';
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -102,6 +103,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
   const { user } = useAuth();
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+  const { addItem: addItemToCart } = useCartB2B();
   const [quantity, setQuantity] = useState(1);
   const [selections, setSelections] = useState<any[]>([]);
   const [isDescriptionOpen, setIsDescriptionOpen] = useState(false);
@@ -344,8 +346,12 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         }
 
         for (const sel of nonZeroSelections) {
-          const variant = product.variants?.find((v: any) => v.id === sel.variantId);
+          const variant = product.variants?.find((v: any) => v.id === sel.variantId) as any;
           if (variant) {
+            const variantAttrs = (variant as any).attribute_combination || {};
+            const colorValue = variantAttrs.color || null;
+            const sizeValue = variantAttrs.size || null;
+            
             await addItemB2B({
               userId: user.id,
               productId: product.id || product.source_product_id,
@@ -354,7 +360,31 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               priceB2B: variant.precio || priceB2B,
               quantity: sel.quantity,
               image: product.image,
+              variant: {
+                variantId: variant.id,
+                color: colorValue,
+                size: sizeValue,
+                variantAttributes: variantAttrs,
+              },
             });
+
+            // Also add to local cart for UI display
+            if (isSeller) {
+              addItemToCart({
+                productId: product.id || product.source_product_id,
+                sku: product.sku,
+                nombre: `${product.name} - ${variant.label}`,
+                precio_b2b: variant.precio || priceB2B,
+                cantidad: sel.quantity,
+                subtotal: (variant.precio || priceB2B) * sel.quantity,
+                imagen_principal: product.image || null,
+                moq: product.moq || 1,
+                stock_fisico: product.stock || 100,
+                color: colorValue,
+                size: sizeValue,
+                variantId: variant.id,
+              });
+            }
           }
         }
         toast.success(`Agregado al carrito B2B: ${nonZeroSelections.length} variaciones`);
@@ -369,6 +399,12 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         if (isSeller) {
           // B2B with variations - use base product SKU only
           for (const v of nonZero) {
+            // Find the variant by ID to get attribute_combination
+            const variant = product.variants?.find((var_: any) => var_.id === v.id) as any;
+            const variantAttrs = variant?.attribute_combination || {};
+            const colorValue = variantAttrs.color || null;
+            const sizeValue = variantAttrs.size || null;
+            
             await addItemB2B({
               userId: user.id,
               productId: product.id || product.source_product_id,
@@ -377,6 +413,28 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               priceB2B: priceB2B,
               quantity: v.quantity,
               image: product.image,
+              variant: {
+                variantId: v.id,
+                color: colorValue,
+                size: sizeValue,
+                variantAttributes: variantAttrs,
+              },
+            });
+
+            // Also add to local cart for UI display
+            addItemToCart({
+              productId: product.id || product.source_product_id,
+              sku: product.sku,
+              nombre: `${product.name} - ${v.label}`,
+              precio_b2b: priceB2B,
+              cantidad: v.quantity,
+              subtotal: priceB2B * v.quantity,
+              imagen_principal: product.image || null,
+              moq: product.moq || 1,
+              stock_fisico: product.stock || 100,
+              color: colorValue,
+              size: sizeValue,
+              variantId: v.id,
             });
           }
           toast.success(`Agregado al carrito B2B: ${nonZero.length} variaciones`);
@@ -410,6 +468,10 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         
         if (isSeller) {
           // B2B with or without variant
+          const variantAttrs = selectedVariant?.attribute_combination || {};
+          const colorValue = variantAttrs.color || null;
+          const sizeValue = variantAttrs.size || null;
+          
           await addItemB2B({
             userId: user.id,
             productId: product.id || product.source_product_id,
@@ -418,7 +480,30 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
             priceB2B: finalPrice,
             quantity: quantity,
             image: finalImage,
+            variant: {
+              variantId: selectedVariant?.id,
+              color: colorValue,
+              size: sizeValue,
+              variantAttributes: variantAttrs,
+            },
           });
+
+          // Also add to local cart for UI display
+          addItemToCart({
+            productId: product.id || product.source_product_id,
+            sku: finalSku,
+            nombre: finalName,
+            precio_b2b: finalPrice,
+            cantidad: quantity,
+            subtotal: finalPrice * quantity,
+            imagen_principal: finalImage || null,
+            moq: product.moq || 1,
+            stock_fisico: product.stock || 100,
+            color: colorValue,
+            size: sizeValue,
+            variantId: selectedVariant?.id,
+          });
+
           toast.success(`Agregado al carrito B2B: ${quantity} unidades`);
         } else {
           // B2C with or without variant

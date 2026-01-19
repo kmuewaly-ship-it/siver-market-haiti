@@ -52,6 +52,7 @@ const SellerCatalogo = () => {
   const [editPrice, setEditPrice] = useState('');
   const [editStock, setEditStock] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
+  const [isRefreshing, setIsRefreshing] = useState(false);
 
   const stats = getStats();
 
@@ -89,6 +90,12 @@ const SellerCatalogo = () => {
     }
   };
 
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    await refetch();
+    setIsRefreshing(false);
+  };
+
   if (isLoading) {
     return (
       <SellerLayout>
@@ -111,68 +118,79 @@ const SellerCatalogo = () => {
         <Header />
 
         <main className="container mx-auto px-4 py-4 pb-8">
-          {/* Stats Box with Actions */}
-          <div className="bg-card border border-border rounded-lg md:mt-14 mb-5">
-            <div className="p-3">
-              <div className="flex items-center justify-between mb-3 pb-2 border-b">
-                <h1 className="text-lg font-bold text-foreground">Mi Catálogo</h1>
-                <Button onClick={refetch} variant="outline" className="gap-2 text-sm h-9">
-                  <RefreshCw className="h-4 w-4" />
-                  Actualizar
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 w-full">
-                <Card className="bg-primary/10 border-primary/20">
-                  <div className="flex flex-col items-center gap-1 p-1.5">
-                    <Package className="h-3 w-3 text-primary" />
-                    <p className="text-base md:text-lg font-bold text-primary">{stats.totalProducts}</p>
-                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Productos</p>
-                  </div>
-                </Card>
+          {/* Stats Cards - Réplica exacta de SellerPedidosPage */}
+          <div className="p-6 space-y-6">
+            <div className="bg-card border border-border rounded-lg md:mt-14">
+              <div className="p-3">
+                <div className="border-b pb-2 mb-3 flex items-center justify-between">
+                  <h1 className="text-lg font-bold text-foreground">Mi Catálogo</h1>
+                  <Button
+                    onClick={handleRefresh}
+                    disabled={isRefreshing}
+                    variant="outline"
+                    size="icon"
+                    className="rounded-full"
+                  >
+                    <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-4 gap-1 w-full">
+                  <Card className="bg-card border-border">
+                    <div className="p-1.5 text-center">
+                      <Package className="h-3 w-3 text-primary mx-auto mb-0.5" />
+                      <div className="text-base md:text-lg font-bold text-foreground">{stats.totalProducts}</div>
+                      <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Productos</p>
+                    </div>
+                  </Card>
+                  
+                  <Card className="bg-green-50 border-green-200">
+                    <div className="p-1.5 text-center">
+                      <DollarSign className="h-3 w-3 text-green-500 mx-auto mb-0.5" />
+                      <div className="text-base md:text-lg font-bold text-green-500">${stats.totalValue.toFixed(2)}</div>
+                      <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Valor</p>
+                    </div>
+                  </Card>
 
-                <Card className="bg-green-50 border-green-200">
-                  <div className="flex flex-col items-center gap-1 p-1.5">
-                    <DollarSign className="h-3 w-3 text-green-500" />
-                    <p className="text-base md:text-lg font-bold text-green-500">${stats.totalValue.toFixed(2)}</p>
-                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Valor</p>
-                  </div>
-                </Card>
+                  <Card className="bg-blue-50 border-blue-200">
+                    <div className="p-1.5 text-center">
+                      <Package className="h-3 w-3 text-blue-500 mx-auto mb-0.5" />
+                      <div className="text-base md:text-lg font-bold text-blue-500">{stats.totalStock}</div>
+                      <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Stock</p>
+                    </div>
+                  </Card>
 
-                <Card className="bg-blue-50 border-blue-200">
-                  <div className="flex flex-col items-center gap-1 p-1.5">
-                    <Package className="h-3 w-3 text-blue-500" />
-                    <p className="text-base md:text-lg font-bold text-blue-500">{stats.totalStock}</p>
-                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Stock</p>
-                  </div>
-                </Card>
-
-                <Card className="bg-amber-50 border-amber-200">
-                  <div className="flex flex-col items-center gap-1 p-1.5">
-                    <TrendingUp className="h-3 w-3 text-amber-500" />
-                    <p className="text-base md:text-lg font-bold text-amber-500">{stats.avgMargin.toFixed(1)}%</p>
-                    <p className="text-[8px] md:text-xs text-muted-foreground leading-tight text-center">Margen</p>
-                  </div>
-                </Card>
+                  <Card className="bg-amber-50 border-amber-200">
+                    <div className="p-1.5 text-center">
+                      <TrendingUp className="h-3 w-3 text-amber-500 mx-auto mb-0.5" />
+                      <div className="text-base md:text-lg font-bold text-amber-500">{stats.avgMargin.toFixed(1)}%</div>
+                      <p className="text-[8px] md:text-xs text-muted-foreground leading-tight">Margen</p>
+                    </div>
+                  </Card>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Search */}
-          <div className="mb-6">
-            <div className="relative max-w-md">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Buscar por nombre o SKU..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-10"
-              />
+          {/* Search Card - Réplica exacta de SellerPedidosPage */}
+          <Card className="bg-card border-border">
+            <div className="p-6">
+              <div className="flex flex-col sm:flex-row gap-4">
+                <div className="relative flex-1">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Buscar por nombre o SKU..."
+                    className="pl-10"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
-          </div>
+          </Card>
 
           {/* Empty State */}
           {items.length === 0 ? (
-            <Card className="p-12 text-center">
+            <Card className="bg-card border-border p-12 text-center">
               <AlertCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
               <h3 className="text-lg font-semibold mb-2">Sin productos en tu catálogo</h3>
               <p className="text-muted-foreground mb-4">
@@ -184,20 +202,21 @@ const SellerCatalogo = () => {
             </Card>
           ) : (
             /* Products Table */
-            <Card>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Producto</TableHead>
-                    <TableHead className="text-right">Precio Costo</TableHead>
-                    <TableHead className="text-right">Precio Venta</TableHead>
-                    <TableHead className="text-right">Margen</TableHead>
-                    <TableHead className="text-center">Stock</TableHead>
-                    <TableHead className="text-center">Estado</TableHead>
-                    <TableHead className="text-center">Acciones</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
+            <Card className="bg-card border-border">
+              <div className="p-0 overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="border-border">
+                      <TableHead className="text-muted-foreground">Producto</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Precio Costo</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Precio Venta</TableHead>
+                      <TableHead className="text-muted-foreground text-right">Margen</TableHead>
+                      <TableHead className="text-muted-foreground text-center">Stock</TableHead>
+                      <TableHead className="text-muted-foreground text-center">Estado</TableHead>
+                      <TableHead className="text-muted-foreground text-center">Acciones</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
                   {filteredItems.map((item) => {
                     const margin = getMargin(item);
                     return (
@@ -264,7 +283,8 @@ const SellerCatalogo = () => {
                     );
                   })}
                 </TableBody>
-              </Table>
+                </Table>
+              </div>
             </Card>
           )}
         </main>
