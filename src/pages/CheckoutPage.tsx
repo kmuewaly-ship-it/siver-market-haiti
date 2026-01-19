@@ -845,7 +845,19 @@ const CheckoutPage = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-sm line-clamp-1">{item.name}</p>
-                      <p className="text-xs text-muted-foreground">{item.quantity} x ${item.price.toFixed(2)}</p>
+                      <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                        {item.color && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                            {item.color}
+                          </span>
+                        )}
+                        {item.size && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                            {item.size}
+                          </span>
+                        )}
+                        <span className="text-xs text-muted-foreground">{item.quantity} x ${item.price.toFixed(2)}</span>
+                      </div>
                     </div>
                     <p className="font-semibold text-sm">${(item.price * item.quantity).toFixed(2)}</p>
                   </div>

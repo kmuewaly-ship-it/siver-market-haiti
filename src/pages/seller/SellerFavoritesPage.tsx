@@ -3,14 +3,48 @@ import Header from "@/components/layout/Header";
 import Footer from "@/components/layout/Footer";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Heart, ShoppingCart, Trash2 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Heart, ShoppingCart, Trash2, Loader2 } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
 import { useSellerFavorites } from "@/hooks/useSellerFavorites";
 import { useCartB2B } from "@/hooks/useCartB2B";
+import { useState } from "react";
+import { toast } from "sonner";
 
 const SellerFavoritesPage = () => {
   const { items, removeFavorite } = useSellerFavorites();
   const { addItem } = useCartB2B();
+  const navigate = useNavigate();
+  const [addingItemId, setAddingItemId] = useState<string | null>(null);
+  const [removingItemId, setRemovingItemId] = useState<string | null>(null);
+
+  const handleAddToCart = (item: typeof items[0]) => {
+    setAddingItemId(item.id);
+    try {
+      addItem({
+        productId: item.id,
+        sku: item.sku,
+        nombre: item.name,
+        precio_b2b: item.price,
+        cantidad: item.moq || 1,
+        moq: item.moq || 1,
+        stock_fisico: 999,
+        subtotal: item.price * (item.moq || 1),
+      });
+      toast.success('Producto agregado al carrito');
+    } finally {
+      setAddingItemId(null);
+    }
+  };
+
+  const handleRemove = (id: string) => {
+    setRemovingItemId(id);
+    try {
+      removeFavorite(id);
+      toast.success('Eliminado de favoritos');
+    } finally {
+      setRemovingItemId(null);
+    }
+  };
 
   return (
     <SellerLayout>
@@ -43,17 +77,23 @@ const SellerFavoritesPage = () => {
                 <Card key={item.id} className="overflow-hidden">
                   <div className="aspect-[3/4] relative">
                     <img
-                      src={item.image}
+                      src={item.image || '/placeholder.svg'}
                       alt={item.name}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover cursor-pointer"
+                      onClick={() => navigate(`/seller/producto/${item.id}`)}
                     />
                     <Button
                       variant="ghost"
                       size="icon"
                       className="absolute top-2 right-2 bg-white/80 hover:bg-white text-red-500 hover:text-red-600 rounded-full"
-                      onClick={() => removeFavorite(item.id)}
+                      onClick={() => handleRemove(item.id)}
+                      disabled={removingItemId === item.id}
                     >
-                      <Trash2 className="h-5 w-5" />
+                      {removingItemId === item.id ? (
+                        <Loader2 className="h-5 w-5 animate-spin" />
+                      ) : (
+                        <Trash2 className="h-5 w-5" />
+                      )}
                     </Button>
                   </div>
                   <CardContent className="p-4">
@@ -63,20 +103,14 @@ const SellerFavoritesPage = () => {
                     </p>
                     <Button
                       className="w-full gap-2"
-                      onClick={() =>
-                        addItem({
-                          productId: item.id,
-                          sku: item.sku,
-                          nombre: item.name,
-                          precio_b2b: item.price,
-                          cantidad: item.moq,
-                          moq: item.moq,
-                          stock_fisico: 999, // TODO: Get real stock
-                          subtotal: item.price * item.moq,
-                        })
-                      }
+                      onClick={() => handleAddToCart(item)}
+                      disabled={addingItemId === item.id}
                     >
-                      <ShoppingCart className="h-4 w-4" />
+                      {addingItemId === item.id ? (
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                      ) : (
+                        <ShoppingCart className="h-4 w-4" />
+                      )}
                       Agregar Lote
                     </Button>
                   </CardContent>

@@ -191,13 +191,26 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                       </div>
                       
                       {/* Product Details */}
-                      <div className="flex-1 min-w-0">
+                        <div className="flex-1 min-w-0">
                         <div className="flex justify-between items-start">
                           <div className="flex-1 min-w-0">
                             <p className="font-medium text-sm text-gray-900 line-clamp-1">
                               {item.nombre}
                             </p>
-                            <p className="text-xs text-gray-500">SKU: {item.sku}</p>
+                            <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                              <span className="text-xs text-gray-500">SKU: {item.sku}</span>
+                              {/* Variant badges */}
+                              {(item as any).color && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                                  {(item as any).color}
+                                </span>
+                              )}
+                              {(item as any).size && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                  {(item as any).size}
+                                </span>
+                              )}
+                            </div>
                           </div>
                           <button
                             onClick={() => onRemoveItem(item.productId)}
