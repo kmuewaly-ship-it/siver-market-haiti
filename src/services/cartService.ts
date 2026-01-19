@@ -1,6 +1,13 @@
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+interface VariantInfo {
+  variantId?: string;
+  color?: string;
+  size?: string;
+  variantAttributes?: Record<string, any>;
+}
+
 interface B2CAddItemParams {
   userId: string;
   sku: string;
@@ -12,6 +19,7 @@ interface B2CAddItemParams {
   storeName?: string | null;
   storeWhatsapp?: string | null;
   sellerCatalogId?: string | null;
+  variant?: VariantInfo;
 }
 
 interface B2BAddItemParams {
@@ -22,6 +30,7 @@ interface B2BAddItemParams {
   priceB2B: number;
   quantity: number;
   image?: string | null;
+  variant?: VariantInfo;
 }
 
 /**
@@ -71,8 +80,8 @@ export const addItemB2C = async (params: B2CAddItemParams) => {
       console.log('B2C: Cart found:', cart.id);
     }
 
-    // Insert item
-    console.log('B2C: Inserting item:', params.sku);
+    // Insert item with variant info
+    console.log('B2C: Inserting item:', params.sku, 'with variant:', params.variant);
     
     const { error: insertError } = await supabase
       .from('b2c_cart_items')
@@ -88,6 +97,11 @@ export const addItemB2C = async (params: B2CAddItemParams) => {
         store_id: params.storeId,
         store_name: params.storeName,
         store_whatsapp: params.storeWhatsapp,
+        // Variant columns
+        variant_id: params.variant?.variantId || null,
+        color: params.variant?.color || null,
+        size: params.variant?.size || null,
+        variant_attributes: params.variant?.variantAttributes || null,
       }]);
 
     if (insertError) {
@@ -151,27 +165,21 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
     }
 
     // Insert item
-    console.log('B2B: Inserting item:', params.sku, 'to cart:', cart.id);
+    console.log('B2B: Inserting item:', params.sku, 'to cart:', cart.id, 'with variant:', params.variant);
     
     // If no productId provided, try to find it by SKU
     let productId = params.productId;
     if (!productId && params.sku) {
       try {
         const skuBase = params.sku.split('-')[0];
-        // Workaround for TS2589: Type instantiation is excessively deep
-        const client = supabase as unknown as { 
-          from: (table: string) => { 
-            select: (cols: string) => { 
-              eq: (col: string, val: string) => { 
-                maybeSingle: () => Promise<{ data: { id: string } | null; error: unknown }> 
-              } 
-            } 
-          } 
-        };
-        const result = await client.from('products').select('id').eq('sku', skuBase).maybeSingle();
+        const { data: productRows } = await supabase
+          .from('products')
+          .select('id')
+          .eq('sku', skuBase)
+          .limit(1) as { data: { id: string }[] | null };
         
-        if (result.data?.id) {
-          productId = result.data.id;
+        if (productRows && productRows.length > 0) {
+          productId = productRows[0].id;
           console.log('B2B: Found productId by SKU:', productId);
         }
       } catch (e) {
@@ -190,6 +198,11 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
         total_price: params.priceB2B * params.quantity,
         quantity: params.quantity,
         image: params.image || null,
+        // Variant columns
+        variant_id: params.variant?.variantId || null,
+        color: params.variant?.color || null,
+        size: params.variant?.size || null,
+        variant_attributes: params.variant?.variantAttributes || null,
       }])
       .select();
 

@@ -633,11 +633,8 @@ const ProductPage = () => {
               onClick={() => {
                 if (product) {
                   toggleFavorite({
-                    id: product.id,
-                    name: product.nombre,
-                    price: isB2BUser ? product.precio_costo : product.precio_venta,
-                    image: images[0] || '',
-                    sku: product.sku,
+                    sellerCatalogId: product.id,
+                    storeId: product.store?.id,
                   });
                 }
               }}
@@ -927,11 +924,8 @@ const ProductPage = () => {
                     <button onClick={() => {
                       if (product) {
                         toggleFavorite({
-                          id: product.id,
-                          name: product.nombre,
-                          price: isB2BUser ? product.precio_costo : product.precio_venta,
-                          image: images[0] || '',
-                          sku: product.sku,
+                          sellerCatalogId: product.id,
+                          storeId: product.store?.id,
                         });
                       }
                     }} className="p-3 rounded-lg border border-gray-200 hover:bg-gray-100 transition-all duration-300 active:scale-90">
