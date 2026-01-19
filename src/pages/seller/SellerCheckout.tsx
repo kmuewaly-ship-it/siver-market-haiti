@@ -740,9 +740,20 @@ const SellerCheckout = () => {
                       </div>
                       <div className="flex-1">
                         <p className="font-semibold line-clamp-1">{item.name}</p>
-                        <p className="text-sm text-muted-foreground mb-1">
-                        </p>
-                        <div className="flex items-center justify-between text-sm">
+                        {/* Variant badges */}
+                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                          {item.color && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                              {item.color}
+                            </span>
+                          )}
+                          {item.size && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                              {item.size}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-sm mt-1">
                           <span className="text-muted-foreground">Cant: {item.cantidad}</span>
                           <span className="font-semibold text-primary">
                             ${item.subtotal.toFixed(2)}

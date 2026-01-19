@@ -14,8 +14,11 @@ export interface B2BCartItem {
   subtotal: number;
   image: string | null;
   moq?: number; // Minimum order quantity from product
-  color?: string | null; // Variant color
-  size?: string | null; // Variant size
+  // Variant fields
+  variantId?: string | null;
+  color?: string | null;
+  size?: string | null;
+  variantAttributes?: Record<string, any> | null;
 }
 
 export const useB2BCartItems = () => {
@@ -90,8 +93,11 @@ export const useB2BCartItems = () => {
           subtotal: typeof item.total_price === 'string' ? parseFloat(item.total_price) : item.total_price,
           image: (item as any).image || null,
           moq: 1,
+          // Variant fields
+          variantId: item.variant_id || null,
           color: item.color || null,
           size: item.size || null,
+          variantAttributes: item.variant_attributes as Record<string, any> | null,
         };
       });
 

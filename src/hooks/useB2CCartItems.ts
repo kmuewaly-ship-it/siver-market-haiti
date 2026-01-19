@@ -33,6 +33,11 @@ export interface B2CCartItem {
   storeName: string | null;
   storeWhatsapp: string | null;
   storeMetadata?: StorePaymentInfo | null;
+  // Variant fields
+  variantId?: string | null;
+  color?: string | null;
+  size?: string | null;
+  variantAttributes?: Record<string, any> | null;
 }
 
 export const useB2CCartItems = () => {
@@ -120,6 +125,11 @@ export const useB2CCartItems = () => {
           storeName: item.store_name,
           storeWhatsapp: item.store_whatsapp,
           storeMetadata: metadata,
+          // Variant fields
+          variantId: item.variant_id || null,
+          color: item.color || null,
+          size: item.size || null,
+          variantAttributes: item.variant_attributes as Record<string, any> | null,
         };
       });
 

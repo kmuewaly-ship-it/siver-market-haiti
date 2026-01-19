@@ -168,22 +168,15 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
     console.log('B2B: Inserting item:', params.sku, 'to cart:', cart.id, 'with variant:', params.variant);
     
     // If no productId provided, try to find it by SKU
-    let productId = params.productId;
+    let productId: string | undefined = params.productId;
     if (!productId && params.sku) {
-      try {
-        const skuBase = params.sku.split('-')[0];
-        const { data: productRows } = await supabase
-          .from('products')
-          .select('id')
-          .eq('sku', skuBase)
-          .limit(1) as { data: { id: string }[] | null };
-        
-        if (productRows && productRows.length > 0) {
-          productId = productRows[0].id;
-          console.log('B2B: Found productId by SKU:', productId);
-        }
-      } catch (e) {
-        console.log('B2B: Could not find productId by SKU:', e);
+      const skuBase = params.sku.split('-')[0];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const queryResult: any = await (supabase as any).from('products').select('id').eq('sku', skuBase).limit(1);
+      
+      if (queryResult?.data?.[0]?.id) {
+        productId = queryResult.data[0].id as string;
+        console.log('B2B: Found productId by SKU:', productId);
       }
     }
     

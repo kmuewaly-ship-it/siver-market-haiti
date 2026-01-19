@@ -412,9 +412,21 @@ const CartPage = () => {
                               </button>
                             </div>
                             
-                            {/* Variant and Quantity Info */}
-                            <div className="mt-1 text-xs text-gray-600">
-                              Cantidad: {item.quantity}
+                            {/* Variant badges and Quantity Info */}
+                            <div className="mt-1 flex items-center gap-1 flex-wrap">
+                              {item.color && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                                  {item.color}
+                                </span>
+                              )}
+                              {item.size && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                  {item.size}
+                                </span>
+                              )}
+                              <span className="text-xs text-gray-600">
+                                Cant: {item.quantity}
+                              </span>
                             </div>
                             
                             {/* Price */}
@@ -599,9 +611,21 @@ const CartPage = () => {
                                   </button>
                                 </div>
 
-                                {/* Variant and Quantity Info */}
-                                <div className="mt-1 text-xs text-gray-600">
-                                  Cantidad: {item.quantity}
+                                {/* Variant badges and Quantity Info */}
+                                <div className="mt-1 flex items-center gap-1 flex-wrap">
+                                  {item.color && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                                      {item.color}
+                                    </span>
+                                  )}
+                                  {item.size && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                      {item.size}
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-gray-600">
+                                    Cant: {item.quantity}
+                                  </span>
                                 </div>
 
                                 {/* Price and Controls Row */}
