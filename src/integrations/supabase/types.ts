@@ -420,6 +420,8 @@ export type Database = {
           sku: string
           total_price: number
           unit_price: number
+          variant_attributes: Json | null
+          variant_id: string | null
         }
         Insert: {
           cart_id: string
@@ -435,6 +437,8 @@ export type Database = {
           sku: string
           total_price: number
           unit_price: number
+          variant_attributes?: Json | null
+          variant_id?: string | null
         }
         Update: {
           cart_id?: string
@@ -450,6 +454,8 @@ export type Database = {
           sku?: string
           total_price?: number
           unit_price?: number
+          variant_attributes?: Json | null
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -493,6 +499,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stock_rotation_alerts"
             referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "b2b_cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2b_cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "b2b_cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
           },
         ]
       }
@@ -593,6 +620,7 @@ export type Database = {
       b2c_cart_items: {
         Row: {
           cart_id: string
+          color: string | null
           created_at: string | null
           id: string
           image: string | null
@@ -600,15 +628,19 @@ export type Database = {
           nombre: string
           quantity: number
           seller_catalog_id: string | null
+          size: string | null
           sku: string
           store_id: string | null
           store_name: string | null
           store_whatsapp: string | null
           total_price: number
           unit_price: number
+          variant_attributes: Json | null
+          variant_id: string | null
         }
         Insert: {
           cart_id: string
+          color?: string | null
           created_at?: string | null
           id?: string
           image?: string | null
@@ -616,15 +648,19 @@ export type Database = {
           nombre: string
           quantity?: number
           seller_catalog_id?: string | null
+          size?: string | null
           sku: string
           store_id?: string | null
           store_name?: string | null
           store_whatsapp?: string | null
           total_price: number
           unit_price: number
+          variant_attributes?: Json | null
+          variant_id?: string | null
         }
         Update: {
           cart_id?: string
+          color?: string | null
           created_at?: string | null
           id?: string
           image?: string | null
@@ -632,12 +668,15 @@ export type Database = {
           nombre?: string
           quantity?: number
           seller_catalog_id?: string | null
+          size?: string | null
           sku?: string
           store_id?: string | null
           store_name?: string | null
           store_whatsapp?: string | null
           total_price?: number
           unit_price?: number
+          variant_attributes?: Json | null
+          variant_id?: string | null
         }
         Relationships: [
           {
@@ -681,6 +720,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stores_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2c_cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "b2c_cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "b2c_cart_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
           },
         ]
       }
