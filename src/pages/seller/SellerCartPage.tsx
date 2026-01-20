@@ -616,6 +616,21 @@ const SellerCartPage = () => {
                                   <p className="font-medium text-sm text-gray-900 line-clamp-1">
                                     {item.name}
                                   </p>
+                                  {/* Variant badges */}
+                                  {(item.color || item.size) && (
+                                    <div className="flex gap-1 mt-1 flex-wrap">
+                                      {item.color && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                          {item.color}
+                                        </span>
+                                      )}
+                                      {item.size && (
+                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                          Talla: {item.size}
+                                        </span>
+                                      )}
+                                    </div>
+                                  )}
                                   <p className="text-xs text-gray-600 mt-0.5">Cantidad: {item.cantidad}</p>
                                 </div>
                                 <button
@@ -938,6 +953,21 @@ const SellerCartPage = () => {
                                 <p className="font-medium text-sm text-gray-900 line-clamp-1">
                                   {item.name}
                                 </p>
+                                {/* Variant badges mobile */}
+                                {(item.color || item.size) && (
+                                  <div className="flex gap-1 mt-1 flex-wrap">
+                                    {item.color && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                        {item.color}
+                                      </span>
+                                    )}
+                                    {item.size && (
+                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                        Talla: {item.size}
+                                      </span>
+                                    )}
+                                  </div>
+                                )}
                               </div>
                               <button
                                 onClick={(e) => {
