@@ -589,7 +589,7 @@ const SellerCartPage = () => {
                           {/* Product Image - Clickable Button */}
                           <button
                             onClick={() => handleOpenVariantDrawer(item)}
-                            className="w-18 h-18 flex-shrink-0 rounded-md bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
+                            className="relative w-18 h-18 flex-shrink-0 rounded-md bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
                             style={{ width: '72px', height: '72px' }}
                             title="Ver variantes"
                           >
@@ -604,6 +604,15 @@ const SellerCartPage = () => {
                                 <Package className="h-5 w-5 text-muted-foreground/50" />
                               </div>
                             )}
+                            {/* Variant badges overlay */}
+                            <VariantBadges
+                              color={item.color}
+                              size={item.size}
+                              variantAttributes={item.variantAttributes}
+                              maxChars={8}
+                              compact
+                              className="absolute bottom-0.5 left-0.5 right-0.5 flex gap-0.5 flex-wrap pointer-events-none"
+                            />
                           </button>
                           
                           {/* Product Details - Clickable Button and Controls */}
@@ -927,7 +936,7 @@ const SellerCartPage = () => {
                         {/* Product Image - Clickable Button */}
                         <button
                           onClick={() => handleOpenVariantDrawer(item)}
-                          className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
+                          className="relative w-16 h-16 flex-shrink-0 rounded-lg bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
                           title="Ver variantes"
                         >
                           {item.image ? (
@@ -941,6 +950,15 @@ const SellerCartPage = () => {
                               <Package className="h-5 w-5 text-muted-foreground/50" />
                             </div>
                           )}
+                          {/* Variant badges overlay */}
+                          <VariantBadges
+                            color={item.color}
+                            size={item.size}
+                            variantAttributes={item.variantAttributes}
+                            maxChars={7}
+                            compact
+                            className="absolute bottom-0.5 left-0.5 right-0.5 flex gap-0.5 flex-wrap pointer-events-none"
+                          />
                         </button>
                         
                         {/* Product Details and Controls */}
@@ -1159,17 +1177,26 @@ const SellerCartPage = () => {
                     className="flex-shrink-0 relative group cursor-pointer transition-transform hover:scale-105 border-none bg-transparent p-0"
                     title="Ver variantes"
                   >
-                    <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden border border-gray-300 flex items-center justify-center hover:border-[#071d7f]">
-                      {item.image ? (
-                        <img 
-                          src={item.image} 
-                          alt={item.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <Package className="w-6 h-6 text-gray-400" />
-                      )}
-                    </div>
+                                    <div className="relative w-16 h-16 bg-gray-200 rounded-lg overflow-hidden border border-gray-300 flex items-center justify-center hover:border-[#071d7f]">
+                                      {item.image ? (
+                                        <img 
+                                          src={item.image} 
+                                          alt={item.name}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      ) : (
+                                        <Package className="w-6 h-6 text-gray-400" />
+                                      )}
+                                      {/* Variant badges overlay */}
+                                      <VariantBadges
+                                        color={item.color}
+                                        size={item.size}
+                                        variantAttributes={item.variantAttributes}
+                                        maxChars={6}
+                                        compact
+                                        className="absolute bottom-0.5 left-0.5 right-0.5 flex gap-0.5 flex-wrap pointer-events-none"
+                                      />
+                                    </div>
                     {/* Cantidad badge */}
                     <div className="absolute -top-2 -right-2 bg-[#071d7f] text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center border-2 border-white">
                       {item.cantidad}
