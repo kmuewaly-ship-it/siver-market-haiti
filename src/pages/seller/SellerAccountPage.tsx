@@ -788,27 +788,27 @@ const SellerAccountPage = () => {
                           Información de Contacto
                         </h3>
                         <div className="space-y-3">
-                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
-                            <span className="text-gray-600 text-sm">Correo Electrónico</span>
-                            <span className="font-semibold text-gray-900">{user?.email}</span>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-100 gap-2">
+                            <span className="text-gray-600 text-sm flex-shrink-0">Correo Electrónico</span>
+                            <span className="font-semibold text-gray-900 truncate max-w-[180px] text-right" title={user?.email}>{user?.email}</span>
                           </div>
-                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
-                            <span className="text-gray-600 text-sm flex items-center gap-1">
+                          <div className="flex justify-between items-center py-2 border-b border-gray-100 gap-2">
+                            <span className="text-gray-600 text-sm flex items-center gap-1 flex-shrink-0">
                               <Phone className="h-4 w-4" />
                               Teléfono
                             </span>
-                            <span className="font-semibold text-gray-900">{contactInfo.phone || "No configurado"}</span>
+                            <span className="font-semibold text-gray-900 truncate max-w-[180px] text-right">{contactInfo.phone || "No configurado"}</span>
                           </div>
-                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
-                            <span className="text-gray-600 text-sm flex items-center gap-1">
+                          <div className="flex justify-between items-center py-2 border-b border-gray-100 gap-2">
+                            <span className="text-gray-600 text-sm flex items-center gap-1 flex-shrink-0">
                               <MessageCircle className="h-4 w-4 text-green-600" />
                               WhatsApp
                             </span>
-                            <span className="font-semibold text-gray-900">{contactInfo.whatsapp || store?.whatsapp || "No configurado"}</span>
+                            <span className="font-semibold text-gray-900 truncate max-w-[180px] text-right">{contactInfo.whatsapp || store?.whatsapp || "No configurado"}</span>
                           </div>
-                          <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
-                            <span className="text-gray-600 text-sm">Nombre Completo</span>
-                            <span className="font-semibold text-gray-900">{user?.name || "N/A"}</span>
+                          <div className="flex justify-between items-center py-2 border-b border-gray-100 gap-2">
+                            <span className="text-gray-600 text-sm flex-shrink-0">Nombre Completo</span>
+                            <span className="font-semibold text-gray-900 truncate max-w-[180px] text-right">{user?.name || "N/A"}</span>
                           </div>
                         </div>
                       </div>
@@ -1058,10 +1058,10 @@ const SellerAccountPage = () => {
                           {/* Truncated Description - Click to open modal */}
                           <button
                             onClick={() => setShowEditProfilePhoto(true)}
-                            className="mt-3 w-full bg-white rounded-lg px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                            className="mt-3 w-full bg-white rounded-lg px-4 py-3 text-left hover:bg-gray-50 transition-colors max-w-[220px]"
                           >
-                            <p className="text-black text-sm font-medium truncate max-w-[200px]">
-                              {store?.description ? store.description.slice(0, 30) + (store.description.length > 30 ? '...' : '') : "Descripción de tu tienda"}
+                            <p className="text-black text-sm font-medium truncate">
+                              {store?.description || "Descripción de tu tienda"}
                             </p>
                           </button>
                         </div>
