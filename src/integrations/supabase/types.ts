@@ -3566,6 +3566,7 @@ export type Database = {
           is_parent: boolean | null
           moq: number
           nombre: string
+          origin_country_id: string | null
           parent_product_id: string | null
           peso_kg: number | null
           precio_mayorista: number
@@ -3599,6 +3600,7 @@ export type Database = {
           is_parent?: boolean | null
           moq?: number
           nombre: string
+          origin_country_id?: string | null
           parent_product_id?: string | null
           peso_kg?: number | null
           precio_mayorista?: number
@@ -3632,6 +3634,7 @@ export type Database = {
           is_parent?: boolean | null
           moq?: number
           nombre?: string
+          origin_country_id?: string | null
           parent_product_id?: string | null
           peso_kg?: number | null
           precio_mayorista?: number
@@ -3655,6 +3658,13 @@ export type Database = {
             columns: ["categoria_id"]
             isOneToOne: false
             referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_origin_country_id_fkey"
+            columns: ["origin_country_id"]
+            isOneToOne: false
+            referencedRelation: "shipping_origins"
             referencedColumns: ["id"]
           },
           {
@@ -4577,6 +4587,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      shipping_origins: {
+        Row: {
+          code: string
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          updated_at: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          updated_at?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          updated_at?: string | null
+        }
+        Relationships: []
       }
       shipping_rates: {
         Row: {
@@ -6793,6 +6833,7 @@ export type Database = {
           is_parent: boolean | null
           moq: number
           nombre: string
+          origin_country_id: string | null
           parent_product_id: string | null
           peso_kg: number | null
           precio_mayorista: number

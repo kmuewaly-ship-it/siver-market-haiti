@@ -339,7 +339,8 @@ export const importGroupedProducts = async (
   categoryId: string | undefined,
   supplierId: string | undefined,
   priceCalculator: (cost: number) => number,
-  onProgress?: (current: number, total: number, message: string) => void
+  onProgress?: (current: number, total: number, message: string) => void,
+  originCountryId?: string
 ): Promise<{ success: number; failed: number; errors: string[] }> => {
   
   let success = 0;
@@ -376,6 +377,7 @@ export const importGroupedProducts = async (
           descripcion_corta: group.description || null,
           categoria_id: categoryId || null,
           proveedor_id: supplierId || null,
+          origin_country_id: originCountryId || null,
           costo_base_excel: minCost,
           precio_mayorista: b2bPrice,
           moq: representativeVariant.moq,
