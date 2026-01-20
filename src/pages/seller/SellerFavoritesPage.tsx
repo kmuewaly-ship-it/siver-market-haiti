@@ -135,15 +135,11 @@ const SellerFavoritesPage = () => {
                   </p>
                   <Button
                     className="w-full gap-2 h-9 text-sm"
-                    onClick={() => handleAddToCart(item)}
-                    disabled={addingItemId === item.id}
+                    variant="outline"
+                    onClick={() => item.product_id && navigate(`/producto/${item.sku}`)}
                   >
-                    {addingItemId === item.id ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                    ) : (
-                      <ShoppingCart className="h-4 w-4" />
-                    )}
-                    Agregar
+                    <Package className="h-4 w-4" />
+                    Ver
                   </Button>
                 </CardContent>
               </Card>
