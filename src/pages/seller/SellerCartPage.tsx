@@ -43,6 +43,7 @@ import useVariantDrawerStore from "@/stores/useVariantDrawerStore";
 import VariantDrawer from "@/components/products/VariantDrawer";
 import VariantSelectorB2B from "@/components/products/VariantSelectorB2B";
 import { useProductVariants } from "@/hooks/useProductVariants";
+import { VariantBadges } from "@/components/seller/cart/VariantBadges";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
