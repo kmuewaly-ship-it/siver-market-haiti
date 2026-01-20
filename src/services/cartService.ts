@@ -164,8 +164,8 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
       console.log('B2B: Using existing cart:', cart.id);
     }
 
-    // Insert item
-    console.log('B2B: Inserting item:', params.sku, 'to cart:', cart.id, 'with variant:', params.variant);
+    // Insert/merge item
+    console.log('B2B: Adding/merging item:', params.sku, 'to cart:', cart.id, 'with variant:', params.variant);
     
     // If no productId provided, try to find it by SKU
     let productId: string | undefined = params.productId;
@@ -184,23 +184,83 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
       }
     }
     
+    const variantId = params.variant?.variantId || null;
+
+    // Prefer merging by variant_id when present (source of truth)
+    const existingQuery = supabase
+      .from('b2b_cart_items')
+      .select('id, quantity')
+      .eq('cart_id', cart.id);
+
+    if (variantId) {
+      (existingQuery as any).eq('variant_id', variantId);
+    } else {
+      // Fallback merge for non-variant items
+      if (productId) (existingQuery as any).eq('product_id', productId);
+      (existingQuery as any).eq('sku', params.sku).is('variant_id', null);
+    }
+
+    const { data: existingItems, error: existingError } = await existingQuery;
+    if (existingError) throw existingError;
+
+    const basePayload = {
+      sku: params.sku,
+      nombre: params.name,
+      unit_price: params.priceB2B,
+      image: params.image || null,
+      // Variant columns
+      variant_id: variantId,
+      color: params.variant?.color || null,
+      size: params.variant?.size || null,
+      variant_attributes: params.variant?.variantAttributes || null,
+    };
+
+    if (existingItems && existingItems.length > 0) {
+      const primary = existingItems[0];
+      const existingQty = existingItems.reduce((sum, it) => sum + (it.quantity || 0), 0);
+      const newQty = existingQty + params.quantity;
+
+      const { error: updateError } = await supabase
+        .from('b2b_cart_items')
+        .update({
+          ...basePayload,
+          // Keep product_id stable (if we were able to resolve it)
+          ...(productId ? { product_id: productId } : {}),
+          quantity: newQty,
+          total_price: params.priceB2B * newQty,
+        })
+        .eq('id', primary.id);
+
+      if (updateError) throw updateError;
+
+      // Clean up duplicates if they exist
+      const duplicateIds = existingItems.slice(1).map((it) => it.id);
+      if (duplicateIds.length > 0) {
+        const { error: deleteError } = await supabase
+          .from('b2b_cart_items')
+          .delete()
+          .in('id', duplicateIds);
+
+        if (deleteError) {
+          console.warn('B2B: Could not delete duplicate cart items:', deleteError);
+        }
+      }
+
+      console.log('B2B: Item merged successfully:', { variantId, newQty, merged: existingItems.length });
+      return true;
+    }
+
     const { data: inserted, error: insertError } = await supabase
       .from('b2b_cart_items')
-      .insert([{
-        cart_id: cart.id,
-        product_id: productId || null,
-        sku: params.sku,
-        nombre: params.name,
-        unit_price: params.priceB2B,
-        total_price: params.priceB2B * params.quantity,
-        quantity: params.quantity,
-        image: params.image || null,
-        // Variant columns
-        variant_id: params.variant?.variantId || null,
-        color: params.variant?.color || null,
-        size: params.variant?.size || null,
-        variant_attributes: params.variant?.variantAttributes || null,
-      }])
+      .insert([
+        {
+          cart_id: cart.id,
+          product_id: productId || null,
+          ...basePayload,
+          total_price: params.priceB2B * params.quantity,
+          quantity: params.quantity,
+        },
+      ])
       .select();
 
     if (insertError) {
