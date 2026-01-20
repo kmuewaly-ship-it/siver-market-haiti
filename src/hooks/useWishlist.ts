@@ -55,9 +55,9 @@ export const useWishlist = (type?: WishlistType) => {
           products:product_id (
             id,
             nombre,
-            precio,
+            precio_mayorista,
             imagen_principal,
-            sku,
+            sku_interno,
             moq
           ),
           seller_catalog:seller_catalog_id (
@@ -102,9 +102,9 @@ export const useWishlist = (type?: WishlistType) => {
           created_at: item.created_at,
           // Enriched data depends on type
           name: isB2B ? product?.nombre : catalog?.nombre || 'Producto',
-          price: isB2B ? product?.precio : catalog?.precio_venta || 0,
+          price: isB2B ? product?.precio_mayorista : catalog?.precio_venta || 0,
           image: isB2B ? product?.imagen_principal : catalog?.imagen_principal || '/placeholder.svg',
-          sku: isB2B ? product?.sku : catalog?.sku || '',
+          sku: isB2B ? product?.sku_interno : catalog?.sku || '',
           store_name: catalog?.store?.name || '',
           moq: product?.moq || 1,
         };
