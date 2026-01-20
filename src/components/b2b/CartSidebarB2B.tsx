@@ -200,14 +200,14 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                             <div className="flex items-center gap-1 flex-wrap mt-0.5">
                               <span className="text-xs text-gray-500">SKU: {item.sku}</span>
                               {/* Variant badges */}
-                              {(item as any).color && (
+                              {item.color && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
-                                  {(item as any).color}
+                                  {item.color}
                                 </span>
                               )}
-                              {(item as any).size && (
+                              {item.size && (
                                 <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
-                                  {(item as any).size}
+                                  {item.size}
                                 </span>
                               )}
                             </div>
@@ -224,10 +224,10 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                         {/* Price - Using unit_price (B2B special price) */}
                         <div className="flex items-center justify-between mt-1">
                           <span className="text-xs text-gray-600">
-                            ${(item as any).unit_price ? (item as any).unit_price.toFixed(2) : item.precio_b2b.toFixed(2)} × {item.cantidad}
+                            ${(item.unit_price ?? item.precio_b2b).toFixed(2)} × {item.cantidad}
                           </span>
                           <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                            ${((item as any).unit_price ? (item as any).unit_price * item.cantidad : item.subtotal).toFixed(2)}
+                            ${((item.unit_price ?? item.precio_b2b) * item.cantidad).toFixed(2)}
                           </span>
                         </div>
                         
