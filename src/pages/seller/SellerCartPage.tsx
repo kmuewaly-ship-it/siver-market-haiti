@@ -589,7 +589,7 @@ const SellerCartPage = () => {
                           {/* Product Image - Clickable Button */}
                           <button
                             onClick={() => handleOpenVariantDrawer(item)}
-                            className="relative w-18 h-18 flex-shrink-0 rounded-md bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
+                            className="w-18 h-18 flex-shrink-0 rounded-md bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
                             style={{ width: '72px', height: '72px' }}
                             title="Ver variantes"
                           >
@@ -604,45 +604,15 @@ const SellerCartPage = () => {
                                 <Package className="h-5 w-5 text-muted-foreground/50" />
                               </div>
                             )}
-                            {/* Variant badges overlay */}
-                            <VariantBadges
-                              color={item.color}
-                              size={item.size}
-                              variantAttributes={item.variantAttributes}
-                              maxChars={8}
-                              compact
-                              className="absolute bottom-0.5 left-0.5 right-0.5 flex gap-0.5 flex-wrap pointer-events-none"
-                            />
                           </button>
                           
-                          {/* Product Details - Clickable Button and Controls */}
-                          <div className="flex-1 min-w-0 flex flex-col">
-                            <button
-                              onClick={() => handleOpenVariantDrawer(item)}
-                              className="flex-1 hover:opacity-80 transition text-left bg-transparent border-none p-0 cursor-pointer"
-                            >
+                          {/* Product Details */}
+                          <div className="flex-1 min-w-0 flex flex-col justify-between">
+                            <div>
                               <div className="flex justify-between items-start">
-                                <div className="flex-1 min-w-0">
-                                  <p className="font-medium text-sm text-gray-900 line-clamp-1">
-                                    {item.name}
-                                  </p>
-                                  {/* Variant badges */}
-                                  {(item.color || item.size) && (
-                                    <div className="flex gap-1 mt-1 flex-wrap">
-                                      {item.color && (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                          {item.color}
-                                        </span>
-                                      )}
-                                      {item.size && (
-                                        <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                          Talla: {item.size}
-                                        </span>
-                                      )}
-                                    </div>
-                                  )}
-                                  <p className="text-xs text-gray-600 mt-0.5">Cantidad: {item.cantidad}</p>
-                                </div>
+                                <p className="font-medium text-sm text-gray-900 line-clamp-1 flex-1 min-w-0">
+                                  {item.name}
+                                </p>
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
@@ -654,43 +624,55 @@ const SellerCartPage = () => {
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
-                              
-                              {/* Price and Quantity */}
-                              <div className="mt-2 flex items-center justify-between">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm font-bold" style={{ color: '#29892a' }}>
-                                    ${item.precioB2B.toFixed(2)}
+                              {/* Variant badges below title */}
+                              {(item.color || item.size) && (
+                                <div className="flex gap-1 mt-1 flex-wrap">
+                                  {item.color && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                      {item.color}
+                                    </span>
+                                  )}
+                                  {item.size && (
+                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                      Talla: {item.size}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            {/* Price + Quantity Controls on same row */}
+                            <div className="flex items-center justify-between mt-2">
+                              <span className="text-sm font-bold" style={{ color: '#29892a' }}>
+                                ${item.precioB2B.toFixed(2)}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateQuantity(item.id, Math.max(1, item.cantidad - 1));
+                                    }}
+                                    className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-6 text-center text-xs font-medium">
+                                    {item.cantidad}
                                   </span>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateQuantity(item.id, item.cantidad + 1);
+                                    }}
+                                    className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
+                                  >
+                                    +
+                                  </button>
                                 </div>
                                 <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
                                   ${item.subtotal.toFixed(2)}
                                 </span>
                               </div>
-                            </button>
-
-                            {/* Quantity Controls */}
-                            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1 mt-2 w-fit">
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateQuantity(item.id, Math.max(1, item.cantidad - 1));
-                                }}
-                                className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
-                              >
-                                −
-                              </button>
-                              <span className="w-6 text-center text-xs font-medium">
-                                {item.cantidad}
-                              </span>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  updateQuantity(item.id, item.cantidad + 1);
-                                }}
-                                className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
-                              >
-                                +
-                              </button>
                             </div>
                           </div>
                         </div>
@@ -936,7 +918,7 @@ const SellerCartPage = () => {
                         {/* Product Image - Clickable Button */}
                         <button
                           onClick={() => handleOpenVariantDrawer(item)}
-                          className="relative w-16 h-16 flex-shrink-0 rounded-lg bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
+                          className="w-16 h-16 flex-shrink-0 rounded-lg bg-muted overflow-hidden hover:opacity-80 transition border-none p-0"
                           title="Ver variantes"
                         >
                           {item.image ? (
@@ -950,44 +932,15 @@ const SellerCartPage = () => {
                               <Package className="h-5 w-5 text-muted-foreground/50" />
                             </div>
                           )}
-                          {/* Variant badges overlay */}
-                          <VariantBadges
-                            color={item.color}
-                            size={item.size}
-                            variantAttributes={item.variantAttributes}
-                            maxChars={7}
-                            compact
-                            className="absolute bottom-0.5 left-0.5 right-0.5 flex gap-0.5 flex-wrap pointer-events-none"
-                          />
                         </button>
                         
-                        {/* Product Details and Controls */}
-                        <div className="flex-1 min-w-0 flex flex-col">
-                          <button
-                            onClick={() => handleOpenVariantDrawer(item)}
-                            className="flex-1 hover:opacity-80 transition text-left bg-transparent border-none p-0 cursor-pointer"
-                          >
+                        {/* Product Details */}
+                        <div className="flex-1 min-w-0 flex flex-col justify-between">
+                          <div>
                             <div className="flex justify-between items-start gap-2">
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-gray-900 line-clamp-1">
-                                  {item.name}
-                                </p>
-                                {/* Variant badges mobile */}
-                                {(item.color || item.size) && (
-                                  <div className="flex gap-1 mt-1 flex-wrap">
-                                    {item.color && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                        {item.color}
-                                      </span>
-                                    )}
-                                    {item.size && (
-                                      <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                        Talla: {item.size}
-                                      </span>
-                                    )}
-                                  </div>
-                                )}
-                              </div>
+                              <p className="font-medium text-sm text-gray-900 line-clamp-1 flex-1 min-w-0">
+                                {item.name}
+                              </p>
                               <button
                                 onClick={(e) => {
                                   e.stopPropagation();
@@ -999,17 +952,28 @@ const SellerCartPage = () => {
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
-                            
-                            {/* Price */}
-                            <div className="mt-2 flex items-center gap-2">
-                              <span className="text-sm font-bold" style={{ color: '#29892a' }}>
-                                ${item.precioB2B.toFixed(2)}
-                              </span>
-                            </div>
-                          </button>
-                            
-                          {/* Quantity Controls */}
+                            {/* Variant badges below title */}
+                            {(item.color || item.size) && (
+                              <div className="flex gap-1 mt-1 flex-wrap">
+                                {item.color && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                    {item.color}
+                                  </span>
+                                )}
+                                {item.size && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                    Talla: {item.size}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {/* Price + Quantity Controls on same row */}
                           <div className="flex items-center justify-between mt-2">
+                            <span className="text-sm font-bold" style={{ color: '#29892a' }}>
+                              ${item.precioB2B.toFixed(2)}
+                            </span>
+                            <div className="flex items-center gap-2">
                               <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
                                 <button
                                   onClick={(e) => {
@@ -1037,6 +1001,7 @@ const SellerCartPage = () => {
                                 ${item.subtotal.toFixed(2)}
                               </span>
                             </div>
+                          </div>
                         </div>
                       </div>
                       );
@@ -1044,8 +1009,8 @@ const SellerCartPage = () => {
                   </div>
                 </div>
               )}
-              </>
-            )}
+            </>
+          )}
         </main>
 
         {/* Botones Fijos - Solo Mobile */}
