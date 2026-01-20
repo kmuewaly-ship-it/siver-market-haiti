@@ -5899,25 +5899,69 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
+          product_id: string | null
           seller_catalog_id: string | null
           store_id: string | null
+          type: string | null
           user_id: string
+          variant_id: string | null
         }
         Insert: {
           created_at?: string | null
           id?: string
+          product_id?: string | null
           seller_catalog_id?: string | null
           store_id?: string | null
+          type?: string | null
           user_id: string
+          variant_id?: string | null
         }
         Update: {
           created_at?: string | null
           id?: string
+          product_id?: string | null
           seller_catalog_id?: string | null
           store_id?: string | null
+          type?: string | null
           user_id?: string
+          variant_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "user_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "product_eta_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "user_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products_b2b_enriched"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["product_id"]
+          },
+          {
+            foreignKeyName: "user_favorites_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["product_id"]
+          },
           {
             foreignKeyName: "user_favorites_seller_catalog_id_fkey"
             columns: ["seller_catalog_id"]
@@ -5952,6 +5996,27 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "stores_public"
             referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_favorites_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_balance_view"
+            referencedColumns: ["variant_id"]
+          },
+          {
+            foreignKeyName: "user_favorites_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "stock_rotation_alerts"
+            referencedColumns: ["variant_id"]
           },
         ]
       }
