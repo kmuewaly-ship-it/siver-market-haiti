@@ -535,7 +535,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
       defaultCategoryId || undefined,
       defaultSupplierId || undefined,
       priceCalculator,
-      (current, total, message) => setImportProgress({ current, total, message })
+      (current, total, message) => setImportProgress({ current, total, message }),
+      defaultOriginId || undefined
     );
 
     setImportResult(result);
