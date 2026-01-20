@@ -54,6 +54,19 @@ const SellerAccountPage = () => {
   const [editingDescription, setEditingDescription] = useState(false);
   const [storeDescription, setStoreDescription] = useState(store?.description || "");
   const [showViewProfilePhoto, setShowViewProfilePhoto] = useState<'profile' | 'banner' | null>(null);
+  
+  // Store Info states
+  const [editStoreName, setEditStoreName] = useState(store?.name || "");
+  const [editStoreDescription, setEditStoreDescription] = useState(store?.description || "");
+  const [savingStoreInfo, setSavingStoreInfo] = useState(false);
+  
+  // Contact Info states
+  const [contactInfo, setContactInfo] = useState({
+    full_name: user?.name || "",
+    phone: "",
+    whatsapp: store?.whatsapp || "",
+  });
+  const [savingContact, setSavingContact] = useState(false);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showNewPassword, setShowNewPassword] = useState(false);
@@ -93,7 +106,7 @@ const SellerAccountPage = () => {
   });
   const [updatingNatcash, setUpdatingNatcash] = useState(false);
   
-  // Load payment info from store metadata when store data is available
+  // Load payment info and contact info when store/user data is available
   useEffect(() => {
     if (store?.metadata) {
       const metadata = store.metadata as Record<string, any>;
@@ -118,7 +131,39 @@ const SellerAccountPage = () => {
         });
       }
     }
+    
+    // Update store info states when store loads
+    if (store) {
+      setEditStoreName(store.name || "");
+      setEditStoreDescription(store.description || "");
+      setStoreDescription(store.description || "");
+      setContactInfo(prev => ({
+        ...prev,
+        whatsapp: store.whatsapp || "",
+      }));
+    }
   }, [store]);
+
+  // Load profile phone when user changes
+  useEffect(() => {
+    const loadProfilePhone = async () => {
+      if (!user?.id) return;
+      const { data } = await supabase
+        .from('profiles')
+        .select('full_name, phone')
+        .eq('id', user.id)
+        .single();
+      if (data) {
+        setContactInfo(prev => ({
+          ...prev,
+          full_name: data.full_name || user.name || "",
+          phone: data.phone || "",
+        }));
+      }
+    };
+    loadProfilePhone();
+  }, [user?.id, user?.name]);
+
   const [showStoreDescription, setShowStoreDescription] = useState(false);
   
   // Hooks for orders
@@ -492,6 +537,116 @@ const SellerAccountPage = () => {
       toast({
         title: "Error",
         description: error.message || "No se pudo guardar la descripción",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Handler for saving store info (name and description)
+  const handleSaveStoreInfo = async () => {
+    if (!store?.id) return;
+    
+    setSavingStoreInfo(true);
+    try {
+      const { error } = await supabase
+        .from("stores")
+        .update({
+          name: editStoreName,
+          description: editStoreDescription,
+        })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Información de tienda actualizada correctamente",
+      });
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo actualizar la información",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingStoreInfo(false);
+    }
+  };
+
+  // Handler for saving contact info
+  const handleSaveContactInfo = async () => {
+    if (!user?.id) return;
+    
+    setSavingContact(true);
+    try {
+      // Update profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update({
+          full_name: contactInfo.full_name,
+          phone: contactInfo.phone,
+        })
+        .eq('id', user.id);
+
+      if (profileError) throw profileError;
+
+      // Update WhatsApp in store if store exists
+      if (store?.id) {
+        const { error: storeError } = await supabase
+          .from('stores')
+          .update({ whatsapp: contactInfo.whatsapp })
+          .eq('id', store.id);
+        
+        if (storeError) throw storeError;
+      }
+
+      toast({
+        title: "Éxito",
+        description: "Información de contacto actualizada correctamente",
+      });
+      
+      setShowEditInfo(false);
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Error al guardar la información",
+        variant: "destructive",
+      });
+    } finally {
+      setSavingContact(false);
+    }
+  };
+
+  // Handler for Edit Store Dialog
+  const handleSaveEditStore = async () => {
+    if (!store?.id) return;
+
+    try {
+      const nameInput = document.getElementById('edit-store-name') as HTMLInputElement;
+      const descInput = document.getElementById('edit-store-description') as HTMLTextAreaElement;
+      
+      const { error } = await supabase
+        .from("stores")
+        .update({
+          name: nameInput?.value || store.name,
+          description: descInput?.value || store.description,
+        })
+        .eq("id", store.id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Éxito",
+        description: "Tienda actualizada correctamente",
+      });
+      setShowEditStore(false);
+      queryClient.invalidateQueries({ queryKey: ["store", "owner", user?.id] });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "No se pudo guardar",
         variant: "destructive",
       });
     }
@@ -965,15 +1120,41 @@ const SellerAccountPage = () => {
                         <div className="space-y-4 bg-blue-50 p-4 rounded-lg">
                           <div className="space-y-2">
                             <Label htmlFor="store-name" className="text-sm font-medium">Nombre de la Tienda</Label>
-                            <Input id="store-name" placeholder={store?.name || "Nombre de tu tienda"} className="border-gray-300" />
+                            <Input 
+                              id="store-name" 
+                              value={editStoreName}
+                              onChange={(e) => setEditStoreName(e.target.value)}
+                              placeholder="Nombre de tu tienda" 
+                              className="border-gray-300" 
+                            />
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="store-description" className="text-sm font-medium">Descripción</Label>
-                            <Textarea id="store-description" placeholder={store?.description || "Describe tu tienda"} rows={3} className="border-gray-300" />
+                            <Textarea 
+                              id="store-description" 
+                              value={editStoreDescription}
+                              onChange={(e) => setEditStoreDescription(e.target.value)}
+                              placeholder="Describe tu tienda" 
+                              rows={3} 
+                              className="border-gray-300" 
+                            />
                           </div>
-                          <Button className="w-full bg-[#071d7f] hover:bg-[#071d7f]/90">
-                            <Save className="h-4 w-4 mr-2" />
-                            Guardar Cambios
+                          <Button 
+                            onClick={handleSaveStoreInfo}
+                            disabled={savingStoreInfo}
+                            className="w-full bg-[#071d7f] hover:bg-[#071d7f]/90"
+                          >
+                            {savingStoreInfo ? (
+                              <>
+                                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                Guardando...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="h-4 w-4 mr-2" />
+                                Guardar Cambios
+                              </>
+                            )}
                           </Button>
                         </div>
                       </AccordionContent>
@@ -2056,7 +2237,7 @@ const SellerAccountPage = () => {
             <Button variant="outline" onClick={() => setShowEditStore(false)}>
               Cancelar
             </Button>
-            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90" onClick={() => setShowEditStore(false)}>
+            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90" onClick={handleSaveEditStore}>
               Guardar Cambios
             </Button>
           </DialogFooter>
@@ -2215,7 +2396,8 @@ const SellerAccountPage = () => {
               <Label htmlFor="edit-name">Nombre Completo</Label>
               <Input 
                 id="edit-name" 
-                defaultValue={user?.name || ""} 
+                value={contactInfo.full_name}
+                onChange={(e) => setContactInfo({...contactInfo, full_name: e.target.value})}
                 placeholder="Tu nombre"
               />
             </div>
@@ -2223,16 +2405,18 @@ const SellerAccountPage = () => {
               <Label htmlFor="edit-phone">Teléfono</Label>
               <Input 
                 id="edit-phone" 
-                defaultValue="+1 234 567 8900" 
-                placeholder="Tu teléfono"
+                value={contactInfo.phone}
+                onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})}
+                placeholder="+509 XXXX XXXX"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-whatsapp">WhatsApp</Label>
               <Input 
                 id="edit-whatsapp" 
-                defaultValue="+1 234 567 8900" 
-                placeholder="Tu número de WhatsApp"
+                value={contactInfo.whatsapp}
+                onChange={(e) => setContactInfo({...contactInfo, whatsapp: e.target.value})}
+                placeholder="+509 XXXX XXXX"
               />
             </div>
           </div>
@@ -2241,8 +2425,19 @@ const SellerAccountPage = () => {
             <Button variant="outline" onClick={() => setShowEditInfo(false)}>
               Cancelar
             </Button>
-            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90" onClick={() => setShowEditInfo(false)}>
-              Guardar Cambios
+            <Button 
+              className="bg-[#071d7f] hover:bg-[#071d7f]/90" 
+              onClick={handleSaveContactInfo}
+              disabled={savingContact}
+            >
+              {savingContact ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Guardando...
+                </>
+              ) : (
+                "Guardar Cambios"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

@@ -3709,6 +3709,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          phone: string | null
           updated_at: string
         }
         Insert: {
@@ -3718,6 +3719,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id: string
+          phone?: string | null
           updated_at?: string
         }
         Update: {
@@ -3727,6 +3729,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          phone?: string | null
           updated_at?: string
         }
         Relationships: []
@@ -6799,6 +6802,7 @@ export type Database = {
         Args: { p_new_status: string; p_po_id: string }
         Returns: Json
       }
+      user_owns_store: { Args: { store_id: string }; Returns: boolean }
       validate_courier_delivery: {
         Args: { p_qr_code: string; p_security_pin: string }
         Returns: {
