@@ -404,20 +404,37 @@ const SellerCartPage = () => {
       for (const selection of variantSelections) {
         if (selection.quantity <= 0) continue;
 
+        const matchedVariant = (productVariants || []).find(v => v.id === selection.variantId);
+        const attrs = (matchedVariant?.attribute_combination || {}) as Record<string, any>;
+        const color = (attrs.color ?? selection.colorLabel ?? null) as string | null;
+        const size = (attrs.size ?? attrs.talla ?? null) as string | null;
+
         const { error } = await supabase
           .from('b2b_cart_items')
-          .insert([{
-            cart_id: cartId,
-            product_id: selectedProductForVariants.id,
-            sku: selection.sku,
-            nombre: `${selectedProductForVariants.nombre} - ${selection.label}`,
-            unit_price: selection.price,
-            total_price: selection.price * selection.quantity,
-            quantity: selection.quantity,
-            image: variantImage || selectedProductForVariants.images?.[0] || null,
-            color: selection.colorLabel || null,
-            size: selection.label.includes('/') ? selection.label.split('/')[1]?.trim() : null,
-          }]);
+          .insert([
+            {
+              cart_id: cartId,
+              product_id: selectedProductForVariants.id,
+              sku: selection.sku,
+              nombre: `${selectedProductForVariants.nombre} - ${selection.label}`,
+              unit_price: selection.price,
+              total_price: selection.price * selection.quantity,
+              quantity: selection.quantity,
+              image: variantImage || selectedProductForVariants.images?.[0] || null,
+              // Variant columns (source of truth)
+              variant_id: selection.variantId || null,
+              variant_attributes: attrs,
+              color,
+              size,
+            },
+          ]);
+
+        if (error) {
+          console.error('Error adding variant:', error);
+        } else {
+          addedCount++;
+        }
+      }
 
         if (error) {
           console.error('Error adding variant:', error);

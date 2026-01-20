@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/auth';
 import { addItemB2C, addItemB2B } from '@/services/cartService';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 import { X, TrendingUp, ImageIcon, Info } from 'lucide-react';
 import { useB2BCartProductTotals } from '@/hooks/useB2BCartProductTotals';
 
