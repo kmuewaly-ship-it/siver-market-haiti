@@ -740,8 +740,24 @@ const ProductPage = () => {
                   </Badge>
                 </div>}
               
-              <button className="absolute top-4 right-4 bg-white/80 hover:bg-white rounded-full p-2 shadow-sm transition">
-                <Heart className="w-5 h-5 text-gray-400 hover:text-red-500" />
+              <button 
+                onClick={() => {
+                  if (product?.id) {
+                    toggleFavorite({ 
+                      sellerCatalogId: product.id, 
+                      storeId: (product as any)?.store?.id 
+                    });
+                  }
+                }}
+                className="absolute top-4 right-4 bg-white/80 hover:bg-white rounded-full p-2 shadow-sm transition"
+              >
+                <Heart 
+                  className={`w-5 h-5 transition-colors ${
+                    product?.id && isFavorite(product.id) 
+                      ? 'text-red-500 fill-red-500' 
+                      : 'text-gray-400 hover:text-red-500'
+                  }`} 
+                />
               </button>
             </div>
 
