@@ -79,6 +79,22 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
+  // Shipping origins for country of origin selector
+  const [shippingOrigins, setShippingOrigins] = useState<{ id: string; name: string; code: string }[]>([]);
+  
+  useEffect(() => {
+    // Fetch shipping origins for the selector
+    const fetchOrigins = async () => {
+      const { data } = await (await import('@/integrations/supabase/client')).supabase
+        .from('shipping_origins')
+        .select('id, name, code')
+        .eq('is_active', true)
+        .order('name');
+      if (data) setShippingOrigins(data);
+    };
+    if (open) fetchOrigins();
+  }, [open]);
+  
   const { 
     usePriceSettings, 
     useDynamicExpenses, 
@@ -97,6 +113,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const [detectedAttributeColumns, setDetectedAttributeColumns] = useState<string[]>([]);
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>('');
   const [defaultSupplierId, setDefaultSupplierId] = useState<string>('');
+  const [defaultOriginId, setDefaultOriginId] = useState<string>('');
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, message: '' });
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [duplicateSkus, setDuplicateSkus] = useState<string[]>([]);
@@ -782,7 +799,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
 
                 <Card className="bg-muted/30">
                   <CardContent className="pt-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Categoría por defecto</Label>
                         <HierarchicalCategorySelect categories={categories} value={defaultCategoryId} onValueChange={setDefaultCategoryId} placeholder="Seleccionar" />
@@ -793,6 +810,15 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                           <SelectTrigger><SelectValue placeholder="Seleccionar" /></SelectTrigger>
                           <SelectContent>
                             {suppliers?.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-sm font-medium">País de Origen</Label>
+                        <Select value={defaultOriginId} onValueChange={setDefaultOriginId}>
+                          <SelectTrigger><SelectValue placeholder="Seleccionar origen" /></SelectTrigger>
+                          <SelectContent>
+                            {shippingOrigins.map((o) => <SelectItem key={o.id} value={o.id}>{o.name} ({o.code})</SelectItem>)}
                           </SelectContent>
                         </Select>
                       </div>

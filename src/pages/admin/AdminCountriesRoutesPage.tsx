@@ -12,7 +12,8 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { useCountriesRoutes, TransitHub, DestinationCountry, ShippingRoute, RouteLogisticsCost } from "@/hooks/useCountriesRoutes";
-import { Plus, Edit, Globe, Plane, DollarSign, Loader2, ArrowRight, Building2 } from "lucide-react";
+import { useShippingOrigins, ShippingOrigin } from "@/hooks/useShippingOrigins";
+import { Plus, Edit, Globe, Plane, DollarSign, Loader2, ArrowRight, Building2, MapPin, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function AdminCountriesRoutesPage() {
@@ -32,22 +33,33 @@ export default function AdminCountriesRoutesPage() {
     updateCost,
   } = useCountriesRoutes();
 
+  const {
+    origins,
+    isLoading: loadingOrigins,
+    createOrigin,
+    updateOrigin,
+    deleteOrigin,
+  } = useShippingOrigins();
+
   // Dialog states
   const [showHubDialog, setShowHubDialog] = useState(false);
   const [showCountryDialog, setShowCountryDialog] = useState(false);
   const [showRouteDialog, setShowRouteDialog] = useState(false);
   const [showCostDialog, setShowCostDialog] = useState(false);
+  const [showOriginDialog, setShowOriginDialog] = useState(false);
 
   // Editing states
   const [editingHub, setEditingHub] = useState<TransitHub | null>(null);
   const [editingCountry, setEditingCountry] = useState<DestinationCountry | null>(null);
   const [editingRoute, setEditingRoute] = useState<ShippingRoute | null>(null);
   const [editingCost, setEditingCost] = useState<RouteLogisticsCost | null>(null);
+  const [editingOrigin, setEditingOrigin] = useState<ShippingOrigin | null>(null);
 
   // Form states
   const [hubForm, setHubForm] = useState({ name: "", code: "", description: "", is_active: true });
   const [countryForm, setCountryForm] = useState({ name: "", code: "", currency: "USD", is_active: true });
   const [routeForm, setRouteForm] = useState({ destination_country_id: "", transit_hub_id: "", is_direct: false, is_active: true });
+  const [originForm, setOriginForm] = useState({ name: "", code: "", description: "", is_active: true });
   const [costForm, setCostForm] = useState({ 
     shipping_route_id: "", 
     segment: "china_to_transit", 
@@ -59,6 +71,33 @@ export default function AdminCountriesRoutesPage() {
     notes: "",
     is_active: true 
   });
+
+  // ========== ORIGIN HANDLERS ==========
+  const openOriginDialog = (origin?: ShippingOrigin) => {
+    if (origin) {
+      setEditingOrigin(origin);
+      setOriginForm({ name: origin.name, code: origin.code, description: origin.description || "", is_active: origin.is_active });
+    } else {
+      setEditingOrigin(null);
+      setOriginForm({ name: "", code: "", description: "", is_active: true });
+    }
+    setShowOriginDialog(true);
+  };
+
+  const handleOriginSubmit = () => {
+    const data = { ...originForm, description: originForm.description || null };
+    if (editingOrigin) {
+      updateOrigin.mutate({ id: editingOrigin.id, ...data }, { onSuccess: () => setShowOriginDialog(false) });
+    } else {
+      createOrigin.mutate(data, { onSuccess: () => setShowOriginDialog(false) });
+    }
+  };
+
+  const handleDeleteOrigin = (id: string) => {
+    if (confirm("¿Estás seguro de eliminar este país de origen?")) {
+      deleteOrigin.mutate(id);
+    }
+  };
 
   // ========== HUB HANDLERS ==========
   const openHubDialog = (hub?: TransitHub) => {
@@ -199,11 +238,15 @@ export default function AdminCountriesRoutesPage() {
 
   return (
     <AdminLayout title="Países y Rutas de Tránsito" subtitle="Configura países destino, hubs de tránsito y costos logísticos">
-      <Tabs defaultValue="countries" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 max-w-lg">
+      <Tabs defaultValue="origins" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 max-w-xl">
+          <TabsTrigger value="origins" className="flex items-center gap-2">
+            <MapPin className="h-4 w-4" />
+            <span className="hidden sm:inline">Orígenes</span>
+          </TabsTrigger>
           <TabsTrigger value="countries" className="flex items-center gap-2">
             <Globe className="h-4 w-4" />
-            <span className="hidden sm:inline">Países</span>
+            <span className="hidden sm:inline">Destinos</span>
           </TabsTrigger>
           <TabsTrigger value="hubs" className="flex items-center gap-2">
             <Building2 className="h-4 w-4" />
@@ -214,6 +257,64 @@ export default function AdminCountriesRoutesPage() {
             <span className="hidden sm:inline">Rutas</span>
           </TabsTrigger>
         </TabsList>
+
+        {/* ========== ORIGINS TAB ========== */}
+        <TabsContent value="origins">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Gestión de Orígenes</CardTitle>
+                <CardDescription>Países de origen para compra de productos (fuentes de abastecimiento)</CardDescription>
+              </div>
+              <Button onClick={() => openOriginDialog()} className="gap-2">
+                <Plus className="h-4 w-4" />
+                Agregar Origen
+              </Button>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Nombre</TableHead>
+                    <TableHead>Descripción</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead className="text-right">Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {origins?.map((origin) => (
+                    <TableRow key={origin.id}>
+                      <TableCell className="font-mono font-bold">{origin.code}</TableCell>
+                      <TableCell>{origin.name}</TableCell>
+                      <TableCell className="text-muted-foreground text-sm max-w-[200px] truncate">{origin.description || '-'}</TableCell>
+                      <TableCell>
+                        <Badge variant={origin.is_active ? "default" : "secondary"}>
+                          {origin.is_active ? "Activo" : "Inactivo"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right space-x-1">
+                        <Button variant="ghost" size="sm" onClick={() => openOriginDialog(origin)}>
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => handleDeleteOrigin(origin.id)}>
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {!origins?.length && (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                        No hay países de origen configurados
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        </TabsContent>
 
         {/* ========== COUNTRIES TAB ========== */}
         <TabsContent value="countries">
@@ -629,6 +730,43 @@ export default function AdminCountriesRoutesPage() {
             <Button variant="outline" onClick={() => setShowCostDialog(false)}>Cancelar</Button>
             <Button onClick={handleCostSubmit} disabled={createCost.isPending || updateCost.isPending}>
               {(createCost.isPending || updateCost.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+              Guardar
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ========== ORIGIN DIALOG ========== */}
+      <Dialog open={showOriginDialog} onOpenChange={setShowOriginDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{editingOrigin ? "Editar País de Origen" : "Nuevo País de Origen"}</DialogTitle>
+            <DialogDescription>Define un país desde donde se compran productos (fuente de abastecimiento)</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Nombre</Label>
+                <Input placeholder="Ej: China" value={originForm.name} onChange={(e) => setOriginForm({ ...originForm, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Código ISO</Label>
+                <Input placeholder="Ej: CN" maxLength={3} value={originForm.code} onChange={(e) => setOriginForm({ ...originForm, code: e.target.value.toUpperCase() })} />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>Descripción (opcional)</Label>
+              <Textarea placeholder="Descripción del país de origen..." value={originForm.description} onChange={(e) => setOriginForm({ ...originForm, description: e.target.value })} />
+            </div>
+            <div className="flex items-center gap-2">
+              <Switch checked={originForm.is_active} onCheckedChange={(checked) => setOriginForm({ ...originForm, is_active: checked })} />
+              <Label>Activo</Label>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowOriginDialog(false)}>Cancelar</Button>
+            <Button onClick={handleOriginSubmit} disabled={createOrigin.isPending || updateOrigin.isPending}>
+              {(createOrigin.isPending || updateOrigin.isPending) && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
               Guardar
             </Button>
           </DialogFooter>
