@@ -1058,10 +1058,10 @@ const SellerAccountPage = () => {
                           {/* Truncated Description - Click to open modal */}
                           <button
                             onClick={() => setShowEditProfilePhoto(true)}
-                            className="mt-3 bg-white rounded-lg px-4 py-3 text-left hover:bg-gray-50 transition-colors max-w-[200px]"
+                            className="mt-3 bg-white rounded-lg px-4 py-3 text-left hover:bg-gray-50 transition-colors w-fit"
                             title={store?.description || "Descripción de tu tienda"}
                           >
-                            <p className="text-black text-sm font-medium truncate overflow-hidden text-ellipsis whitespace-nowrap">
+                            <p className="text-black text-sm font-medium max-w-[180px] truncate">
                               {store?.description || "Descripción de tu tienda"}
                             </p>
                           </button>
