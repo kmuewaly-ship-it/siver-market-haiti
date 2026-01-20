@@ -171,14 +171,15 @@ export const addItemB2B = async (params: B2BAddItemParams) => {
     let productId: string | undefined = params.productId;
     if (!productId && params.sku) {
       const skuBase = params.sku.split('-')[0];
-      const { data } = await supabase
+      // Use RPC-style call to avoid TS2589 deep type instantiation error
+      const { data: productData } = await (supabase as any)
         .from('products')
         .select('id')
         .eq('sku', skuBase)
         .limit(1);
       
-      if ((data as any[])?.[0]?.id) {
-        productId = (data as any[])[0].id as string;
+      if (productData?.[0]?.id) {
+        productId = productData[0].id as string;
         console.log('B2B: Found productId by SKU:', productId);
       }
     }
