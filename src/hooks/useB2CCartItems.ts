@@ -127,8 +127,8 @@ export const useB2CCartItems = () => {
           storeMetadata: metadata,
           // Variant fields
           variantId: item.variant_id || null,
-          color: item.color || null,
-          size: item.size || null,
+          color: item.color || (item.variant_attributes as any)?.color || null,
+          size: item.size || (item.variant_attributes as any)?.size || (item.variant_attributes as any)?.talla || null,
           variantAttributes: item.variant_attributes as Record<string, any> | null,
         };
       });
