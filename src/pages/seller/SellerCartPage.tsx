@@ -61,6 +61,19 @@ const SellerCartPage = () => {
   const [isAddingVariant, setIsAddingVariant] = useState(false);
   const [variantImage, setVariantImage] = useState<string | null>(null);
 
+  // Prefill variant quantities in the selector with what's already in the cart
+  const initialVariantQuantities = useMemo(() => {
+    if (!selectedProductForVariants?.id) return {} as Record<string, number>;
+    const map: Record<string, number> = {};
+    items
+      .filter((it) => it.productId === selectedProductForVariants.id && it.variantId)
+      .forEach((it) => {
+        const key = it.variantId as string;
+        map[key] = (map[key] || 0) + (it.cantidad || 0);
+      });
+    return map;
+  }, [items, selectedProductForVariants?.id]);
+
   // Fetch variants for the selected product
   const { data: productVariants, isLoading: isLoadingVariants } = useProductVariants(
     selectedProductForVariants?.id
@@ -378,35 +391,112 @@ const SellerCartPage = () => {
 
     setIsAddingVariant(true);
     try {
-      // Add each selected variant to cart
+      // Build current cart map for this product (by variantId)
+      const existingByVariantId = new Map<
+        string,
+        { ids: string[]; qtyTotal: number; unitPrice: number }
+      >();
+
+      items
+        .filter((it) => it.productId === selectedProductForVariants.id && it.variantId)
+        .forEach((it) => {
+          const vid = it.variantId as string;
+          const entry = existingByVariantId.get(vid) || {
+            ids: [],
+            qtyTotal: 0,
+            unitPrice: it.precioB2B,
+          };
+          entry.ids.push(it.id);
+          entry.qtyTotal += it.cantidad || 0;
+          existingByVariantId.set(vid, entry);
+        });
+
+      // Apply desired quantities (sum/rest) per variant
       let addedCount = 0;
       for (const selection of variantSelections) {
-        if (selection.quantity <= 0) continue;
+        const desiredQty = Number(selection.quantity || 0);
+        const variantId = selection.variantId as string | undefined;
+        if (!variantId) continue;
 
         const matchedVariant = (productVariants || []).find(v => v.id === selection.variantId);
         const attrs = (matchedVariant?.attribute_combination || {}) as Record<string, any>;
         const color = (attrs.color ?? selection.colorLabel ?? null) as string | null;
         const size = (attrs.size ?? attrs.talla ?? null) as string | null;
 
-        try {
-          await addItemB2B({
-            userId: user.id,
-            productId: selectedProductForVariants.id,
-            sku: selection.sku,
-            name: `${selectedProductForVariants.nombre} - ${selection.label}`,
-            priceB2B: selection.price,
-            quantity: selection.quantity,
-            image: variantImage || selectedProductForVariants.images?.[0] || null,
-            variant: {
-              variantId: selection.variantId || undefined,
-              color: color || undefined,
-              size: size || undefined,
-              variantAttributes: attrs,
-            },
-          });
-          addedCount++;
-        } catch (e) {
-          console.error('Error adding/merging variant:', e);
+        const existing = existingByVariantId.get(variantId);
+        const existingQty = existing?.qtyTotal ?? 0;
+        const sameQty = desiredQty === existingQty;
+        const samePrice = existing ? Math.abs((existing.unitPrice || 0) - Number(selection.price || 0)) < 0.0001 : false;
+
+        // If variant exists and desired is 0 -> remove
+        if (existing && desiredQty <= 0) {
+          const { error } = await supabase
+            .from('b2b_cart_items')
+            .delete()
+            .in('id', existing.ids);
+          if (error) console.error('Error removing variant from cart:', error);
+          continue;
+        }
+
+        // If variant exists and qty/price changed -> update to desired
+        if (existing && ( !sameQty || !samePrice )) {
+          const primaryId = existing.ids[0];
+          const unitPrice = Number(selection.price || 0);
+
+          const { error } = await supabase
+            .from('b2b_cart_items')
+            .update({
+              sku: selection.sku,
+              nombre: `${selectedProductForVariants.nombre} - ${selection.label}`,
+              unit_price: unitPrice,
+              quantity: desiredQty,
+              total_price: unitPrice * desiredQty,
+              image: variantImage || selectedProductForVariants.images?.[0] || null,
+              variant_id: variantId,
+              variant_attributes: attrs,
+              color,
+              size,
+            })
+            .eq('id', primaryId);
+
+          if (error) {
+            console.error('Error updating variant quantity:', error);
+          } else {
+            // Cleanup duplicates (if any)
+            const duplicateIds = existing.ids.slice(1);
+            if (duplicateIds.length > 0) {
+              const { error: deleteError } = await supabase
+                .from('b2b_cart_items')
+                .delete()
+                .in('id', duplicateIds);
+              if (deleteError) console.warn('Could not delete duplicate cart items:', deleteError);
+            }
+          }
+          continue;
+        }
+
+        // If variant doesn't exist and desired > 0 -> add
+        if (!existing && desiredQty > 0) {
+          try {
+            await addItemB2B({
+              userId: user.id,
+              productId: selectedProductForVariants.id,
+              sku: selection.sku,
+              name: `${selectedProductForVariants.nombre} - ${selection.label}`,
+              priceB2B: selection.price,
+              quantity: desiredQty,
+              image: variantImage || selectedProductForVariants.images?.[0] || null,
+              variant: {
+                variantId,
+                color: color || undefined,
+                size: size || undefined,
+                variantAttributes: attrs,
+              },
+            });
+            addedCount++;
+          } catch (e) {
+            console.error('Error adding/merging variant:', e);
+          }
         }
       }
 
@@ -417,7 +507,12 @@ const SellerCartPage = () => {
         setVariantImage(null);
         refetch();
       } else {
-        toast.error('No se pudieron agregar las variantes');
+        // Even if no new variants were added, we may have updated or removed quantities
+        toast.success('Carrito actualizado');
+        setSelectedProductForVariants(null);
+        setVariantSelections([]);
+        setVariantImage(null);
+        refetch();
       }
     } catch (error) {
       console.error('Error adding variants to cart:', error);
@@ -425,7 +520,7 @@ const SellerCartPage = () => {
     } finally {
       setIsAddingVariant(false);
     }
-  }, [user?.id, selectedProductForVariants, variantSelections, variantImage, refetch, productVariants]);
+  }, [user?.id, selectedProductForVariants, variantSelections, variantImage, refetch, productVariants, items]);
 
   // Handle variant selection change from VariantSelectorB2B
   const handleVariantSelectionChange = useCallback((selections: any[], totalQty: number, totalPrice: number) => {
@@ -1298,6 +1393,7 @@ const SellerCartPage = () => {
                         })}
                         basePrice={selectedProductForVariants.costB2B || 0}
                         baseImage={selectedProductForVariants.images?.[0]}
+                        initialQuantities={initialVariantQuantities}
                         onSelectionChange={handleVariantSelectionChange}
                         onVariantImageChange={setVariantImage}
                       />
