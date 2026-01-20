@@ -23,6 +23,21 @@ export interface WishlistItem {
   moq?: number;
 }
 
+const resolveCatalogImage = (catalog: any): string => {
+  // seller_catalog schema uses `images` (jsonb). Some legacy code expects `imagen_principal`.
+  const direct = catalog?.imagen_principal ?? catalog?.image;
+  if (typeof direct === 'string' && direct) return direct;
+
+  const images = catalog?.images;
+  if (Array.isArray(images) && typeof images[0] === 'string') return images[0];
+  if (images && typeof images === 'object') {
+    const maybeArray = (images.urls ?? images.images ?? images.items) as unknown;
+    if (Array.isArray(maybeArray) && typeof maybeArray[0] === 'string') return maybeArray[0];
+  }
+
+  return '/placeholder.svg';
+};
+
 interface AddToWishlistParams {
   productId?: string;
   sellerCatalogId?: string;
@@ -64,12 +79,9 @@ export const useWishlist = (type?: WishlistType) => {
             id,
             nombre,
             precio_venta,
-            imagen_principal,
             sku,
-            store:store_id (
-              id,
-              name
-            )
+            images,
+            seller_store_id
           )
         `)
         .eq('user_id', user.id);
@@ -103,9 +115,10 @@ export const useWishlist = (type?: WishlistType) => {
           // Enriched data depends on type
           name: isB2B ? product?.nombre : catalog?.nombre || 'Producto',
           price: isB2B ? product?.precio_mayorista : catalog?.precio_venta || 0,
-          image: isB2B ? product?.imagen_principal : catalog?.imagen_principal || '/placeholder.svg',
+          image: isB2B ? product?.imagen_principal : resolveCatalogImage(catalog),
           sku: isB2B ? product?.sku_interno : catalog?.sku || '',
-          store_name: catalog?.store?.name || '',
+          // seller_catalog doesn't have a reliable FK relationship cached for nested store joins.
+          store_name: '',
           moq: product?.moq || 1,
         };
       });
