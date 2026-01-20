@@ -797,14 +797,14 @@ const SellerAccountPage = () => {
                               <Phone className="h-4 w-4" />
                               Teléfono
                             </span>
-                            <span className="font-semibold text-gray-900">+1 234 567 8900</span>
+                            <span className="font-semibold text-gray-900">{contactInfo.phone || "No configurado"}</span>
                           </div>
                           <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm flex items-center gap-1">
                               <MessageCircle className="h-4 w-4 text-green-600" />
                               WhatsApp
                             </span>
-                            <span className="font-semibold text-gray-900">+1 234 567 8900</span>
+                            <span className="font-semibold text-gray-900">{contactInfo.whatsapp || store?.whatsapp || "No configurado"}</span>
                           </div>
                           <div className="flex justify-between items-start py-2 border-b border-gray-100 last:border-b-0">
                             <span className="text-gray-600 text-sm">Nombre Completo</span>
@@ -1285,7 +1285,7 @@ const SellerAccountPage = () => {
                                 id="account-number" 
                                 placeholder="Número de cuenta" 
                                 className="border-gray-300" 
-                                type="password"
+                                type="text"
                                 value={bankInfo.account_number}
                                 onChange={(e) => setBankInfo({...bankInfo, account_number: e.target.value})}
                               />
