@@ -51,6 +51,11 @@ interface VariantSelectorB2BProps {
   colorOptions?: VariantOption[];
   basePrice: number;
   baseImage?: string;
+  /**
+   * Prefill quantities (e.g., existing quantities already in cart).
+   * Keys are variant IDs.
+   */
+  initialQuantities?: Record<string, number>;
   onSelectionChange?: (selections: VariantSelection[], totalQty: number, totalPrice: number) => void;
   onVariantImageChange?: (imageUrl: string | null) => void;
 }
@@ -105,6 +110,7 @@ const VariantSelectorB2B = ({
   variantTypes: propVariantTypes,
   basePrice,
   baseImage,
+  initialQuantities,
   onSelectionChange,
   onVariantImageChange,
 }: VariantSelectorB2BProps) => {
@@ -112,6 +118,12 @@ const VariantSelectorB2B = ({
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   // Quantities per variant
   const [quantities, setQuantities] = useState<Record<string, number>>({});
+
+  // Prefill quantities from cart when opening the selector
+  useEffect(() => {
+    if (!initialQuantities) return;
+    setQuantities(initialQuantities);
+  }, [initialQuantities]);
 
   // Extract unique values for each attribute type from all variants
   const attributeOptions = useMemo(() => {
@@ -276,21 +288,31 @@ const VariantSelectorB2B = ({
   // Notify parent of changes
   useEffect(() => {
     if (onSelectionChange) {
-      const selections: VariantSelection[] = Object.entries(quantities)
-        .filter(([_, qty]) => qty > 0)
-        .map(([variantId, quantity]) => {
+      const initialKeys = initialQuantities ? Object.keys(initialQuantities) : [];
+      const keys = new Set<string>([...Object.keys(quantities), ...initialKeys]);
+
+      const selections: VariantSelection[] = Array.from(keys)
+        .map((variantId) => {
+          const quantity = quantities[variantId] ?? 0;
+          const hadInitial = (initialQuantities?.[variantId] ?? 0) > 0;
+          if (quantity <= 0 && !hadInitial) return null;
+
           const variant = variants.find(v => v.id === variantId);
+          if (!variant) return null;
+
           return {
             variantId,
-            sku: variant?.sku || '',
-            label: variant?.label || '',
+            sku: variant.sku,
+            label: variant.label,
             quantity,
-            price: variant?.precio || basePrice,
+            price: variant.precio || basePrice,
           };
-        });
+        })
+        .filter(Boolean) as VariantSelection[];
+
       onSelectionChange(selections, totalQty, totalPrice);
     }
-  }, [quantities, totalQty, totalPrice, variants, basePrice, onSelectionChange]);
+  }, [quantities, totalQty, totalPrice, variants, basePrice, onSelectionChange, initialQuantities]);
 
   // Auto-select first option for each type on mount
   useEffect(() => {
