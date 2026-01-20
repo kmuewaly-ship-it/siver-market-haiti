@@ -76,6 +76,7 @@ const AdminInventoryPage = lazy(() => import("./pages/admin/AdminInventoryPage")
 const AdminPaymentMethodsPage = lazy(() => import("./pages/admin/AdminPaymentMethodsPage"));
 const AdminMarketplaceSections = lazy(() => import("./pages/admin/AdminMarketplaceSections"));
 const AdminCountriesRoutesPage = lazy(() => import("./pages/admin/AdminCountriesRoutesPage"));
+const AdminWishlistPage = lazy(() => import("./pages/admin/AdminWishlistPage"));
 
 // Lazy loaded - Seller Pages
 const SellerAcquisicionLotes = lazy(() => import("./pages/seller/SellerAcquisicionLotes"));
@@ -322,6 +323,14 @@ const AppContent = () => {
               element={
                 <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
                   <LazyRoute><AdminCountriesRoutesPage /></LazyRoute>
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/wishlist" 
+              element={
+                <ProtectedRoute requiredRoles={[UserRole.ADMIN]}>
+                  <LazyRoute><AdminWishlistPage /></LazyRoute>
                 </ProtectedRoute>
               } 
             />
