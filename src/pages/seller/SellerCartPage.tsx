@@ -692,55 +692,51 @@ const SellerCartPage = () => {
                                   <Trash2 className="w-4 h-4" />
                                 </button>
                               </div>
-                              {/* Variant badges below title */}
-                              {(item.color || item.size) && (
-                                <div className="flex gap-1 mt-1 flex-wrap">
-                                  {item.color && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                      {item.color}
-                                    </span>
-                                  )}
-                                  {item.size && (
-                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                      Talla: {item.size}
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-                            </div>
-                            {/* Price + Quantity Controls on same row */}
-                            <div className="flex items-center justify-between mt-2">
-                              <span className="text-sm font-bold" style={{ color: '#29892a' }}>
-                                ${item.precioB2B.toFixed(2)}
-                              </span>
-                              <div className="flex items-center gap-2">
-                                <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateQuantity(item.id, Math.max(1, item.cantidad - 1));
-                                    }}
-                                    className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
-                                  >
-                                    −
-                                  </button>
-                                  <span className="w-6 text-center text-xs font-medium">
-                                    {item.cantidad}
+                              {/* Variant badges + price on same row */}
+                              <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                {item.color && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                    {item.color}
                                   </span>
-                                  <button
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      updateQuantity(item.id, item.cantidad + 1);
-                                    }}
-                                    className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
-                                  >
-                                    +
-                                  </button>
-                                </div>
-                                <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                                  ${item.subtotal.toFixed(2)}
+                                )}
+                                {item.size && (
+                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                    Talla: {item.size}
+                                  </span>
+                                )}
+                                <span className="text-sm font-bold ml-2" style={{ color: '#29892a' }}>
+                                  ${item.precioB2B.toFixed(2)}
                                 </span>
                               </div>
+                            </div>
+                            {/* Quantity Controls + Subtotal */}
+                            <div className="flex items-center justify-between mt-2">
+                              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, Math.max(1, item.cantidad - 1));
+                                  }}
+                                  className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
+                                >
+                                  −
+                                </button>
+                                <span className="w-6 text-center text-xs font-medium">
+                                  {item.cantidad}
+                                </span>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    updateQuantity(item.id, item.cantidad + 1);
+                                  }}
+                                  className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
+                                >
+                                  +
+                                </button>
+                              </div>
+                              <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
+                                ${item.subtotal.toFixed(2)}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1020,55 +1016,51 @@ const SellerCartPage = () => {
                                 <Trash2 className="w-4 h-4" />
                               </button>
                             </div>
-                            {/* Variant badges below title */}
-                            {(item.color || item.size) && (
-                              <div className="flex gap-1 mt-1 flex-wrap">
-                                {item.color && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
-                                    {item.color}
-                                  </span>
-                                )}
-                                {item.size && (
-                                  <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
-                                    Talla: {item.size}
-                                  </span>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                          {/* Price + Quantity Controls on same row */}
-                          <div className="flex items-center justify-between mt-2">
-                            <span className="text-sm font-bold" style={{ color: '#29892a' }}>
-                              ${item.precioB2B.toFixed(2)}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(item.id, Math.max(1, item.cantidad - 1));
-                                  }}
-                                  className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
-                                >
-                                  −
-                                </button>
-                                <span className="w-6 text-center text-xs font-medium">
-                                  {item.cantidad}
+                            {/* Variant badges + price on same row */}
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              {item.color && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700 border border-gray-200">
+                                  {item.color}
                                 </span>
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    updateQuantity(item.id, item.cantidad + 1);
-                                  }}
-                                  className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
-                                >
-                                  +
-                                </button>
-                              </div>
-                              <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                                ${item.subtotal.toFixed(2)}
+                              )}
+                              {item.size && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-50 text-blue-700 border border-blue-200">
+                                  Talla: {item.size}
+                                </span>
+                              )}
+                              <span className="text-sm font-bold ml-2" style={{ color: '#29892a' }}>
+                                ${item.precioB2B.toFixed(2)}
                               </span>
                             </div>
+                          </div>
+                          {/* Quantity Controls + Subtotal */}
+                          <div className="flex items-center justify-between mt-2">
+                            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateQuantity(item.id, Math.max(1, item.cantidad - 1));
+                                }}
+                                className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
+                              >
+                                −
+                              </button>
+                              <span className="w-6 text-center text-xs font-medium">
+                                {item.cantidad}
+                              </span>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  updateQuantity(item.id, item.cantidad + 1);
+                                }}
+                                className="p-0.5 hover:bg-gray-200 rounded text-xs font-medium transition"
+                              >
+                                +
+                              </button>
+                            </div>
+                            <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
+                              ${item.subtotal.toFixed(2)}
+                            </span>
                           </div>
                         </div>
                       </div>
