@@ -1055,25 +1055,15 @@ const SellerAccountPage = () => {
                               <Edit className="h-4 w-4 text-white" />
                             </button>
                           </div>
-                          {/* Collapsible Description */}
-                          <div className="mt-3 bg-white rounded-lg overflow-hidden">
-                            <button
-                              onClick={() => setShowStoreDescription(!showStoreDescription)}
-                              className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
-                            >
-                              <p className="text-black text-sm font-medium truncate text-left flex-1">
-                                {store?.description || "Descripción de tu tienda"}
-                              </p>
-                              <ChevronRight className={`h-4 w-4 text-gray-600 transition-transform ${showStoreDescription ? 'rotate-90' : ''}`} />
-                            </button>
-                            {showStoreDescription && (
-                              <div className="px-4 py-3 border-t border-gray-200 bg-gray-50">
-                                <p className="text-gray-700 text-sm whitespace-pre-wrap">
-                                  {store?.description || "Descripción de tu tienda"}
-                                </p>
-                              </div>
-                            )}
-                          </div>
+                          {/* Truncated Description - Click to open modal */}
+                          <button
+                            onClick={() => setShowEditProfilePhoto(true)}
+                            className="mt-3 w-full bg-white rounded-lg px-4 py-3 text-left hover:bg-gray-50 transition-colors"
+                          >
+                            <p className="text-black text-sm font-medium truncate max-w-[200px]">
+                              {store?.description ? store.description.slice(0, 30) + (store.description.length > 30 ? '...' : '') : "Descripción de tu tienda"}
+                            </p>
+                          </button>
                         </div>
                       </div>
                     </div>
@@ -2274,7 +2264,7 @@ const SellerAccountPage = () => {
 
       {/* Edit Profile Photo Dialog */}
       <Dialog open={showEditProfilePhoto} onOpenChange={setShowEditProfilePhoto}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-[#071d7f]">Editar Foto de Perfil y Banner</DialogTitle>
             <DialogDescription>
@@ -2320,7 +2310,7 @@ const SellerAccountPage = () => {
             </div>
           </div>
 
-          {/* Store Description Section */}
+          {/* Store Description Section - Separate scrollable box */}
           <div className="space-y-2 border-t pt-4">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Descripción de la Tienda</h3>
@@ -2364,13 +2354,15 @@ const SellerAccountPage = () => {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-gray-700 line-clamp-1 bg-gray-50 p-3 rounded-lg">
-                {storeDescription || "No hay descripción configurada"}
-              </p>
+              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-[120px] overflow-y-auto">
+                <p className="text-sm text-gray-700 whitespace-pre-wrap">
+                  {storeDescription || "No hay descripción configurada"}
+                </p>
+              </div>
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="pt-4">
             <Button variant="outline" onClick={() => setShowEditProfilePhoto(false)}>
               Cancelar
             </Button>
