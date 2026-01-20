@@ -436,13 +436,6 @@ const SellerCartPage = () => {
         }
       }
 
-        if (error) {
-          console.error('Error adding variant:', error);
-        } else {
-          addedCount++;
-        }
-      }
-
       if (addedCount > 0) {
         toast.success(`${addedCount} variante(s) agregada(s) al carrito`);
         setSelectedProductForVariants(null);
@@ -458,7 +451,7 @@ const SellerCartPage = () => {
     } finally {
       setIsAddingVariant(false);
     }
-  }, [user?.id, selectedProductForVariants, variantSelections, variantImage, refetch]);
+  }, [user?.id, selectedProductForVariants, variantSelections, variantImage, refetch, productVariants]);
 
   // Handle variant selection change from VariantSelectorB2B
   const handleVariantSelectionChange = useCallback((selections: any[], totalQty: number, totalPrice: number) => {

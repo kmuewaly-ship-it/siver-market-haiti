@@ -37,6 +37,8 @@ interface ProductVariantInfo {
   stock: number;
   option_type?: string;
   parent_product_id?: string;
+  attribute_combination?: Record<string, any>;
+  images?: string[];
 }
 
 interface ColorOption {
@@ -88,6 +90,7 @@ interface Product {
 
 interface SelectedVariation {
   id: string;
+  variantId?: string;
   label: string;
   quantity: number;
 }
@@ -439,19 +442,32 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
           }
           toast.success(`Agregado al carrito B2B: ${nonZero.length} variaciones`);
         } else {
-          // B2C with variations - use base product SKU only
+          // B2C with variations - include variant info
           for (const v of nonZero) {
+            // Find the matching variant to get attribute_combination
+            const variantId = v.variantId || v.id;
+            const matchedVariant = (product.variants || []).find(vv => vv.id === variantId);
+            const variantAttrs = matchedVariant?.attribute_combination || {};
+            const colorValue = variantAttrs.color || null;
+            const sizeValue = variantAttrs.size || variantAttrs.talla || null;
+
             await addItemB2C({
               userId: user.id,
-              sku: product.sku,
+              sku: matchedVariant?.sku || product.sku,
               name: `${product.name} - ${v.label}`,
-              price: product.price,
+              price: matchedVariant?.precio ?? product.price,
               quantity: v.quantity,
-              image: product.image,
+              image: matchedVariant?.images?.[0] || product.image,
               storeId: product.storeId,
               storeName: product.storeName,
               storeWhatsapp: product.storeWhatsapp,
               sellerCatalogId: product.sellerCatalogId,
+              variant: {
+                variantId: variantId,
+                color: colorValue,
+                size: sizeValue,
+                variantAttributes: variantAttrs,
+              },
             });
           }
           toast.success(`Añadido al carrito (${nonZero.reduce((s, x) => s + x.quantity, 0)} unidades)`);
@@ -507,6 +523,10 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
           toast.success(`Agregado al carrito B2B: ${quantity} unidades`);
         } else {
           // B2C with or without variant
+          const variantAttrs = selectedVariant?.attribute_combination || {};
+          const colorValue = variantAttrs.color || null;
+          const sizeValue = variantAttrs.size || variantAttrs.talla || null;
+
           console.log('[B2C Add] Starting B2C add to cart:', {
             sku: finalSku,
             name: finalName,
@@ -526,6 +546,12 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
             storeName: product.storeName || 'Marketplace',
             storeWhatsapp: product.storeWhatsapp || '',
             sellerCatalogId: product.sellerCatalogId,
+            variant: {
+              variantId: selectedVariant?.id,
+              color: colorValue,
+              size: sizeValue,
+              variantAttributes: variantAttrs,
+            },
           });
           console.log('[B2C Add] Successfully added to cart');
           toast.success(`Añadido al carrito (${quantity} unidades)`);

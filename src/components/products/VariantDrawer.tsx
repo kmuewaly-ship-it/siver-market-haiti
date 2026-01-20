@@ -10,6 +10,7 @@ import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
 import { X, TrendingUp, ImageIcon, Info } from 'lucide-react';
 import { useB2BCartProductTotals } from '@/hooks/useB2BCartProductTotals';
+import { useProductVariants } from '@/hooks/useProductVariants';
 
 const VariantDrawer: React.FC = () => {
   const isMobile = useIsMobile();
@@ -25,7 +26,10 @@ const VariantDrawer: React.FC = () => {
   const isB2BUser = role === UserRole.SELLER || role === UserRole.ADMIN;
   
   // Get cart product totals for MOQ validation at product level
-  const { getProductTotal, wouldMeetMOQ, getQuantityNeeded } = useB2BCartProductTotals();
+  const { getProductTotal } = useB2BCartProductTotals();
+  
+  // Fetch product variants to get attribute_combination for each variant
+  const { data: productVariants } = useProductVariants(product?.source_product_id || product?.id);
 
   // Prevent body scroll when drawer open
   useEffect(() => {
@@ -96,24 +100,44 @@ const VariantDrawer: React.FC = () => {
         const qty = sel.quantity || 0;
         if (qty <= 0) continue;
 
+        // Look up the variant from productVariants to get attribute_combination
+        const matchedVariant = (productVariants || []).find(v => v.id === sel.variantId);
+        const attrs = matchedVariant?.attribute_combination || {};
+        const color = (attrs.color ?? null) as string | null;
+        const size = (attrs.size ?? attrs.talla ?? null) as string | null;
+        const variantLabel = matchedVariant ? `${color || ''}${color && size ? ' / ' : ''}${size || ''}`.trim() : '';
+        const itemName = variantLabel ? `${product.nombre} - ${variantLabel}` : product.nombre;
+
         if (isB2BUser) {
           await addItemB2B({
             userId: user.id,
             productId: product.source_product_id || product.id,
-            sku: product.sku || product.id,
-            name: product.nombre,
-            priceB2B: product.costB2B ?? product.price ?? 0,
+            sku: matchedVariant?.sku || product.sku || product.id,
+            name: itemName,
+            priceB2B: matchedVariant?.price ?? product.costB2B ?? product.price ?? 0,
             quantity: qty,
-            image: variantImage || product.images?.[0] || undefined,
+            image: variantImage || matchedVariant?.images?.[0] || product.images?.[0] || undefined,
+            variant: {
+              variantId: sel.variantId,
+              color,
+              size,
+              variantAttributes: attrs,
+            },
           });
         } else {
           await addItemB2C({
             userId: user.id,
-            sku: product.sku || product.id,
-            name: product.nombre,
-            price: product.price || 0,
+            sku: matchedVariant?.sku || product.sku || product.id,
+            name: itemName,
+            price: matchedVariant?.price ?? product.price ?? 0,
             quantity: qty,
-            image: variantImage || product.images?.[0] || undefined,
+            image: variantImage || matchedVariant?.images?.[0] || product.images?.[0] || undefined,
+            variant: {
+              variantId: sel.variantId,
+              color,
+              size,
+              variantAttributes: attrs,
+            },
           });
         }
       }
