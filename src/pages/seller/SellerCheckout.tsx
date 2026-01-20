@@ -644,17 +644,29 @@ const SellerCheckout = () => {
               </Card>
 
               {/* Delivery Method Selection */}
-              <Card className={`p-0 ${hasFieldError(validationErrors, 'deliveryMethod') ? 'border-red-500' : ''}`}>
+              <Card className={`p-0 ${
+                hasFieldError(validationErrors, 'deliveryMethod') || 
+                hasFieldError(validationErrors, 'selectedAddress') || 
+                hasFieldError(validationErrors, 'selectedPickupPoint') 
+                  ? 'border-red-500 border-2' : ''
+              }`}>
                 <div className="bg-gray-200 px-4 py-3">
                   <h2 className="text-lg font-bold">
                     Opción de Entrega
                   </h2>
                 </div>
                 <div className="p-4">
-                {hasFieldError(validationErrors, 'deliveryMethod') && (
+                {/* Show validation warning for delivery method */}
+                {(hasFieldError(validationErrors, 'deliveryMethod') || 
+                  hasFieldError(validationErrors, 'selectedAddress') || 
+                  hasFieldError(validationErrors, 'selectedPickupPoint')) && (
                   <div className="bg-red-50 border border-red-200 rounded-lg p-3 mb-4 flex items-start gap-2">
                     <AlertCircle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
-                    <p className="text-sm text-red-700">{getFieldError(validationErrors, 'deliveryMethod')}</p>
+                    <p className="text-sm text-red-700">
+                      {getFieldError(validationErrors, 'deliveryMethod') || 
+                       getFieldError(validationErrors, 'selectedAddress') || 
+                       getFieldError(validationErrors, 'selectedPickupPoint')}
+                    </p>
                   </div>
                 )}
                 
@@ -667,15 +679,17 @@ const SellerCheckout = () => {
                   }}
                   className="space-y-2"
                 >
+                  {/* Address Delivery Option */}
                   <div
                     className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      deliveryMethod === 'address'
+                      deliveryMethod === 'address' && selectedAddressId
                         ? 'border-[#071d7f] bg-[#071d7f]/5'
-                        : 'border-border hover:border-muted-foreground'
+                        : deliveryMethod === 'address' && !selectedAddressId
+                          ? 'border-orange-400 bg-orange-50'
+                          : 'border-border hover:border-muted-foreground'
                     }`}
                     onClick={() => {
                       setDeliveryMethod('address');
-                      setSelectedAddressId(null);
                       setSelectedPickupPoint(null);
                       setTimeout(() => setShowAddressModal(true), 0);
                     }}
@@ -685,21 +699,25 @@ const SellerCheckout = () => {
                       <Truck className="h-4 w-4 text-muted-foreground" />
                       <p className="font-semibold text-sm">Envío a Domicilio</p>
                     </div>
-                    {selectedAddress && (
+                    {deliveryMethod === 'address' && selectedAddress ? (
                       <p className="text-xs text-muted-foreground">{selectedAddress.full_name}</p>
-                    )}
+                    ) : deliveryMethod === 'address' && !selectedAddressId ? (
+                      <span className="text-xs text-orange-600 font-medium">Seleccionar</span>
+                    ) : null}
                   </div>
 
+                  {/* Pickup Point Option */}
                   <div
                     className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
-                      deliveryMethod === 'pickup'
+                      deliveryMethod === 'pickup' && selectedPickupPoint
                         ? 'border-[#071d7f] bg-[#071d7f]/5'
-                        : 'border-border hover:border-muted-foreground'
+                        : deliveryMethod === 'pickup' && !selectedPickupPoint
+                          ? 'border-orange-400 bg-orange-50'
+                          : 'border-border hover:border-muted-foreground'
                     }`}
                     onClick={() => {
                       setDeliveryMethod('pickup');
                       setSelectedAddressId(null);
-                      setSelectedPickupPoint(null);
                       setTimeout(() => setShowPickupModal(true), 0);
                     }}
                   >
@@ -708,23 +726,25 @@ const SellerCheckout = () => {
                       <Store className="h-4 w-4 text-muted-foreground" />
                       <p className="font-semibold text-sm">Retiro en Punto</p>
                     </div>
-                    {selectedPickupPoint && pickupPoints.find(p => p.id === selectedPickupPoint) && (
+                    {deliveryMethod === 'pickup' && selectedPickupPoint && pickupPoints.find(p => p.id === selectedPickupPoint) ? (
                       <p className="text-xs text-muted-foreground">{pickupPoints.find(p => p.id === selectedPickupPoint)?.name}</p>
-                    )}
+                    ) : deliveryMethod === 'pickup' && !selectedPickupPoint ? (
+                      <span className="text-xs text-orange-600 font-medium">Seleccionar</span>
+                    ) : null}
                   </div>
                 </RadioGroup>
                 </div>
               </Card>
 
-              {/* Pickup Points - Only show if pickup delivery selected */}
+              {/* Products Section - Max 4 visible with scroll */}
               <Card className="p-6">
                 <h2 className="text-xl font-bold mb-3">
                   Productos ({items.length})
                 </h2>
-                <div className="space-y-3">
+                <div className={`space-y-3 ${items.length > 4 ? 'max-h-[340px] overflow-y-auto pr-2' : ''}`}>
                   {items.map((item) => (
                     <div
-                      key={item.productId}
+                      key={item.id}
                       className="flex gap-4 pb-4 border-b last:border-b-0"
                     >
                       <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -1004,8 +1024,8 @@ const SellerCheckout = () => {
               <Card className="p-6 sticky top-8">
                 <h3 className="text-lg font-bold mb-3">Resumen del Pedido</h3>
 
-                {/* Items List with Images */}
-                <div className="space-y-2 max-h-64 overflow-y-auto mb-3 pb-3 border-b">
+                {/* Items List with Images - Max 2 visible with scroll */}
+                <div className="space-y-2 max-h-[140px] overflow-y-auto mb-3 pb-3 border-b pr-1">
                   {items.map((item) => (
                     <div key={item.id} className="flex gap-3 pb-3 border-b last:border-b-0">
                       <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
@@ -1017,7 +1037,19 @@ const SellerCheckout = () => {
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="font-medium text-sm line-clamp-1">{item.name}</p>
-                        <p className="text-xs text-muted-foreground">SKU: {item.sku}</p>
+                        {/* Variant badges instead of SKU */}
+                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                          {item.color && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                              {item.color}
+                            </span>
+                          )}
+                          {item.size && (
+                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                              {item.size}
+                            </span>
+                          )}
+                        </div>
                         <div className="flex justify-between items-center mt-1">
                           <span className="text-xs text-muted-foreground">Cant: {item.cantidad}</span>
                           <span className="text-sm font-semibold">${item.subtotal.toFixed(2)}</span>
@@ -1165,10 +1197,10 @@ const SellerCheckout = () => {
 
         <Footer />
 
-        {/* Address Modal */}
+        {/* Address Modal - Fixed for mobile keyboard */}
         <Dialog open={showAddressModal} onOpenChange={setShowAddressModal}>
-          <DialogContent className="max-w-sm max-h-96 overflow-y-auto border-2 border-gray-300">
-            <DialogHeader className="border-b-2 pb-3 -mx-6 px-6 border-gray-300">
+          <DialogContent className="max-w-sm max-h-[85vh] overflow-y-auto border-2 border-gray-300 pb-8">
+            <DialogHeader className="border-b-2 pb-3 -mx-6 px-6 border-gray-300 sticky top-0 bg-background z-10">
               <DialogTitle className="text-lg font-bold">
                 {showNewAddressForm ? 'Agregar Nueva Dirección' : 'Seleccionar Dirección'}
               </DialogTitle>
@@ -1276,87 +1308,90 @@ const SellerCheckout = () => {
                   Volver a direcciones
                 </Button>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Form with extra bottom padding for mobile keyboard */}
+                <div className="space-y-3 pb-16">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="modal_address_name">Nombre completo *</Label>
+                      <Input
+                        id="modal_address_name"
+                        placeholder="Nombre del destinatario"
+                        value={newAddress.full_name}
+                        onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="modal_address_phone">Teléfono</Label>
+                      <Input
+                        id="modal_address_phone"
+                        placeholder="+509 XXXX XXXX"
+                        value={newAddress.phone}
+                        onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
+                      />
+                    </div>
+                  </div>
+                  
                   <div className="space-y-2">
-                    <Label htmlFor="modal_address_name">Nombre completo *</Label>
+                    <Label htmlFor="modal_address_street">Dirección *</Label>
                     <Input
-                      id="modal_address_name"
-                      placeholder="Nombre del destinatario"
-                      value={newAddress.full_name}
-                      onChange={(e) => setNewAddress({ ...newAddress, full_name: e.target.value })}
+                      id="modal_address_street"
+                      placeholder="Calle, número, local..."
+                      value={newAddress.street_address}
+                      onChange={(e) => setNewAddress({ ...newAddress, street_address: e.target.value })}
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="modal_address_phone">Teléfono</Label>
-                    <Input
-                      id="modal_address_phone"
-                      placeholder="+509 XXXX XXXX"
-                      value={newAddress.phone}
-                      onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                    />
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="space-y-2">
+                      <Label htmlFor="modal_address_city">Ciudad *</Label>
+                      <Input
+                        id="modal_address_city"
+                        placeholder="Ciudad"
+                        value={newAddress.city}
+                        onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="modal_address_postal">Código Postal</Label>
+                      <Input
+                        id="modal_address_postal"
+                        placeholder="Código postal"
+                        value={newAddress.postal_code}
+                        onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
+                      />
+                    </div>
                   </div>
+                  
+                  <Button 
+                    onClick={async () => {
+                      try {
+                        const address = await createAddress.mutateAsync(newAddress);
+                        setSelectedAddressId(address.id);
+                        setShowAddressModal(false);
+                        setShowNewAddressForm(false);
+                        setNewAddress({
+                          full_name: '',
+                          street_address: '',
+                          city: '',
+                          state: '',
+                          postal_code: '',
+                          phone: '',
+                          country: 'Haití',
+                          label: 'Negocio',
+                          notes: '',
+                          is_default: false,
+                        });
+                      } catch (error) {
+                        console.error('Error adding address:', error);
+                        toast.error('Error al agregar dirección');
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Check className="h-4 w-4 mr-2" />
+                    Guardar Dirección
+                  </Button>
                 </div>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="modal_address_street">Dirección *</Label>
-                  <Input
-                    id="modal_address_street"
-                    placeholder="Calle, número, local..."
-                    value={newAddress.street_address}
-                    onChange={(e) => setNewAddress({ ...newAddress, street_address: e.target.value })}
-                  />
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  <div className="space-y-2">
-                    <Label htmlFor="modal_address_city">Ciudad *</Label>
-                    <Input
-                      id="modal_address_city"
-                      placeholder="Ciudad"
-                      value={newAddress.city}
-                      onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="modal_address_postal">Código Postal</Label>
-                    <Input
-                      id="modal_address_postal"
-                      placeholder="Código postal"
-                      value={newAddress.postal_code}
-                      onChange={(e) => setNewAddress({ ...newAddress, postal_code: e.target.value })}
-                    />
-                  </div>
-                </div>
-                
-                <Button 
-                  onClick={async () => {
-                    try {
-                      const address = await createAddress.mutateAsync(newAddress);
-                      setSelectedAddressId(address.id);
-                      setShowAddressModal(false);
-                      setShowNewAddressForm(false);
-                      setNewAddress({
-                        full_name: '',
-                        street_address: '',
-                        city: '',
-                        state: '',
-                        postal_code: '',
-                        phone: '',
-                        country: 'Haití',
-                        label: 'Negocio',
-                        notes: '',
-                        is_default: false,
-                      });
-                    } catch (error) {
-                      console.error('Error adding address:', error);
-                      toast.error('Error al agregar dirección');
-                    }
-                  }}
-                  className="w-full"
-                >
-                  <Check className="h-4 w-4 mr-2" />
-                  Guardar Dirección
-                </Button>
               </div>
             )}
           </DialogContent>

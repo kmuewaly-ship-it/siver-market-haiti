@@ -94,14 +94,15 @@ export const AddressesDialog = ({ open, onOpenChange }: AddressesDialogProps) =>
   if (isEditing) {
     return (
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto pb-8">
+          <DialogHeader className="sticky top-0 bg-background z-10 pb-2">
             <DialogTitle>
               {editingAddress ? 'Editar Dirección' : 'Nueva Dirección'}
             </DialogTitle>
           </DialogHeader>
           
-          <div className="space-y-4">
+          {/* Extra bottom padding for mobile keyboard */}
+          <div className="space-y-4 pb-16">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
                 <Label>Etiqueta</Label>
