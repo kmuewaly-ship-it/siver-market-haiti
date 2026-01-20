@@ -2264,109 +2264,113 @@ const SellerAccountPage = () => {
 
       {/* Edit Profile Photo Dialog */}
       <Dialog open={showEditProfilePhoto} onOpenChange={setShowEditProfilePhoto}>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-          <DialogHeader>
+        <DialogContent className="w-[95vw] max-w-md max-h-[90vh] flex flex-col overflow-hidden p-0">
+          <DialogHeader className="px-4 pt-4 pb-2 flex-shrink-0">
             <DialogTitle className="text-[#071d7f]">Editar Foto de Perfil y Banner</DialogTitle>
             <DialogDescription>
               Carga una nueva foto de perfil o banner para tu tienda
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="profile-photo">Foto de Perfil</Label>
-                <span className="text-xs text-gray-500">800x800px mín.</span>
-              </div>
-              <label htmlFor="profile-photo" className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#071d7f] transition-colors cursor-pointer">
-                <Edit className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Haz clic para seleccionar una imagen</p>
-                <p className="text-xs text-gray-500 mt-1">Recomendado: 1000x1000px</p>
-                <input 
-                  id="profile-photo" 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden"
-                />
-              </label>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="banner-photo">Banner de la Tienda</Label>
-                <span className="text-xs text-gray-500">1200x400px mín.</span>
-              </div>
-              <label htmlFor="banner-photo" className="block border-2 border-dashed border-gray-300 rounded-lg p-6 text-center hover:border-[#071d7f] transition-colors cursor-pointer">
-                <Edit className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                <p className="text-sm text-gray-600">Haz clic para seleccionar una imagen</p>
-                <p className="text-xs text-gray-500 mt-1">Recomendado: 1500x500px</p>
-                <input 
-                  id="banner-photo" 
-                  type="file" 
-                  accept="image/*" 
-                  className="hidden"
-                />
-              </label>
-            </div>
-          </div>
-
-          {/* Store Description Section - Separate scrollable box */}
-          <div className="space-y-2 border-t pt-4">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Descripción de la Tienda</h3>
-              {!editingDescription && (
-                <button
-                  onClick={() => setEditingDescription(true)}
-                  className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
-                  title="Editar descripción"
-                >
-                  <Edit className="h-4 w-4 text-[#071d7f]" />
-                </button>
-              )}
-            </div>
-            
-            {editingDescription ? (
+          {/* Scrollable content area - vertical only */}
+          <div className="flex-1 overflow-y-auto overflow-x-hidden px-4 pb-4">
+            <div className="space-y-4 py-2">
+              {/* Profile Photo */}
               <div className="space-y-2">
-                <Textarea
-                  value={storeDescription}
-                  onChange={(e) => setStoreDescription(e.target.value)}
-                  placeholder="Cuéntale a tus clientes sobre tu tienda..."
-                  className="min-h-[100px] border-gray-300"
-                />
-                <div className="flex gap-2 justify-end">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      setEditingDescription(false);
-                      setStoreDescription(store?.description || "");
-                    }}
-                  >
-                    Cancelar
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="bg-[#071d7f] hover:bg-[#071d7f]/90"
-                    onClick={handleUpdateStoreDescription}
-                  >
-                    Guardar
-                  </Button>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="profile-photo">Foto de Perfil</Label>
+                  <span className="text-xs text-gray-500">800x800px mín.</span>
                 </div>
+                <label htmlFor="profile-photo" className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#071d7f] transition-colors cursor-pointer">
+                  <Edit className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                  <p className="text-xs text-gray-600">Haz clic para seleccionar</p>
+                  <input 
+                    id="profile-photo" 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden"
+                  />
+                </label>
               </div>
-            ) : (
-              <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-[120px] overflow-y-auto">
-                <p className="text-sm text-gray-700 whitespace-pre-wrap">
-                  {storeDescription || "No hay descripción configurada"}
-                </p>
+
+              {/* Banner Photo */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="banner-photo">Banner de la Tienda</Label>
+                  <span className="text-xs text-gray-500">1200x400px mín.</span>
+                </div>
+                <label htmlFor="banner-photo" className="block border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-[#071d7f] transition-colors cursor-pointer">
+                  <Edit className="h-6 w-6 text-gray-400 mx-auto mb-1" />
+                  <p className="text-xs text-gray-600">Haz clic para seleccionar</p>
+                  <input 
+                    id="banner-photo" 
+                    type="file" 
+                    accept="image/*" 
+                    className="hidden"
+                  />
+                </label>
               </div>
-            )}
+
+              {/* Store Description Section - Separate scrollable box */}
+              <div className="space-y-2 border-t pt-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-gray-900">Descripción de la Tienda</h3>
+                  {!editingDescription && (
+                    <button
+                      onClick={() => setEditingDescription(true)}
+                      className="p-1.5 hover:bg-gray-100 rounded-lg transition-colors"
+                      title="Editar descripción"
+                    >
+                      <Edit className="h-4 w-4 text-[#071d7f]" />
+                    </button>
+                  )}
+                </div>
+                
+                {editingDescription ? (
+                  <div className="space-y-2">
+                    <Textarea
+                      value={storeDescription}
+                      onChange={(e) => setStoreDescription(e.target.value)}
+                      placeholder="Cuéntale a tus clientes sobre tu tienda..."
+                      className="min-h-[80px] border-gray-300 text-sm"
+                    />
+                    <div className="flex gap-2 justify-end">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setEditingDescription(false);
+                          setStoreDescription(store?.description || "");
+                        }}
+                      >
+                        Cancelar
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="bg-[#071d7f] hover:bg-[#071d7f]/90"
+                        onClick={handleUpdateStoreDescription}
+                      >
+                        Guardar
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="bg-gray-50 p-3 rounded-lg border border-gray-200 max-h-[100px] overflow-y-auto">
+                    <p className="text-sm text-gray-700 whitespace-pre-wrap break-words">
+                      {storeDescription || "No hay descripción configurada"}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <DialogFooter className="pt-4">
-            <Button variant="outline" onClick={() => setShowEditProfilePhoto(false)}>
+          {/* Fixed footer */}
+          <DialogFooter className="px-4 py-3 border-t flex-shrink-0 gap-2">
+            <Button variant="outline" onClick={() => setShowEditProfilePhoto(false)} className="flex-1">
               Cancelar
             </Button>
-            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90" onClick={() => setShowEditProfilePhoto(false)}>
+            <Button className="bg-[#071d7f] hover:bg-[#071d7f]/90 flex-1" onClick={() => setShowEditProfilePhoto(false)}>
               Guardar Fotos
             </Button>
           </DialogFooter>
