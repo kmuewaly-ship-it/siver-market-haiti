@@ -11,7 +11,8 @@ import {
   Package,
   AlertCircle,
   DollarSign,
-  ShoppingCart
+  ShoppingCart,
+  Globe
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,6 +20,7 @@ import { usePayments, useSellers } from "@/hooks/usePayments";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { useCoverageAlerts } from "@/hooks/useCoverageAlerts";
 
 const getStatusBadge = (status: string) => {
   switch (status) {
@@ -130,6 +132,7 @@ const AdminDashboard = () => {
   const { payments, stats, isLoading: paymentsLoading } = usePayments();
   const { sellersCount, isLoading: sellersLoading } = useSellers();
   const { data: dashStats, isLoading: statsLoading } = useAdminDashboardStats();
+  const { data: coverageAlerts } = useCoverageAlerts();
 
   const isLoading = paymentsLoading || sellersLoading;
   const recentPayments = payments.slice(0, 5);
@@ -308,6 +311,43 @@ const AdminDashboard = () => {
           </Link>
         ))}
       </div>
+
+      {/* Coverage Alerts */}
+      {coverageAlerts && coverageAlerts.length > 0 && (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+          {coverageAlerts.map((alert, idx) => (
+            <Card key={idx} className={alert.severity === 'error' ? 'border-destructive/50 bg-destructive/5' : 'border-amber-500/50 bg-amber-500/5'}>
+              <CardContent className="py-4">
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-lg ${alert.severity === 'error' ? 'bg-destructive/10' : 'bg-amber-500/10'}`}>
+                    {alert.severity === 'error' ? (
+                      <AlertCircle className="h-5 w-5 text-destructive" />
+                    ) : (
+                      <AlertTriangle className="h-5 w-5 text-amber-500" />
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <p className={`font-medium ${alert.severity === 'error' ? 'text-destructive' : 'text-amber-600'}`}>
+                      {alert.message}
+                    </p>
+                    {alert.items && alert.items.length > 0 && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {alert.items.slice(0, 3).map(i => i.name).join(', ')}
+                        {alert.items.length > 3 && ` +${alert.items.length - 3} más`}
+                      </p>
+                    )}
+                  </div>
+                  <Link to="/admin/markets">
+                    <Button size="sm" variant="outline">
+                      <Globe className="h-4 w-4 mr-1" /> Configurar
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Recent Payments */}
       <Card>

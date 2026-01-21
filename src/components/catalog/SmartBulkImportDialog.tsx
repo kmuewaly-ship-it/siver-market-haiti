@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
+import MarketSelector from './MarketSelector';
 import { cn } from '@/lib/utils';
 import * as XLSX from 'xlsx';
 
@@ -114,6 +115,7 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
   const [defaultCategoryId, setDefaultCategoryId] = useState<string>('');
   const [defaultSupplierId, setDefaultSupplierId] = useState<string>('');
   const [defaultOriginId, setDefaultOriginId] = useState<string>('');
+  const [selectedMarketIds, setSelectedMarketIds] = useState<string[]>([]);
   const [importProgress, setImportProgress] = useState({ current: 0, total: 0, message: '' });
   const [importResult, setImportResult] = useState<{ success: number; failed: number; errors: string[] } | null>(null);
   const [duplicateSkus, setDuplicateSkus] = useState<string[]>([]);
@@ -536,7 +538,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
       defaultSupplierId || undefined,
       priceCalculator,
       (current, total, message) => setImportProgress({ current, total, message }),
-      defaultOriginId || undefined
+      defaultOriginId || undefined,
+      selectedMarketIds.length > 0 ? selectedMarketIds : undefined
     );
 
     setImportResult(result);
@@ -554,6 +557,8 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
     setDetectedAttributeColumns([]);
     setDefaultCategoryId('');
     setDefaultSupplierId('');
+    setDefaultOriginId('');
+    setSelectedMarketIds([]);
     setImportProgress({ current: 0, total: 0, message: '' });
     setImportResult(null);
     setDuplicateSkus([]);
@@ -823,6 +828,17 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                           </SelectContent>
                         </Select>
                       </div>
+                    </div>
+                    
+                    {/* Market Selector */}
+                    <div className="mt-4">
+                      <MarketSelector
+                        selectedMarketIds={selectedMarketIds}
+                        onSelectionChange={setSelectedMarketIds}
+                        compact
+                        title="Mercados de Destino"
+                        description="Asigna los productos a mercados específicos"
+                      />
                     </div>
                   </CardContent>
                 </Card>
