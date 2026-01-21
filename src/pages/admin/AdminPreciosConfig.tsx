@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { AdminLayout } from '@/components/admin/AdminLayout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,7 +13,9 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { usePriceEngine, DynamicExpense } from '@/hooks/usePriceEngine';
 import { useRoutePricing } from '@/hooks/useRoutePricing';
-import { B2BPriceCalculator } from '@/components/admin/pricing/B2BPriceCalculator';
+import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
+import { useCategories } from '@/hooks/useCategories';
+import { B2BPriceCalculator, CategoryRate } from '@/components/admin/pricing/B2BPriceCalculator';
 import { RouteSegmentTimeline } from '@/components/admin/pricing/RouteSegmentTimeline';
 import { 
   Plus, 
@@ -41,11 +43,35 @@ export default function AdminPreciosConfig() {
     toggleExpenseActive,
   } = usePriceEngine();
 
+  const { useCategoryShippingRates } = useLogisticsEngine();
+  const { data: categoriesData, isLoading: loadingCategories } = useCategories();
+  
   const { data: priceSettings, isLoading: loadingSettings } = usePriceSettings();
   const { data: expenses, isLoading: loadingExpenses } = useDynamicExpenses();
   const { routes, isLoading: loadingRoutes } = useRoutePricing();
+  const { data: categoryShippingRates, isLoading: loadingCategoryRates } = useCategoryShippingRates();
 
   const profitMargin = getProfitMargin(priceSettings);
+
+  // Transform category shipping rates to the expected format
+  const categoryRates = useMemo((): CategoryRate[] => {
+    if (!categoryShippingRates) return [];
+    return categoryShippingRates.map((rate: any) => ({
+      id: rate.id,
+      categoryId: rate.category_id,
+      categoryName: rate.categories?.name || 'Desconocida',
+      fixedFee: Number(rate.fixed_fee) || 0,
+      percentageFee: Number(rate.percentage_fee) || 0,
+      description: rate.description,
+      isActive: rate.is_active,
+    }));
+  }, [categoryShippingRates]);
+
+  // Transform categories to simple format
+  const simpleCategories = useMemo(() => {
+    if (!categoriesData) return [];
+    return categoriesData.map(cat => ({ id: cat.id, name: cat.name }));
+  }, [categoriesData]);
 
   const [marginInput, setMarginInput] = useState<string>('');
   const [platformFeeInput, setPlatformFeeInput] = useState<string>('');
@@ -131,7 +157,7 @@ export default function AdminPreciosConfig() {
     deleteExpense.mutate(id);
   };
 
-  if (loadingSettings || loadingExpenses || loadingRoutes) {
+  if (loadingSettings || loadingExpenses || loadingRoutes || loadingCategoryRates || loadingCategories) {
     return (
       <AdminLayout title="Configuración de Precios">
         <div className="flex items-center justify-center h-64">
@@ -167,6 +193,8 @@ export default function AdminPreciosConfig() {
           <B2BPriceCalculator
             routes={routes}
             expenses={expenses || []}
+            categoryRates={categoryRates}
+            categories={simpleCategories}
             profitMargin={profitMargin}
             platformFee={platformFee}
           />
