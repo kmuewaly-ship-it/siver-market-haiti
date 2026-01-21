@@ -1,0 +1,415 @@
+import { useState, useMemo } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Badge } from '@/components/ui/badge';
+import { Separator } from '@/components/ui/separator';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { 
+  Calculator, 
+  Factory, 
+  Truck, 
+  Building2, 
+  TrendingUp, 
+  Info,
+  DollarSign,
+  Percent,
+  Package,
+  Tag
+} from 'lucide-react';
+import { RouteSegmentTimeline, RouteInfo } from './RouteSegmentTimeline';
+import { DynamicExpense } from '@/hooks/usePriceEngine';
+import { cn } from '@/lib/utils';
+
+interface B2BPriceCalculatorProps {
+  routes: RouteInfo[];
+  expenses: DynamicExpense[];
+  profitMargin: number;
+  platformFee?: number;
+  onCalculationChange?: (calculation: PriceBreakdown) => void;
+}
+
+export interface PriceBreakdown {
+  factoryCost: number;
+  weightKg: number;
+  routeId: string | null;
+  logisticsCost: number;
+  logisticsSegments: { name: string; cost: number }[];
+  expensesCost: number;
+  expensesDetails: { name: string; cost: number }[];
+  platformFee: number;
+  subtotal: number;
+  marginPercent: number;
+  marginValue: number;
+  b2bPrice: number;
+  suggestedPVP: number;
+  pvpMarginPercent: number;
+  profitAmount: number;
+}
+
+// Margin ranges for PVP suggestion
+const MARGIN_RANGES = [
+  { min: 0, max: 20, margin: 50 },
+  { min: 20, max: 50, margin: 45 },
+  { min: 50, max: 100, margin: 40 },
+  { min: 100, max: 200, margin: 35 },
+  { min: 200, max: Infinity, margin: 30 },
+];
+
+function getSuggestedMargin(b2bPrice: number): number {
+  const range = MARGIN_RANGES.find(r => b2bPrice >= r.min && b2bPrice < r.max);
+  return range?.margin ?? 35;
+}
+
+export function B2BPriceCalculator({
+  routes,
+  expenses,
+  profitMargin,
+  platformFee = 0,
+  onCalculationChange,
+}: B2BPriceCalculatorProps) {
+  const [factoryCost, setFactoryCost] = useState<string>('100');
+  const [weightKg, setWeightKg] = useState<string>('1');
+  const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+
+  const selectedRoute = useMemo(() => 
+    routes.find(r => r.id === selectedRouteId), 
+    [routes, selectedRouteId]
+  );
+
+  const calculation = useMemo((): PriceBreakdown => {
+    const cost = parseFloat(factoryCost) || 0;
+    const weight = parseFloat(weightKg) || 1;
+
+    // Calculate logistics cost from route segments
+    let logisticsCost = 0;
+    const logisticsSegments: { name: string; cost: number }[] = [];
+    
+    if (selectedRoute) {
+      selectedRoute.segments.filter(s => s.isActive).forEach(segment => {
+        const segmentCost = Math.max(segment.costPerKg * weight, segment.minCost);
+        logisticsCost += segmentCost;
+        
+        const segmentLabel = segment.segment === 'china_to_transit' 
+          ? 'Tramo A (China → Hub)' 
+          : segment.segment === 'transit_to_destination'
+          ? 'Tramo B (Hub → Destino)'
+          : 'Ruta Directa';
+        
+        logisticsSegments.push({ name: segmentLabel, cost: segmentCost });
+      });
+    }
+
+    // Calculate expenses
+    let expensesCost = 0;
+    const expensesDetails: { name: string; cost: number }[] = [];
+    let runningTotal = cost + logisticsCost;
+
+    const activeExpenses = expenses.filter(e => e.is_active);
+    for (const expense of activeExpenses) {
+      let expenseValue: number;
+      
+      if (expense.tipo === 'fijo') {
+        expenseValue = expense.valor;
+      } else {
+        expenseValue = (runningTotal * expense.valor) / 100;
+      }
+
+      if (expense.operacion === 'resta') {
+        expenseValue = -expenseValue;
+      }
+
+      runningTotal += expenseValue;
+      expensesCost += expenseValue;
+      expensesDetails.push({ name: expense.nombre_gasto, cost: expenseValue });
+    }
+
+    // Platform fee
+    const feeValue = (runningTotal * platformFee) / 100;
+    
+    // Subtotal before margin
+    const subtotal = runningTotal + feeValue;
+
+    // Apply profit margin
+    const marginValue = (subtotal * profitMargin) / 100;
+    const b2bPrice = subtotal + marginValue;
+
+    // Calculate suggested PVP
+    const pvpMarginPercent = getSuggestedMargin(b2bPrice);
+    const suggestedPVP = b2bPrice * (1 + pvpMarginPercent / 100);
+    const profitAmount = suggestedPVP - b2bPrice;
+
+    const result: PriceBreakdown = {
+      factoryCost: cost,
+      weightKg: weight,
+      routeId: selectedRouteId || null,
+      logisticsCost,
+      logisticsSegments,
+      expensesCost,
+      expensesDetails,
+      platformFee: feeValue,
+      subtotal,
+      marginPercent: profitMargin,
+      marginValue,
+      b2bPrice: Math.round(b2bPrice * 100) / 100,
+      suggestedPVP: Math.round(suggestedPVP * 100) / 100,
+      pvpMarginPercent,
+      profitAmount: Math.round(profitAmount * 100) / 100,
+    };
+
+    onCalculationChange?.(result);
+    return result;
+  }, [factoryCost, weightKg, selectedRoute, expenses, profitMargin, platformFee, selectedRouteId, onCalculationChange]);
+
+  return (
+    <TooltipProvider>
+      <div className="space-y-6">
+        {/* Input parameters */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Calculator className="h-5 w-5" />
+              Calculadora de Precio B2B
+            </CardTitle>
+            <CardDescription>
+              Ingresa los parámetros para calcular el precio final con desglose completo
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-4 md:grid-cols-3">
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Factory className="h-4 w-4" />
+                  Costo de Fábrica (USD)
+                </Label>
+                <Input
+                  type="number"
+                  value={factoryCost}
+                  onChange={(e) => setFactoryCost(e.target.value)}
+                  min="0"
+                  step="0.01"
+                  placeholder="100.00"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Package className="h-4 w-4" />
+                  Peso (kg)
+                </Label>
+                <Input
+                  type="number"
+                  value={weightKg}
+                  onChange={(e) => setWeightKg(e.target.value)}
+                  min="0.1"
+                  step="0.1"
+                  placeholder="1.0"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Truck className="h-4 w-4" />
+                  Ruta de Envío
+                </Label>
+                <Select value={selectedRouteId} onValueChange={setSelectedRouteId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona una ruta" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {routes.filter(r => r.isActive).map((route) => (
+                      <SelectItem key={route.id} value={route.id}>
+                        {route.isDirect 
+                          ? `China → ${route.countryName} (Directo)` 
+                          : `China → ${route.hubName} → ${route.countryName}`}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Route timeline */}
+        {selectedRoute && (
+          <RouteSegmentTimeline 
+            route={selectedRoute} 
+            weightKg={parseFloat(weightKg) || 1}
+            showCosts={true}
+          />
+        )}
+
+        {/* Price breakdown */}
+        <Card>
+          <CardHeader className="bg-gradient-to-r from-primary/5 to-primary/10">
+            <CardTitle className="flex items-center gap-2">
+              <DollarSign className="h-5 w-5" />
+              Desglose de Precio B2B
+            </CardTitle>
+            <CardDescription>
+              Fórmula completa: Costo Fábrica + Logística + Gastos + Fee + Margen
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pt-6">
+            <div className="space-y-4">
+              {/* Factory cost */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2">
+                  <Factory className="h-4 w-4 text-muted-foreground" />
+                  <span>Costo de Fábrica (Origen)</span>
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Precio FOB del producto en China</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <span className="font-mono text-lg">${calculation.factoryCost.toFixed(2)}</span>
+              </div>
+
+              <Separator />
+
+              {/* Logistics breakdown */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Truck className="h-4 w-4" />
+                  Desglose Logístico
+                  {selectedRoute && (
+                    <Badge variant="outline" className="ml-2">
+                      {selectedRoute.isDirect ? 'Directa' : `Vía ${selectedRoute.hubName}`}
+                    </Badge>
+                  )}
+                </div>
+                {calculation.logisticsSegments.length > 0 ? (
+                  calculation.logisticsSegments.map((seg, i) => (
+                    <div key={i} className="flex items-center justify-between pl-6 text-sm">
+                      <span className="text-muted-foreground">{seg.name}</span>
+                      <span className="font-mono">+${seg.cost.toFixed(2)}</span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="pl-6 text-sm text-muted-foreground italic">
+                    Selecciona una ruta para ver el desglose
+                  </div>
+                )}
+                <div className="flex items-center justify-between pl-6 pt-1 border-t border-dashed">
+                  <span className="font-medium">Subtotal Logística</span>
+                  <span className="font-mono font-medium">+${calculation.logisticsCost.toFixed(2)}</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* Expenses breakdown */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Building2 className="h-4 w-4" />
+                  Gastos Adicionales
+                </div>
+                {calculation.expensesDetails.length > 0 ? (
+                  calculation.expensesDetails.map((exp, i) => (
+                    <div key={i} className="flex items-center justify-between pl-6 text-sm">
+                      <span className="text-muted-foreground">{exp.name}</span>
+                      <span className={cn(
+                        "font-mono",
+                        exp.cost < 0 ? "text-destructive" : ""
+                      )}>
+                        {exp.cost >= 0 ? '+' : ''}{exp.cost.toFixed(2)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <div className="pl-6 text-sm text-muted-foreground italic">
+                    No hay gastos dinámicos configurados
+                  </div>
+                )}
+              </div>
+
+              {/* Platform fee */}
+              {platformFee > 0 && (
+                <>
+                  <Separator />
+                  <div className="flex items-center justify-between py-2">
+                    <div className="flex items-center gap-2">
+                      <Percent className="h-4 w-4 text-muted-foreground" />
+                      <span>Fee de Plataforma ({platformFee}%)</span>
+                      <Tooltip>
+                        <TooltipTrigger>
+                          <Info className="h-4 w-4 text-muted-foreground" />
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Comisión administrativa de la plataforma</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                    <span className="font-mono">+${calculation.platformFee.toFixed(2)}</span>
+                  </div>
+                </>
+              )}
+
+              <Separator />
+
+              {/* Subtotal */}
+              <div className="flex items-center justify-between py-2 bg-muted/30 px-3 rounded-lg">
+                <span className="font-medium">Subtotal (Costo Aterrizado)</span>
+                <span className="font-mono font-medium text-lg">${calculation.subtotal.toFixed(2)}</span>
+              </div>
+
+              {/* Profit margin */}
+              <div className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-green-500" />
+                  <span>Margen de Ganancia ({calculation.marginPercent}%)</span>
+                </div>
+                <span className="font-mono text-green-600">+${calculation.marginValue.toFixed(2)}</span>
+              </div>
+
+              <Separator className="border-2" />
+
+              {/* Final B2B price */}
+              <div className="flex items-center justify-between py-3 bg-primary/10 px-4 rounded-lg">
+                <div>
+                  <span className="font-bold text-lg">PRECIO B2B FINAL</span>
+                  <p className="text-xs text-muted-foreground">Precio que paga el vendedor</p>
+                </div>
+                <span className="font-mono font-bold text-2xl text-primary">
+                  ${calculation.b2bPrice.toFixed(2)}
+                </span>
+              </div>
+
+              {/* PVP suggestion */}
+              <Card className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/20 dark:to-emerald-950/20 border-green-200 dark:border-green-800">
+                <CardContent className="pt-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <Tag className="h-4 w-4 text-green-600" />
+                        <span className="font-medium">PVP Sugerido</span>
+                        <Badge variant="secondary" className="bg-green-100 text-green-700">
+                          Margen {calculation.pvpMarginPercent}%
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        Basado en el rango de precio B2B (${calculation.b2bPrice.toFixed(0)})
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <div className="font-mono font-bold text-xl text-green-600">
+                        ${calculation.suggestedPVP.toFixed(2)}
+                      </div>
+                      <div className="text-sm text-green-600">
+                        Ganancia: ${calculation.profitAmount.toFixed(2)}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </TooltipProvider>
+  );
+}
