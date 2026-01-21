@@ -3,7 +3,6 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Globe, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { useMarkets } from '@/hooks/useMarkets';
@@ -120,8 +119,13 @@ export const MarketSelector = ({
         )}
       </div>
 
-      {/* Markets list */}
-      <ScrollArea className={cn("pr-3", compact ? "max-h-32" : "max-h-48")}>
+      {/* Markets list (avoid Radix ScrollArea here to prevent ref/presence loops inside Dialog) */}
+      <div
+        className={cn(
+          "pr-3 overflow-y-auto",
+          compact ? "max-h-32" : "max-h-48",
+        )}
+      >
         <div className={cn("space-y-2", compact && "space-y-1")}>
           {activeMarkets.map((market) => {
             const isSelected = selectedMarketIds.includes(market.id);
@@ -134,14 +138,10 @@ export const MarketSelector = ({
                   isSelected
                     ? "border-primary/50 bg-primary/5"
                     : "border-border/50 hover:border-primary/30 hover:bg-muted/30",
-                  disabled && "opacity-50 cursor-not-allowed"
+                  disabled && "opacity-50 cursor-not-allowed",
                 )}
               >
-                <Checkbox
-                  checked={isSelected}
-                  disabled={disabled}
-                  className="pointer-events-none"
-                />
+                <Checkbox checked={isSelected} disabled={disabled} className="pointer-events-none" />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
@@ -153,14 +153,12 @@ export const MarketSelector = ({
                     </Badge>
                   </div>
                 </div>
-                {isSelected && (
-                  <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
-                )}
+                {isSelected && <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />}
               </div>
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
     </div>
   );
 
