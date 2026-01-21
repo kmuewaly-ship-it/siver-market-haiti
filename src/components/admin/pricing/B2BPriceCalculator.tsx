@@ -16,15 +16,28 @@ import {
   DollarSign,
   Percent,
   Package,
-  Tag
+  Tag,
+  Layers
 } from 'lucide-react';
 import { RouteSegmentTimeline, RouteInfo } from './RouteSegmentTimeline';
 import { DynamicExpense } from '@/hooks/usePriceEngine';
 import { cn } from '@/lib/utils';
 
+export interface CategoryRate {
+  id: string;
+  categoryId: string;
+  categoryName: string;
+  fixedFee: number;
+  percentageFee: number;
+  description?: string | null;
+  isActive: boolean;
+}
+
 interface B2BPriceCalculatorProps {
   routes: RouteInfo[];
   expenses: DynamicExpense[];
+  categoryRates: CategoryRate[];
+  categories: { id: string; name: string }[];
   profitMargin: number;
   platformFee?: number;
   onCalculationChange?: (calculation: PriceBreakdown) => void;
@@ -34,8 +47,12 @@ export interface PriceBreakdown {
   factoryCost: number;
   weightKg: number;
   routeId: string | null;
+  categoryId: string | null;
   logisticsCost: number;
   logisticsSegments: { name: string; cost: number }[];
+  categoryFixedFee: number;
+  categoryPercentageFee: number;
+  categoryTotalFee: number;
   expensesCost: number;
   expensesDetails: { name: string; cost: number }[];
   platformFee: number;
@@ -65,6 +82,8 @@ function getSuggestedMargin(b2bPrice: number): number {
 export function B2BPriceCalculator({
   routes,
   expenses,
+  categoryRates,
+  categories,
   profitMargin,
   platformFee = 0,
   onCalculationChange,
@@ -72,10 +91,16 @@ export function B2BPriceCalculator({
   const [factoryCost, setFactoryCost] = useState<string>('100');
   const [weightKg, setWeightKg] = useState<string>('1');
   const [selectedRouteId, setSelectedRouteId] = useState<string>('');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
 
   const selectedRoute = useMemo(() => 
     routes.find(r => r.id === selectedRouteId), 
     [routes, selectedRouteId]
+  );
+
+  const selectedCategoryRate = useMemo(() => 
+    categoryRates.find(r => r.categoryId === selectedCategoryId && r.isActive),
+    [categoryRates, selectedCategoryId]
   );
 
   const calculation = useMemo((): PriceBreakdown => {
@@ -101,10 +126,21 @@ export function B2BPriceCalculator({
       });
     }
 
+    // Calculate category fees
+    let categoryFixedFee = 0;
+    let categoryPercentageFee = 0;
+    
+    if (selectedCategoryRate) {
+      categoryFixedFee = selectedCategoryRate.fixedFee || 0;
+      // Percentage fee is applied to the factory cost (acquisition cost)
+      categoryPercentageFee = (cost * (selectedCategoryRate.percentageFee || 0)) / 100;
+    }
+    const categoryTotalFee = categoryFixedFee + categoryPercentageFee;
+
     // Calculate expenses
     let expensesCost = 0;
     const expensesDetails: { name: string; cost: number }[] = [];
-    let runningTotal = cost + logisticsCost;
+    let runningTotal = cost + logisticsCost + categoryTotalFee;
 
     const activeExpenses = expenses.filter(e => e.is_active);
     for (const expense of activeExpenses) {
@@ -144,8 +180,12 @@ export function B2BPriceCalculator({
       factoryCost: cost,
       weightKg: weight,
       routeId: selectedRouteId || null,
+      categoryId: selectedCategoryId || null,
       logisticsCost,
       logisticsSegments,
+      categoryFixedFee,
+      categoryPercentageFee,
+      categoryTotalFee,
       expensesCost,
       expensesDetails,
       platformFee: feeValue,
@@ -160,7 +200,7 @@ export function B2BPriceCalculator({
 
     onCalculationChange?.(result);
     return result;
-  }, [factoryCost, weightKg, selectedRoute, expenses, profitMargin, platformFee, selectedRouteId, onCalculationChange]);
+  }, [factoryCost, weightKg, selectedRoute, selectedCategoryRate, expenses, profitMargin, platformFee, selectedRouteId, selectedCategoryId, onCalculationChange]);
 
   return (
     <TooltipProvider>
@@ -177,7 +217,7 @@ export function B2BPriceCalculator({
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
                   <Factory className="h-4 w-4" />
@@ -205,6 +245,28 @@ export function B2BPriceCalculator({
                   step="0.1"
                   placeholder="1.0"
                 />
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-1">
+                  <Layers className="h-4 w-4" />
+                  Categoría
+                </Label>
+                <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona categoría" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Sin categoría</SelectItem>
+                    {categories.map((cat) => {
+                      const hasRate = categoryRates.some(r => r.categoryId === cat.id && r.isActive);
+                      return (
+                        <SelectItem key={cat.id} value={cat.id}>
+                          {cat.name} {hasRate && <span className="text-xs text-muted-foreground">(+tarifa)</span>}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-2">
                 <Label className="flex items-center gap-1">
@@ -247,7 +309,7 @@ export function B2BPriceCalculator({
               Desglose de Precio B2B
             </CardTitle>
             <CardDescription>
-              Fórmula completa: Costo Fábrica + Logística + Gastos + Fee + Margen
+              Fórmula: Costo Fábrica + Logística + Tarifa Categoría + Gastos + Fee + Margen
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -298,6 +360,62 @@ export function B2BPriceCalculator({
                   <span className="font-medium">Subtotal Logística</span>
                   <span className="font-mono font-medium">+${calculation.logisticsCost.toFixed(2)}</span>
                 </div>
+              </div>
+
+              <Separator />
+
+              {/* Category fees */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Layers className="h-4 w-4" />
+                  Tarifa por Categoría
+                  {selectedCategoryRate && (
+                    <Badge variant="outline" className="ml-2 bg-amber-50 text-amber-700 border-amber-200">
+                      {selectedCategoryRate.categoryName}
+                    </Badge>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-muted-foreground" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p>Cargos adicionales según el tipo de producto. Incluye cargo fijo más porcentaje sobre el costo de adquisición.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                {selectedCategoryRate ? (
+                  <>
+                    {selectedCategoryRate.fixedFee > 0 && (
+                      <div className="flex items-center justify-between pl-6 text-sm">
+                        <span className="text-muted-foreground">Cargo Fijo</span>
+                        <span className="font-mono">+${calculation.categoryFixedFee.toFixed(2)}</span>
+                      </div>
+                    )}
+                    {selectedCategoryRate.percentageFee > 0 && (
+                      <div className="flex items-center justify-between pl-6 text-sm">
+                        <span className="text-muted-foreground">
+                          % sobre Adquisición ({selectedCategoryRate.percentageFee}%)
+                        </span>
+                        <span className="font-mono">+${calculation.categoryPercentageFee.toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex items-center justify-between pl-6 pt-1 border-t border-dashed">
+                      <span className="font-medium">Subtotal Categoría</span>
+                      <span className="font-mono font-medium text-amber-600">+${calculation.categoryTotalFee.toFixed(2)}</span>
+                    </div>
+                    {selectedCategoryRate.description && (
+                      <div className="pl-6 text-xs text-muted-foreground italic">
+                        {selectedCategoryRate.description}
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <div className="pl-6 text-sm text-muted-foreground italic">
+                    {selectedCategoryId 
+                      ? 'Sin tarifa especial para esta categoría'
+                      : 'Selecciona una categoría para ver tarifas aplicables'}
+                  </div>
+                )}
               </div>
 
               <Separator />
