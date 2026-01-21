@@ -12,7 +12,7 @@ import { Label } from '@/components/ui/label';
 import { useCatalog } from '@/hooks/useCatalog';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { Loader2, Upload, Trash2, Image as ImageIcon, Package, DollarSign, Ruler, History, X, Cpu, Layers } from 'lucide-react';
+import { Loader2, Upload, Trash2, Image as ImageIcon, Package, DollarSign, Ruler, History, X, Cpu, Layers, Globe } from 'lucide-react';
 import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -22,6 +22,8 @@ import { useQuery } from '@tanstack/react-query';
 import HierarchicalCategorySelect from './HierarchicalCategorySelect';
 import EmbeddingService from '@/services/ai/embeddingService';
 import VariantMatrixManager from './VariantMatrixManager';
+import MarketSelector from './MarketSelector';
+import { useProductMarkets } from '@/hooks/useMarkets';
 
 interface ProductEditDialogProps {
   productId: string;
@@ -57,10 +59,12 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
   const { data: product, isLoading } = useProduct(productId);
   const { data: categories } = useCategories();
   const { data: suppliers } = useSuppliers();
+  const { productMarkets, assignProductToMarkets } = useProductMarkets(productId);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [generatingEmbedding, setGeneratingEmbedding] = useState(false);
   const [localImages, setLocalImages] = useState<string[]>([]);
+  const [selectedMarketIds, setSelectedMarketIds] = useState<string[]>([]);
   const initializedRef = useRef(false);
 
   // Reset initialized state when product changes
@@ -123,10 +127,14 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
       
       if (!initializedRef.current) {
         setLocalImages(product.galeria_imagenes || []);
+        // Set selected markets from existing assignments
+        if (productMarkets) {
+          setSelectedMarketIds(productMarkets.map((pm: any) => pm.market_id));
+        }
         initializedRef.current = true;
       }
     }
-  }, [product, form]);
+  }, [product, form, productMarkets]);
 
   const onSubmit = async (data: ProductFormData) => {
     const dimensiones = (data.dimensiones_largo || data.dimensiones_ancho || data.dimensiones_alto)
@@ -154,6 +162,13 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
       },
       userId: user?.id,
     });
+    
+    // Update market assignments
+    await assignProductToMarkets.mutateAsync({
+      productId,
+      marketIds: selectedMarketIds,
+    });
+    
     onOpenChange(false);
   };
 
@@ -294,7 +309,7 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)}>
             <Tabs defaultValue="general" className="w-full">
-              <TabsList className="w-full grid grid-cols-5">
+              <TabsList className="w-full grid grid-cols-6">
                 <TabsTrigger value="general" className="gap-1">
                   <Package className="h-4 w-4" />
                   General
@@ -306,6 +321,10 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
                 <TabsTrigger value="pricing" className="gap-1">
                   <DollarSign className="h-4 w-4" />
                   B2B
+                </TabsTrigger>
+                <TabsTrigger value="markets" className="gap-1">
+                  <Globe className="h-4 w-4" />
+                  Mercados
                 </TabsTrigger>
                 <TabsTrigger value="logistics" className="gap-1">
                   <Ruler className="h-4 w-4" />
@@ -615,6 +634,15 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
                     </div>
                   </CardContent>
                 </Card>
+              </TabsContent>
+
+              <TabsContent value="markets" className="space-y-4 mt-4">
+                <MarketSelector
+                  selectedMarketIds={selectedMarketIds}
+                  onSelectionChange={setSelectedMarketIds}
+                  title="Mercados Disponibles"
+                  description="Selecciona los mercados donde este producto estará disponible para venta"
+                />
               </TabsContent>
 
               <TabsContent value="media" className="space-y-4 mt-4">

@@ -340,7 +340,8 @@ export const importGroupedProducts = async (
   supplierId: string | undefined,
   priceCalculator: (cost: number) => number,
   onProgress?: (current: number, total: number, message: string) => void,
-  originCountryId?: string
+  originCountryId?: string,
+  marketIds?: string[]
 ): Promise<{ success: number; failed: number; errors: string[] }> => {
   
   let success = 0;
@@ -529,6 +530,24 @@ export const importGroupedProducts = async (
                 .select();
             }
           }
+        }
+      }
+
+      // 5. Assign product to markets if provided
+      if (marketIds && marketIds.length > 0) {
+        const marketInserts = marketIds.map(marketId => ({
+          product_id: product.id,
+          market_id: marketId,
+          is_active: true,
+        }));
+
+        const { error: marketError } = await supabase
+          .from('product_markets')
+          .insert(marketInserts);
+
+        if (marketError) {
+          console.error('Error assigning markets:', marketError);
+          // Don't fail the whole import for market assignment issues
         }
       }
 
