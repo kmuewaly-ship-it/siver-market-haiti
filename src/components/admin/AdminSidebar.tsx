@@ -20,7 +20,8 @@ import {
   UserCheck,
   BarChart3,
   LayoutGrid,
-  Globe
+  Globe,
+  Store
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { NavLink } from "@/components/NavLink";
@@ -65,6 +66,7 @@ const analyticsItems = [
 
 const settingsItems = [
   { title: "Secciones Marketplace", url: "/admin/marketplace-sections", icon: LayoutGrid },
+  { title: "Mercados", url: "/admin/markets", icon: Store },
   { title: "Países y Rutas", url: "/admin/countries-routes", icon: Globe },
   { title: "Logística", url: "/admin/logistics", icon: Truck },
   { title: "Puntos de Retiro", url: "/admin/pickup-points", icon: MapPin },
