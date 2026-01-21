@@ -13,15 +13,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { 
   useMarkets, 
   useMarketPaymentMethods, 
-  useMarketValidation,
   MarketDashboard,
   MarketPaymentMethod,
 } from "@/hooks/useMarkets";
 import { useCountriesRoutes } from "@/hooks/useCountriesRoutes";
+import { useAdminPaymentMethods, PaymentMethod } from "@/hooks/usePaymentMethods";
 import { 
   Plus, 
   Edit, 
@@ -32,22 +32,25 @@ import {
   CheckCircle2, 
   Store, 
   Loader2,
-  ArrowRight,
   Route,
-  Settings,
   Package,
-  Users,
+  Link2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export default function AdminMarketsPage() {
   const navigate = useNavigate();
   const { markets, activeMarkets, isLoading, createMarket, updateMarket, deleteMarket, toggleMarketActive } = useMarkets();
   const { countries, routes, isLoading: loadingRoutes } = useCountriesRoutes();
   
+  // Get all admin payment methods from the system
+  const { methods: adminPaymentMethods, isLoading: loadingAdminMethods } = useAdminPaymentMethods();
+  
   // Dialog states
   const [showMarketDialog, setShowMarketDialog] = useState(false);
-  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [showAssignPaymentsDialog, setShowAssignPaymentsDialog] = useState(false);
   const [selectedMarket, setSelectedMarket] = useState<MarketDashboard | null>(null);
   const [editingMarket, setEditingMarket] = useState<MarketDashboard | null>(null);
 
@@ -64,22 +67,12 @@ export default function AdminMarketsPage() {
     is_active: false,
   });
 
-  // Payment method form
-  const [paymentForm, setPaymentForm] = useState({
-    name: "",
-    method_type: "bank_transfer",
-    currency: "USD",
-    account_number: "",
-    account_holder: "",
-    bank_name: "",
-    instructions: "",
-    sort_order: 0,
-    is_active: true,
-  });
-  const [editingPayment, setEditingPayment] = useState<MarketPaymentMethod | null>(null);
+  // Payment assignment state
+  const [selectedPaymentIds, setSelectedPaymentIds] = useState<string[]>([]);
+  const [assigningPayments, setAssigningPayments] = useState(false);
 
   // Fetch payment methods for selected market
-  const { paymentMethods, createPaymentMethod, updatePaymentMethod, deletePaymentMethod } = 
+  const { paymentMethods, createPaymentMethod, deletePaymentMethod } = 
     useMarketPaymentMethods(selectedMarket?.id);
 
   // Validation state
@@ -161,59 +154,84 @@ export default function AdminMarketsPage() {
     }
   };
 
-  // Payment methods handlers
-  const openPaymentDialog = (payment?: MarketPaymentMethod) => {
-    if (payment) {
-      setEditingPayment(payment);
-      setPaymentForm({
-        name: payment.name,
-        method_type: payment.method_type,
-        currency: payment.currency,
-        account_number: payment.account_number || "",
-        account_holder: payment.account_holder || "",
-        bank_name: payment.bank_name || "",
-        instructions: payment.instructions || "",
-        sort_order: payment.sort_order,
-        is_active: payment.is_active,
-      });
-    } else {
-      setEditingPayment(null);
-      setPaymentForm({
-        name: "",
-        method_type: "bank_transfer",
-        currency: selectedMarket?.currency || "USD",
-        account_number: "",
-        account_holder: "",
-        bank_name: "",
-        instructions: "",
-        sort_order: 0,
-        is_active: true,
-      });
-    }
-    setShowPaymentDialog(true);
+  // Open payment assignment dialog
+  const openAssignPaymentsDialog = (market: MarketDashboard) => {
+    setSelectedMarket(market);
+    // Pre-select already assigned payment methods
+    const assignedIds = paymentMethods?.map(pm => pm.name) || [];
+    setSelectedPaymentIds([]);
+    setShowAssignPaymentsDialog(true);
   };
 
-  const handlePaymentSubmit = () => {
+  // Initialize selected payments when dialog opens and paymentMethods loads
+  useEffect(() => {
+    if (showAssignPaymentsDialog && paymentMethods && adminPaymentMethods) {
+      // Find which admin methods are already assigned to this market
+      const assignedNames = paymentMethods.map(pm => pm.name);
+      const matchingIds = adminPaymentMethods
+        .filter(apm => assignedNames.includes(apm.display_name || ''))
+        .map(apm => apm.id);
+      setSelectedPaymentIds(matchingIds);
+    }
+  }, [showAssignPaymentsDialog, paymentMethods, adminPaymentMethods]);
+
+  // Toggle payment selection
+  const togglePaymentSelection = (paymentId: string) => {
+    setSelectedPaymentIds(prev => 
+      prev.includes(paymentId)
+        ? prev.filter(id => id !== paymentId)
+        : [...prev, paymentId]
+    );
+  };
+
+  // Assign selected payments to market
+  const handleAssignPayments = async () => {
     if (!selectedMarket) return;
+    
+    setAssigningPayments(true);
+    try {
+      // First, delete all existing payment methods for this market
+      const { error: deleteError } = await supabase
+        .from('market_payment_methods')
+        .delete()
+        .eq('market_id', selectedMarket.id);
+      
+      if (deleteError) throw deleteError;
 
-    const data = {
-      ...paymentForm,
-      market_id: selectedMarket.id,
-      account_number: paymentForm.account_number || null,
-      account_holder: paymentForm.account_holder || null,
-      bank_name: paymentForm.bank_name || null,
-      instructions: paymentForm.instructions || null,
-      metadata: {},
-    };
+      // Then insert new assignments based on selected admin payment methods
+      if (selectedPaymentIds.length > 0) {
+        const selectedMethods = adminPaymentMethods?.filter(m => selectedPaymentIds.includes(m.id)) || [];
+        
+        const inserts = selectedMethods.map((method, index) => ({
+          market_id: selectedMarket.id,
+          name: method.display_name || `${method.method_type} - ${method.holder_name || method.account_holder || 'Sin nombre'}`,
+          method_type: method.method_type === 'bank' ? 'bank_transfer' : method.method_type,
+          currency: selectedMarket.currency,
+          account_number: method.account_number || method.phone_number || null,
+          account_holder: method.account_holder || method.holder_name || null,
+          bank_name: method.bank_name || null,
+          instructions: null,
+          is_active: method.is_active,
+          sort_order: index,
+          metadata: { source_payment_method_id: method.id },
+        }));
 
-    if (editingPayment) {
-      updatePaymentMethod.mutate({ id: editingPayment.id, ...data }, {
-        onSuccess: () => setShowPaymentDialog(false),
-      });
-    } else {
-      createPaymentMethod.mutate(data, {
-        onSuccess: () => setShowPaymentDialog(false),
-      });
+        const { error: insertError } = await supabase
+          .from('market_payment_methods')
+          .insert(inserts);
+        
+        if (insertError) throw insertError;
+      }
+
+      toast.success(`${selectedPaymentIds.length} método(s) de pago asignados al mercado`);
+      setShowAssignPaymentsDialog(false);
+      // Refresh markets data
+      window.location.reload();
+    } catch (error) {
+      console.error('Error assigning payments:', error);
+      toast.error('Error al asignar métodos de pago');
+    } finally {
+      setAssigningPayments(false);
     }
   };
 
@@ -224,21 +242,23 @@ export default function AdminMarketsPage() {
   };
 
   const handleDeletePayment = (id: string) => {
-    if (confirm("¿Eliminar este método de pago?")) {
+    if (confirm("¿Eliminar este método de pago del mercado?")) {
       deletePaymentMethod.mutate(id);
     }
   };
 
-  const paymentMethodTypes = [
-    { value: "bank_transfer", label: "Transferencia Bancaria" },
-    { value: "moncash", label: "Moncash" },
-    { value: "natcash", label: "Natcash" },
-    { value: "cash", label: "Efectivo" },
-    { value: "credit_card", label: "Tarjeta de Crédito" },
-    { value: "paypal", label: "PayPal" },
-    { value: "crypto", label: "Criptomonedas" },
-    { value: "other", label: "Otro" },
-  ];
+  const paymentMethodTypes: Record<string, string> = {
+    bank_transfer: "Transferencia Bancaria",
+    bank: "Transferencia Bancaria",
+    moncash: "Moncash",
+    natcash: "Natcash",
+    cash: "Efectivo",
+    credit_card: "Tarjeta de Crédito",
+    paypal: "PayPal",
+    crypto: "Criptomonedas",
+    stripe: "Stripe",
+    other: "Otro",
+  };
 
   if (isLoading || loadingRoutes) {
     return (
@@ -353,9 +373,19 @@ export default function AdminMarketsPage() {
                         <Button 
                           variant="ghost" 
                           size="sm"
+                          title="Asignar métodos de pago"
                           onClick={() => {
                             setSelectedMarket(market);
+                            setShowAssignPaymentsDialog(true);
                           }}
+                        >
+                          <Link2 className="h-4 w-4" />
+                        </Button>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          title="Ver métodos asignados"
+                          onClick={() => setSelectedMarket(market)}
                         >
                           <CreditCard className="h-4 w-4" />
                         </Button>
@@ -385,8 +415,8 @@ export default function AdminMarketsPage() {
             </CardContent>
           </Card>
 
-          {/* Payment Methods Panel */}
-          {selectedMarket && (
+          {/* Payment Methods Panel - View assigned methods */}
+          {selectedMarket && !showAssignPaymentsDialog && (
             <Card className="mt-6">
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
@@ -395,16 +425,16 @@ export default function AdminMarketsPage() {
                     Métodos de Pago: {selectedMarket.name}
                   </CardTitle>
                   <CardDescription>
-                    Configura los métodos de pago disponibles para este mercado
+                    Métodos de pago asignados a este mercado
                   </CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => setSelectedMarket(null)}>
                     Cerrar
                   </Button>
-                  <Button onClick={() => openPaymentDialog()} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    Agregar Método
+                  <Button onClick={() => setShowAssignPaymentsDialog(true)} className="gap-2">
+                    <Link2 className="h-4 w-4" />
+                    Asignar Métodos
                   </Button>
                 </div>
               </CardHeader>
@@ -427,7 +457,7 @@ export default function AdminMarketsPage() {
                         <TableCell className="font-medium">{method.name}</TableCell>
                         <TableCell>
                           <Badge variant="outline">
-                            {paymentMethodTypes.find(t => t.value === method.method_type)?.label || method.method_type}
+                            {paymentMethodTypes[method.method_type] || method.method_type}
                           </Badge>
                         </TableCell>
                         <TableCell>{method.currency}</TableCell>
@@ -439,9 +469,6 @@ export default function AdminMarketsPage() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right space-x-1">
-                          <Button variant="ghost" size="sm" onClick={() => openPaymentDialog(method)}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
                           <Button 
                             variant="ghost" 
                             size="sm"
@@ -456,7 +483,7 @@ export default function AdminMarketsPage() {
                     {!paymentMethods?.length && (
                       <TableRow>
                         <TableCell colSpan={7} className="text-center text-muted-foreground py-8">
-                          No hay métodos de pago configurados para este mercado
+                          No hay métodos de pago asignados. Haz clic en "Asignar Métodos" para agregar.
                         </TableCell>
                       </TableRow>
                     )}
@@ -506,8 +533,11 @@ export default function AdminMarketsPage() {
                       <span>
                         El mercado <strong>{market.name}</strong> no tiene métodos de pago activos.
                       </span>
-                      <Button size="sm" variant="outline" onClick={() => setSelectedMarket(market)}>
-                        Agregar Pagos
+                      <Button size="sm" variant="outline" onClick={() => {
+                        setSelectedMarket(market);
+                        setShowAssignPaymentsDialog(true);
+                      }}>
+                        Asignar Pagos
                       </Button>
                     </AlertDescription>
                   </Alert>
@@ -703,130 +733,105 @@ export default function AdminMarketsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ========== PAYMENT METHOD DIALOG ========== */}
-      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
-        <DialogContent className="max-w-md">
+      {/* ========== ASSIGN PAYMENT METHODS DIALOG ========== */}
+      <Dialog open={showAssignPaymentsDialog} onOpenChange={setShowAssignPaymentsDialog}>
+        <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingPayment ? "Editar Método de Pago" : "Agregar Método de Pago"}</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="h-5 w-5" />
+              Asignar Métodos de Pago
+            </DialogTitle>
             <DialogDescription>
-              Configura los datos del método de pago para {selectedMarket?.name}
+              Selecciona los métodos de pago del sistema que estarán disponibles en <strong>{selectedMarket?.name}</strong>
             </DialogDescription>
           </DialogHeader>
 
-          <ScrollArea className="max-h-[60vh]">
-            <div className="space-y-4 py-4 pr-4">
+          <div className="py-4">
+            {loadingAdminMethods ? (
               <div className="space-y-2">
-                <Label htmlFor="payment-name">Nombre</Label>
-                <Input
-                  id="payment-name"
-                  value={paymentForm.name}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, name: e.target.value })}
-                  placeholder="Ej: Moncash Haiti"
-                />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label>Tipo</Label>
-                  <Select
-                    value={paymentForm.method_type}
-                    onValueChange={(value) => setPaymentForm({ ...paymentForm, method_type: value })}
+            ) : adminPaymentMethods && adminPaymentMethods.length > 0 ? (
+              <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
+                {adminPaymentMethods.map((method) => {
+                  const isSelected = selectedPaymentIds.includes(method.id);
+                  return (
+                    <div
+                      key={method.id}
+                      onClick={() => togglePaymentSelection(method.id)}
+                      className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${
+                        isSelected 
+                          ? "border-primary bg-primary/5" 
+                          : "border-border hover:border-primary/30"
+                      }`}
+                    >
+                      <Checkbox 
+                        checked={isSelected}
+                        className="pointer-events-none"
+                      />
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <CreditCard className="h-4 w-4 text-muted-foreground" />
+                          <span className="font-medium">
+                            {method.display_name || `${paymentMethodTypes[method.method_type]} - ${method.holder_name || method.account_holder || 'Sin nombre'}`}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground">
+                          <Badge variant="outline" className="text-xs">
+                            {paymentMethodTypes[method.method_type] || method.method_type}
+                          </Badge>
+                          {method.account_number || method.phone_number ? (
+                            <span className="font-mono text-xs">
+                              {method.account_number || method.phone_number}
+                            </span>
+                          ) : null}
+                          {!method.is_active && (
+                            <Badge variant="secondary" className="text-xs">Inactivo</Badge>
+                          )}
+                        </div>
+                      </div>
+                      {isSelected && <CheckCircle2 className="h-5 w-5 text-primary" />}
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <Alert>
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>No hay métodos de pago configurados</AlertTitle>
+                <AlertDescription>
+                  Primero debes configurar métodos de pago en la sección de Configuración de Pagos.
+                  <Button 
+                    variant="link" 
+                    className="p-0 h-auto ml-1"
+                    onClick={() => navigate("/admin/metodos-pago")}
                   >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {paymentMethodTypes.map((type) => (
-                        <SelectItem key={type.value} value={type.value}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="space-y-2">
-                  <Label>Moneda</Label>
-                  <Select
-                    value={paymentForm.currency}
-                    onValueChange={(value) => setPaymentForm({ ...paymentForm, currency: value })}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="USD">USD</SelectItem>
-                      <SelectItem value="HTG">HTG</SelectItem>
-                      <SelectItem value="EUR">EUR</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                    Ir a configuración
+                  </Button>
+                </AlertDescription>
+              </Alert>
+            )}
+          </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="payment-account">Número de Cuenta/Teléfono</Label>
-                <Input
-                  id="payment-account"
-                  value={paymentForm.account_number}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, account_number: e.target.value })}
-                  placeholder="Ej: +509 1234 5678"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="payment-holder">Titular de la Cuenta</Label>
-                <Input
-                  id="payment-holder"
-                  value={paymentForm.account_holder}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, account_holder: e.target.value })}
-                  placeholder="Nombre del titular"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="payment-bank">Banco/Proveedor</Label>
-                <Input
-                  id="payment-bank"
-                  value={paymentForm.bank_name}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, bank_name: e.target.value })}
-                  placeholder="Ej: Digicel, Natcom"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="payment-instructions">Instrucciones de Pago</Label>
-                <Textarea
-                  id="payment-instructions"
-                  value={paymentForm.instructions}
-                  onChange={(e) => setPaymentForm({ ...paymentForm, instructions: e.target.value })}
-                  placeholder="Instrucciones detalladas para el cliente..."
-                  rows={3}
-                />
-              </div>
-
-              <div className="flex items-center justify-between rounded-lg border p-4">
-                <Label>Activo</Label>
-                <Switch
-                  checked={paymentForm.is_active}
-                  onCheckedChange={(checked) => setPaymentForm({ ...paymentForm, is_active: checked })}
-                />
-              </div>
+          <div className="flex items-center justify-between border-t pt-4">
+            <span className="text-sm text-muted-foreground">
+              {selectedPaymentIds.length} método(s) seleccionado(s)
+            </span>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={() => setShowAssignPaymentsDialog(false)}>
+                Cancelar
+              </Button>
+              <Button 
+                onClick={handleAssignPayments}
+                disabled={assigningPayments}
+              >
+                {assigningPayments && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                Guardar Asignación
+              </Button>
             </div>
-          </ScrollArea>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowPaymentDialog(false)}>
-              Cancelar
-            </Button>
-            <Button 
-              onClick={handlePaymentSubmit}
-              disabled={!paymentForm.name || createPaymentMethod.isPending || updatePaymentMethod.isPending}
-            >
-              {(createPaymentMethod.isPending || updatePaymentMethod.isPending) && (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              )}
-              {editingPayment ? "Guardar" : "Agregar"}
-            </Button>
-          </DialogFooter>
+          </div>
         </DialogContent>
       </Dialog>
     </AdminLayout>
