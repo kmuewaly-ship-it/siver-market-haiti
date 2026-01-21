@@ -65,10 +65,9 @@ const analyticsItems = [
 ];
 
 const settingsItems = [
+  { title: "Logística Global", url: "/admin/global-logistics", icon: Globe },
   { title: "Secciones Marketplace", url: "/admin/marketplace-sections", icon: LayoutGrid },
-  { title: "Mercados", url: "/admin/markets", icon: Store },
-  { title: "Países y Rutas", url: "/admin/countries-routes", icon: Globe },
-  { title: "Logística", url: "/admin/logistics", icon: Truck },
+  { title: "Logística Local", url: "/admin/logistics", icon: Truck },
   { title: "Puntos de Retiro", url: "/admin/pickup-points", icon: MapPin },
   { title: "Comisiones", url: "/admin/commissions", icon: Settings },
   { title: "Métodos de Pago", url: "/admin/payment-methods", icon: CreditCard },
