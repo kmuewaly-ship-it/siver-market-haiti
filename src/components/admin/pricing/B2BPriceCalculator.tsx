@@ -251,12 +251,12 @@ export function B2BPriceCalculator({
                   <Layers className="h-4 w-4" />
                   Categoría
                 </Label>
-                <Select value={selectedCategoryId} onValueChange={setSelectedCategoryId}>
+                <Select value={selectedCategoryId} onValueChange={(val) => setSelectedCategoryId(val === 'none' ? '' : val)}>
                   <SelectTrigger>
                     <SelectValue placeholder="Selecciona categoría" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Sin categoría</SelectItem>
+                    <SelectItem value="none">Sin categoría</SelectItem>
                     {categories.map((cat) => {
                       const hasRate = categoryRates.some(r => r.categoryId === cat.id && r.isActive);
                       return (
