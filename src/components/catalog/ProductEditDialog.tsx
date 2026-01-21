@@ -65,12 +65,23 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
   const [generatingEmbedding, setGeneratingEmbedding] = useState(false);
   const [localImages, setLocalImages] = useState<string[]>([]);
   const [selectedMarketIds, setSelectedMarketIds] = useState<string[]>([]);
+  const [marketsInitialized, setMarketsInitialized] = useState(false);
   const initializedRef = useRef(false);
 
   // Reset initialized state when product changes
   useEffect(() => {
     initializedRef.current = false;
+    setMarketsInitialized(false);
   }, [productId]);
+
+  // Initialize selected markets from existing assignments (separate effect to prevent loops)
+  useEffect(() => {
+    if (productMarkets && !marketsInitialized) {
+      const marketIds = productMarkets.map((pm: any) => pm.market_id);
+      setSelectedMarketIds(marketIds);
+      setMarketsInitialized(true);
+    }
+  }, [productMarkets, marketsInitialized]);
 
   // Fetch price history
   const { data: priceHistory } = useQuery({
@@ -127,14 +138,10 @@ const ProductEditDialog = ({ productId, open, onOpenChange }: ProductEditDialogP
       
       if (!initializedRef.current) {
         setLocalImages(product.galeria_imagenes || []);
-        // Set selected markets from existing assignments
-        if (productMarkets) {
-          setSelectedMarketIds(productMarkets.map((pm: any) => pm.market_id));
-        }
         initializedRef.current = true;
       }
     }
-  }, [product, form, productMarkets]);
+  }, [product, form]);
 
   const onSubmit = async (data: ProductFormData) => {
     const dimensiones = (data.dimensiones_largo || data.dimensiones_ancho || data.dimensiones_alto)
