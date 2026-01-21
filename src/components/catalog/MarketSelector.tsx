@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -141,7 +140,19 @@ export const MarketSelector = ({
                   disabled && "opacity-50 cursor-not-allowed",
                 )}
               >
-                <Checkbox checked={isSelected} disabled={disabled} className="pointer-events-none" />
+                {/* NOTE: Use native checkbox here to avoid rare Radix ref/presence loops inside Dialogs */}
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  readOnly
+                  disabled={disabled}
+                  aria-label={isSelected ? `Quitar ${market.name}` : `Agregar ${market.name}`}
+                  className={cn(
+                    "h-4 w-4 shrink-0 rounded-sm border border-input bg-background",
+                    "text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background",
+                    "pointer-events-none",
+                  )}
+                />
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2">
                     <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
