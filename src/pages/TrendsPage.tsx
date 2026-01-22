@@ -17,6 +17,7 @@ import TrendingStoresSection from "@/components/trends/TrendingStoresSection";
 import TrendingCategoriesSection from "@/components/trends/TrendingCategoriesSection";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
+import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 const TrendsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -37,6 +38,9 @@ const TrendsPage = () => {
   // Determinar si es seller o admin
   const isSeller = Boolean(user && role && (role === UserRole.SELLER || role === UserRole.ADMIN));
   const isB2B = isSeller;
+
+  // B2B pricing engine (landed cost)
+  const { calculateProductPrice } = useB2BPriceCalculator();
 
   // States for seller header
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
@@ -140,12 +144,20 @@ const TrendsPage = () => {
       id: p.id,
       sku: p.sku_interno,
       nombre: p.nombre,
-      precio: p.precio_sugerido_venta || p.precio_mayorista,
+      // IMPORTANT: For B2B users we must always show the engine landed cost (factory + margin + logistics + fees)
+      precio: isB2B
+        ? calculateProductPrice({
+            id: p.id,
+            factoryCost: p.precio_mayorista || 0,
+            categoryId: p.categoria_id || undefined,
+            weight: 0.5,
+          }).finalB2BPrice
+        : (p.precio_sugerido_venta || p.precio_mayorista),
       imagen_principal: p.imagen_principal || '/placeholder.svg',
       stock: p.stock_status === 'out_of_stock' ? 0 : 1,
       moq: 1
     }));
-  }, [trendingProducts]);
+  }, [trendingProducts, isB2B, calculateProductPrice]);
   // Si auth está cargando, no renderizar header hasta que se sepa el rol
   const showSellerHeader = !authLoading && isSeller;
   const showClientHeader = !authLoading && !isSeller;
