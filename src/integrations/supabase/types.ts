@@ -561,6 +561,42 @@ export type Database = {
           },
         ]
       }
+      b2b_margin_ranges: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          is_active: boolean | null
+          margin_percent: number
+          max_cost: number | null
+          min_cost: number
+          sort_order: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          margin_percent?: number
+          max_cost?: number | null
+          min_cost?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          is_active?: boolean | null
+          margin_percent?: number
+          max_cost?: number | null
+          min_cost?: number
+          sort_order?: number | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       b2b_payments: {
         Row: {
           amount: number
