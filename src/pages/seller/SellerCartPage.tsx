@@ -1107,9 +1107,27 @@ const SellerCartPage = () => {
                                 </span>
                               )}
                               <span className="text-sm font-bold ml-2" style={{ color: '#29892a' }}>
-                                ${item.precioB2B.toFixed(2)}
+                                ${(cartLogistics.itemsLogistics.get(item.id)?.finalUnitPrice || item.precioB2B).toFixed(2)}
                               </span>
                             </div>
+                            
+                            {/* Logistics info per item - MOBILE */}
+                            {(() => {
+                              const itemLogistics = cartLogistics.itemsLogistics.get(item.id);
+                              if (!itemLogistics) return null;
+                              return (
+                                <div className="flex items-center gap-3 mt-1 text-[10px]">
+                                  <span className="text-blue-600 flex items-center gap-0.5">
+                                    <Truck className="w-2.5 h-2.5" />
+                                    +${itemLogistics.logisticsCost.toFixed(2)}
+                                  </span>
+                                  <span className="text-amber-600 flex items-center gap-0.5">
+                                    <Clock className="w-2.5 h-2.5" />
+                                    {itemLogistics.estimatedDays.min}-{itemLogistics.estimatedDays.max}d
+                                  </span>
+                                </div>
+                              );
+                            })()}
                           </div>
                           {/* Quantity Controls + Subtotal */}
                           <div className="flex items-center justify-between mt-2">
@@ -1136,9 +1154,23 @@ const SellerCartPage = () => {
                                 +
                               </button>
                             </div>
-                            <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                              ${item.subtotal.toFixed(2)}
-                            </span>
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <span className="text-sm font-bold cursor-help" style={{ color: '#071d7f' }}>
+                                    ${(cartLogistics.itemsLogistics.get(item.id)?.finalTotalPrice || item.subtotal).toFixed(2)}
+                                  </span>
+                                </TooltipTrigger>
+                                <TooltipContent side="left" className="text-xs">
+                                  <div className="space-y-0.5">
+                                    <p>Producto: ${item.subtotal.toFixed(2)}</p>
+                                    {cartLogistics.itemsLogistics.get(item.id) && (
+                                      <p>Envío: +${(cartLogistics.itemsLogistics.get(item.id)!.logisticsCost * item.cantidad).toFixed(2)}</p>
+                                    )}
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
                           </div>
                         </div>
                       </div>
@@ -1179,12 +1211,18 @@ const SellerCartPage = () => {
                 {/* Total en el Medio - Clickeable */}
                 <button
                   onClick={() => setShowSummaryModal(true)}
-                  className="transition-all hover:opacity-80"
+                  className="transition-all hover:opacity-80 flex flex-col items-center"
                 >
                   <Badge variant="outline" className="text-sm border-2 px-3 py-1.5 rounded-lg" style={{ borderColor: '#29892a', color: '#29892a' }}>
                     <DollarSign className="w-3.5 h-3.5 mr-1.5" />
-                    ${subtotal.toFixed(2)}
+                    ${cartLogistics.totalFinalPrice.toFixed(2)}
                   </Badge>
+                  {cartLogistics.estimatedDeliveryDays.max > 0 && (
+                    <span className="text-[10px] text-amber-600 flex items-center gap-0.5 mt-0.5">
+                      <Clock className="w-2.5 h-2.5" />
+                      {cartLogistics.estimatedDeliveryDays.min}-{cartLogistics.estimatedDeliveryDays.max}d
+                    </span>
+                  )}
                 </button>
 
                 {/* Botón Comprar B2B */}
@@ -1317,16 +1355,34 @@ const SellerCartPage = () => {
             {/* Pricing Breakdown */}
             <div className="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-700">Total artículos:</span>
+                <span className="text-gray-700">Subtotal productos:</span>
                 <span className="font-semibold">${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-gray-700">Envío:</span>
-                <span className="font-medium text-green-600">Gratis</span>
+                <span className="text-blue-600 flex items-center gap-1">
+                  <Truck className="w-3 h-3" />
+                  Logística Total:
+                </span>
+                <span className="font-semibold text-blue-600">+${cartLogistics.totalLogisticsCost.toFixed(2)}</span>
+              </div>
+              {cartLogistics.totalCategoryFees > 0 && (
+                <div className="flex justify-between text-xs">
+                  <span className="text-gray-700">Tarifas categoría:</span>
+                  <span className="font-semibold">+${cartLogistics.totalCategoryFees.toFixed(2)}</span>
+                </div>
+              )}
+              <div className="flex justify-between text-xs">
+                <span className="text-amber-600 flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  Tiempo de Entrega:
+                </span>
+                <span className="font-semibold text-amber-600">
+                  {cartLogistics.estimatedDeliveryDays.min}-{cartLogistics.estimatedDeliveryDays.max} días
+                </span>
               </div>
               <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between">
-                <span className="font-bold text-sm">Total</span>
-                <span className="font-bold text-lg text-[#071d7f]">${subtotal.toFixed(2)}</span>
+                <span className="font-bold text-sm">Total Inversión</span>
+                <span className="font-bold text-lg text-[#071d7f]">${cartLogistics.totalFinalPrice.toFixed(2)}</span>
               </div>
             </div>
 
