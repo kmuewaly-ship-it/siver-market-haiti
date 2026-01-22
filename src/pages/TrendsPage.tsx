@@ -57,11 +57,24 @@ const TrendsPage = () => {
     window.scrollTo(0, 0);
   }, []);
 
+  // Helper to get display price (B2B uses engine, B2C uses PVP/mayorista)
+  const getProductPrice = (p: any): number => {
+    if (isB2B) {
+      return calculateProductPrice({
+        id: p.id,
+        factoryCost: p.precio_mayorista || 0,
+        categoryId: p.categoria_id || undefined,
+        weight: 0.5,
+      }).finalB2BPrice;
+    }
+    return p.precio_sugerido_venta || p.precio_mayorista || 0;
+  };
+
   // Calculate max price from trending products
   const maxPrice = useMemo(() => {
     if (!trendingProducts) return 1000;
-    return Math.max(...trendingProducts.map(p => p.precio_sugerido_venta || p.precio_mayorista || 0), 1000);
-  }, [trendingProducts]);
+    return Math.max(...trendingProducts.map(p => getProductPrice(p)), 1000);
+  }, [trendingProducts, isB2B, calculateProductPrice]);
 
   // Get filtered and sorted trending products
   const filteredTrendingProducts = useMemo(() => {
@@ -74,15 +87,15 @@ const TrendsPage = () => {
 
     // Filter by price range
     products = products.filter(p => {
-      const price = p.precio_sugerido_venta || p.precio_mayorista;
+      const price = getProductPrice(p);
       return price >= priceRange[0] && price <= priceRange[1];
     });
 
     // Sort
     if (sortBy === "price-low") {
-      products = [...products].sort((a, b) => (a.precio_sugerido_venta || a.precio_mayorista) - (b.precio_sugerido_venta || b.precio_mayorista));
+      products = [...products].sort((a, b) => getProductPrice(a) - getProductPrice(b));
     } else if (sortBy === "price-high") {
-      products = [...products].sort((a, b) => (b.precio_sugerido_venta || b.precio_mayorista) - (a.precio_sugerido_venta || a.precio_mayorista));
+      products = [...products].sort((a, b) => getProductPrice(b) - getProductPrice(a));
     }
 
     return products;
