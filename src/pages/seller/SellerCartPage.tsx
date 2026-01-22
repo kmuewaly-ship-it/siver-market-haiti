@@ -27,7 +27,7 @@ import {
   DrawerClose,
 } from "@/components/ui/drawer";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square, TrendingUp, Loader2, ShoppingBag } from "lucide-react";
+import { ShoppingCart, Trash2, Package, AlertCircle, MessageCircle, X, Banknote, Wallet, DollarSign, AlertTriangle, Info, CheckSquare, Square, TrendingUp, Loader2, ShoppingBag, Truck, Clock } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { useB2BCartItems } from "@/hooks/useB2BCartItems";
 import { useB2BCartProductTotals } from "@/hooks/useB2BCartProductTotals";
@@ -45,6 +45,8 @@ import VariantSelectorB2B from "@/components/products/VariantSelectorB2B";
 import { useProductVariants } from "@/hooks/useProductVariants";
 import { VariantBadges } from "@/components/seller/cart/VariantBadges";
 import { addItemB2B } from "@/services/cartService";
+import { useB2BCartLogistics } from "@/hooks/useB2BCartLogistics";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
@@ -52,6 +54,9 @@ const SellerCartPage = () => {
   const { items, isLoading, refetch } = useB2BCartItems();
   const { productsNotMeetingMOQ, isCartValid, productTotals } = useB2BCartProductTotals();
   const isMobile = useIsMobile();
+  
+  // Calculate logistics for all cart items
+  const cartLogistics = useB2BCartLogistics(items);
   const [showClearCartDialog, setShowClearCartDialog] = useState(false);
   const [showRemoveItemDialog, setShowRemoveItemDialog] = useState(false);
   const [itemToRemove, setItemToRemove] = useState<{ id: string; name: string } | null>(null);
@@ -708,6 +713,24 @@ const SellerCartPage = () => {
                                   ${item.precioB2B.toFixed(2)}
                                 </span>
                               </div>
+                              
+                              {/* Logistics info per item */}
+                              {(() => {
+                                const itemLogistics = cartLogistics.itemsLogistics.get(item.id);
+                                if (!itemLogistics) return null;
+                                return (
+                                  <div className="flex items-center gap-3 mt-1 text-[10px]">
+                                    <span className="text-blue-600 flex items-center gap-0.5">
+                                      <Truck className="w-2.5 h-2.5" />
+                                      +${itemLogistics.logisticsCost.toFixed(2)}
+                                    </span>
+                                    <span className="text-amber-600 flex items-center gap-0.5">
+                                      <Clock className="w-2.5 h-2.5" />
+                                      {itemLogistics.estimatedDays.min}-{itemLogistics.estimatedDays.max}d
+                                    </span>
+                                  </div>
+                                );
+                              })()}
                             </div>
                             {/* Quantity Controls + Subtotal */}
                             <div className="flex items-center justify-between mt-2">
@@ -734,9 +757,23 @@ const SellerCartPage = () => {
                                   +
                                 </button>
                               </div>
-                              <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                                ${item.subtotal.toFixed(2)}
-                              </span>
+                              <TooltipProvider>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="text-sm font-bold cursor-help" style={{ color: '#071d7f' }}>
+                                      ${(cartLogistics.itemsLogistics.get(item.id)?.finalTotalPrice || item.subtotal).toFixed(2)}
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="left" className="text-xs">
+                                    <div className="space-y-0.5">
+                                      <p>Producto: ${item.subtotal.toFixed(2)}</p>
+                                      {cartLogistics.itemsLogistics.get(item.id) && (
+                                        <p>Envío: +${(cartLogistics.itemsLogistics.get(item.id)!.logisticsCost * item.cantidad).toFixed(2)}</p>
+                                      )}
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
                             </div>
                           </div>
                         </div>
@@ -759,9 +796,50 @@ const SellerCartPage = () => {
                   {/* Pricing Details */}
                   <div className="p-2 space-y-2 border-b border-gray-200">
                     <div className="flex justify-between items-center text-xs">
-                      <span className="text-gray-600">Precio Mayorista:</span>
+                      <span className="text-gray-600">Subtotal Productos:</span>
                       <span className="font-semibold text-gray-900">${subtotal.toFixed(2)}</span>
                     </div>
+                    
+                    {/* Logistics Cost */}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="flex justify-between items-center text-xs cursor-help">
+                            <span className="text-blue-600 flex items-center gap-1">
+                              <Truck className="w-3 h-3" />
+                              Logística Total:
+                            </span>
+                            <span className="font-semibold text-blue-600">
+                              +${cartLogistics.totalLogisticsCost.toFixed(2)}
+                            </span>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent side="left" className="text-xs max-w-[200px]">
+                          <p className="font-medium mb-1">Desglose de Logística</p>
+                          <div className="space-y-0.5 text-muted-foreground">
+                            <p>Envío total: ${cartLogistics.totalLogisticsCost.toFixed(2)}</p>
+                            {cartLogistics.totalCategoryFees > 0 && (
+                              <p>Tarifas categoría: ${cartLogistics.totalCategoryFees.toFixed(2)}</p>
+                            )}
+                            <p className="pt-1 border-t text-foreground">
+                              {cartLogistics.routeName}
+                            </p>
+                          </div>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+
+                    {/* Delivery Time Estimate */}
+                    <div className="flex justify-between items-center text-xs">
+                      <span className="text-amber-600 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Tiempo de Entrega:
+                      </span>
+                      <span className="font-semibold text-amber-600">
+                        {cartLogistics.estimatedDeliveryDays.min}-{cartLogistics.estimatedDeliveryDays.max} días
+                      </span>
+                    </div>
+                    
                     <div className="flex justify-between items-center text-xs">
                       <span className="text-gray-600">Promociones:</span>
                       <span className="font-semibold text-red-600">—</span>
@@ -775,12 +853,12 @@ const SellerCartPage = () => {
                   {/* Total Price */}
                   <div className="p-2 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Precio Estimado:</span>
+                      <span className="text-sm font-medium text-gray-700">Total Estimado:</span>
                       <span className="text-lg font-bold" style={{ color: '#071d7f' }}>
-                        ${subtotal.toFixed(2)}
+                        ${(subtotal + cartLogistics.totalLogisticsCost + cartLogistics.totalCategoryFees).toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Se confirma el precio final en confirmar pedido</p>
+                    <p className="text-xs text-gray-500 mt-1">Incluye productos + envío a destino</p>
                   </div>
 
                   {/* Business Analysis Panel */}
