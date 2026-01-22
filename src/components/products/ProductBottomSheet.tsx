@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { UserRole } from "@/types/auth";
 import { addItemB2C, addItemB2B } from "@/services/cartService";
 import { useCartB2B } from "@/hooks/useCartB2B";
+import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 import VariantSelector from './VariantSelector';
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Minus, Plus, ShoppingCart, TrendingUp, DollarSign, Package, X } from "lucide-react";
+import { Minus, Plus, ShoppingCart, TrendingUp, DollarSign, Package, X, Truck, Clock } from "lucide-react";
 import {
   Drawer,
   DrawerContent,
@@ -140,16 +141,34 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
     }
   }, [product, isSeller, isOpen]);
 
-  // B2B Logic
+  // B2B Price Calculator
+  const priceCalculator = useB2BPriceCalculator();
+  
+  // B2B Logic - Calculate using pricing engine
   const moq = product?.moq || 1;
-  const priceB2B = product?.priceB2B || product?.price || 0;
+  const factoryCost = product?.priceB2B || product?.price || 0;
   const pvp = product?.pvp || product?.originalPrice || product?.price || 0;
   const stock = product?.stock || 100;
+  
+  // Calculate B2B price using the pricing engine
+  const calculatedB2BPrice = useMemo(() => {
+    if (!isSeller || factoryCost <= 0 || !product) return null;
+    
+    return priceCalculator.calculateProductPrice({
+      id: product.id || '',
+      factoryCost,
+      weight: 0.5,
+    });
+  }, [isSeller, factoryCost, product?.id, priceCalculator]);
+  
+  // Use calculated price or fallback to factory cost
+  const priceB2B = calculatedB2BPrice?.finalB2BPrice || factoryCost;
 
   // Calculations
   const currentPrice = isSeller ? priceB2B : product?.price || 0;
   const totalInvestment = currentPrice * quantity;
-  const totalRevenue = pvp * quantity;
+  const suggestedPVP = calculatedB2BPrice?.suggestedPVP || pvp;
+  const totalRevenue = suggestedPVP * quantity;
   const totalProfit = totalRevenue - totalInvestment;
   const profitMargin = totalInvestment > 0 ? (totalProfit / totalInvestment) * 100 : 0;
 
@@ -261,8 +280,30 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               <span className="text-xs sm:text-sm font-bold text-slate-900">${totalInvestment.toFixed(2)}</span>
             </div>
             
+            {/* Logistics info */}
+            {calculatedB2BPrice?.logistics && (
+              <>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs sm:text-sm text-blue-600 flex items-center gap-1">
+                    <Truck className="w-3 h-3" /> Envío incluido:
+                  </span>
+                  <span className="text-xs sm:text-sm font-medium text-blue-600">
+                    ${(calculatedB2BPrice.logisticsCost * quantity).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs sm:text-sm text-amber-600 flex items-center gap-1">
+                    <Clock className="w-3 h-3" /> Entrega:
+                  </span>
+                  <span className="text-xs sm:text-sm font-medium text-amber-600">
+                    {calculatedB2BPrice.logistics.estimatedDays.min}-{calculatedB2BPrice.logistics.estimatedDays.max} días
+                  </span>
+                </div>
+              </>
+            )}
+            
             <div className="flex justify-between items-center">
-              <span className="text-xs sm:text-sm text-slate-600">Venta (PVP):</span>
+              <span className="text-xs sm:text-sm text-slate-600">Venta (PVP sugerido):</span>
               <span className="text-xs sm:text-sm font-medium text-slate-700">${totalRevenue.toFixed(2)}</span>
             </div>
             
@@ -274,7 +315,7 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               </span>
               <div className="text-right">
                 <div className="text-xs sm:text-sm font-bold text-green-700">+${totalProfit.toFixed(2)}</div>
-                <div className="text-[9px] sm:text-[10px] text-green-600 font-medium">{profitMargin.toFixed(0)}% margen</div>
+                <div className="text-[9px] sm:text-[10px] text-green-600 font-medium">{profitMargin.toFixed(0)}% ROI</div>
               </div>
             </div>
           </div>
