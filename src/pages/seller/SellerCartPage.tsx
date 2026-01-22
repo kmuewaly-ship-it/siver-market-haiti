@@ -110,17 +110,20 @@ const SellerCartPage = () => {
   const allSelected = items.length > 0 && items.every(item => b2bSelectedIds.has(item.id));
   const someSelected = selectedItems.length > 0;
 
-  // Calculate profit analysis for SELECTED items only
+  // Calculate profit analysis for SELECTED items only using engine prices
   const profitAnalysis = useMemo(() => {
-    let totalInversion = 0; // Total cost (precio B2B * cantidad)
+    let totalInversion = 0; // Total cost (engine B2B price * quantity)
     let totalVenta = 0;      // Total retail (precio de venta * cantidad)
     let ganancia = 0;        // Profit (totalVenta - totalInversion)
     let margen = 0;          // Profit margin percentage
 
     selectedItems.forEach(item => {
-      const costoItem = item.precioB2B * item.cantidad;
-      // Use precioVenta (retail price) if available, otherwise default to cost price
-      const precioVenta = item.precioVenta || item.precioB2B;
+      // IMPORTANT: Use engine calculated price (includes margin + logistics + fees)
+      const itemLogistics = cartLogistics.itemsLogistics.get(item.id);
+      const engineUnitPrice = itemLogistics?.finalUnitPrice || item.precioB2B;
+      const costoItem = engineUnitPrice * item.cantidad;
+      // Use precioVenta (retail price) if available, otherwise use suggested PVP (30% over engine price)
+      const precioVenta = item.precioVenta || (engineUnitPrice * 1.3);
       const ventaItem = precioVenta * item.cantidad;
       
       totalInversion += costoItem;
@@ -136,7 +139,7 @@ const SellerCartPage = () => {
       ganancia: ganancia,
       margen: margen
     };
-  }, [selectedItems]);
+  }, [selectedItems, cartLogistics.itemsLogistics]);
 
   // Get unique payment methods - Default to Tarjetas, Transferencia, MonCash, NatCash
   const paymentMethods = useMemo(() => {
@@ -565,7 +568,7 @@ const SellerCartPage = () => {
                 <div>
                   <span className="text-gray-900">Total:</span>
                   <span className="font-bold ml-1 text-gray-900">
-                    ${subtotal.toFixed(2)}
+                    ${cartLogistics.totalFinalPrice.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -710,7 +713,7 @@ const SellerCartPage = () => {
                                   </span>
                                 )}
                                 <span className="text-sm font-bold ml-2" style={{ color: '#29892a' }}>
-                                  ${item.precioB2B.toFixed(2)}
+                                  ${(cartLogistics.itemsLogistics.get(item.id)?.finalUnitPrice || item.precioB2B).toFixed(2)}
                                 </span>
                               </div>
                               
@@ -853,12 +856,12 @@ const SellerCartPage = () => {
                   {/* Total Price */}
                   <div className="p-2 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Total Estimado:</span>
+                      <span className="text-sm font-medium text-gray-700">Total Inversión:</span>
                       <span className="text-lg font-bold" style={{ color: '#071d7f' }}>
-                        ${(subtotal + cartLogistics.totalLogisticsCost + cartLogistics.totalCategoryFees).toFixed(2)}
+                        ${cartLogistics.totalFinalPrice.toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Incluye productos + envío a destino</p>
+                    <p className="text-xs text-gray-500 mt-1">Incluye productos + margen + envío a destino</p>
                   </div>
 
                   {/* Business Analysis Panel */}
