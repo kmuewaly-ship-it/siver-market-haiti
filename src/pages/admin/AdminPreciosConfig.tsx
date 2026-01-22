@@ -15,7 +15,9 @@ import { usePriceEngine, DynamicExpense } from '@/hooks/usePriceEngine';
 import { useRoutePricing } from '@/hooks/useRoutePricing';
 import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
 import { useCategories } from '@/hooks/useCategories';
+import { useB2BMarginRanges } from '@/hooks/useB2BMarginRanges';
 import { B2BPriceCalculator, CategoryRate } from '@/components/admin/pricing/B2BPriceCalculator';
+import { B2BMarginRangesConfig } from '@/components/admin/pricing/B2BMarginRangesConfig';
 import { RouteSegmentTimeline } from '@/components/admin/pricing/RouteSegmentTimeline';
 import { 
   Plus, 
@@ -28,7 +30,8 @@ import {
   TrendingDown,
   Route,
   Settings,
-  Truck
+  Truck,
+  Layers
 } from 'lucide-react';
 
 export default function AdminPreciosConfig() {
@@ -45,11 +48,13 @@ export default function AdminPreciosConfig() {
 
   const { useCategoryShippingRates } = useLogisticsEngine();
   const { data: categoriesData, isLoading: loadingCategories } = useCategories();
+  const { useActiveMarginRanges } = useB2BMarginRanges();
   
   const { data: priceSettings, isLoading: loadingSettings } = usePriceSettings();
   const { data: expenses, isLoading: loadingExpenses } = useDynamicExpenses();
   const { routes, isLoading: loadingRoutes } = useRoutePricing();
   const { data: categoryShippingRates, isLoading: loadingCategoryRates } = useCategoryShippingRates();
+  const { data: marginRanges, isLoading: loadingMarginRanges } = useActiveMarginRanges();
 
   const profitMargin = getProfitMargin(priceSettings);
 
@@ -157,7 +162,7 @@ export default function AdminPreciosConfig() {
     deleteExpense.mutate(id);
   };
 
-  if (loadingSettings || loadingExpenses || loadingRoutes || loadingCategoryRates || loadingCategories) {
+  if (loadingSettings || loadingExpenses || loadingRoutes || loadingCategoryRates || loadingCategories || loadingMarginRanges) {
     return (
       <AdminLayout title="Configuración de Precios">
         <div className="flex items-center justify-center h-64">
@@ -172,8 +177,12 @@ export default function AdminPreciosConfig() {
       title="Configuración de Precios B2B" 
       subtitle="Motor de precios dinámico con desglose de costos logísticos"
     >
-      <Tabs defaultValue="calculator" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-flex">
+      <Tabs defaultValue="margins" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-flex">
+          <TabsTrigger value="margins" className="flex items-center gap-2">
+            <Layers className="h-4 w-4" />
+            Márgenes por Rango
+          </TabsTrigger>
           <TabsTrigger value="calculator" className="flex items-center gap-2">
             <Calculator className="h-4 w-4" />
             Calculadora
@@ -184,9 +193,14 @@ export default function AdminPreciosConfig() {
           </TabsTrigger>
           <TabsTrigger value="settings" className="flex items-center gap-2">
             <Settings className="h-4 w-4" />
-            Configuración
+            Gastos Adicionales
           </TabsTrigger>
         </TabsList>
+
+        {/* Margin Ranges Tab - Primary configuration */}
+        <TabsContent value="margins" className="space-y-6">
+          <B2BMarginRangesConfig />
+        </TabsContent>
 
         {/* Calculator Tab - Main pricing calculator */}
         <TabsContent value="calculator" className="space-y-6">
@@ -197,6 +211,7 @@ export default function AdminPreciosConfig() {
             categories={simpleCategories}
             profitMargin={profitMargin}
             platformFee={platformFee}
+            marginRanges={marginRanges || []}
           />
         </TabsContent>
 

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { RouteSegmentTimeline, RouteInfo } from './RouteSegmentTimeline';
 import { DynamicExpense } from '@/hooks/usePriceEngine';
+import { B2BMarginRange } from '@/hooks/useB2BMarginRanges';
 import { cn } from '@/lib/utils';
 
 export interface CategoryRate {
@@ -40,6 +41,7 @@ interface B2BPriceCalculatorProps {
   categories: { id: string; name: string }[];
   profitMargin: number;
   platformFee?: number;
+  marginRanges?: B2BMarginRange[];
   onCalculationChange?: (calculation: PriceBreakdown) => void;
 }
 
@@ -48,6 +50,12 @@ export interface PriceBreakdown {
   weightKg: number;
   routeId: string | null;
   categoryId: string | null;
+  // NEW: Margin is applied to factory cost BEFORE logistics
+  appliedMarginRange: B2BMarginRange | null;
+  marginPercent: number;
+  marginValue: number;
+  subtotalWithMargin: number; // Factory cost + margin (PROTECTED)
+  // Logistics added AFTER margin
   logisticsCost: number;
   logisticsSegments: { name: string; cost: number }[];
   categoryFixedFee: number;
@@ -57,16 +65,14 @@ export interface PriceBreakdown {
   expensesDetails: { name: string; cost: number }[];
   platformFee: number;
   subtotal: number;
-  marginPercent: number;
-  marginValue: number;
   b2bPrice: number;
   suggestedPVP: number;
   pvpMarginPercent: number;
   profitAmount: number;
 }
 
-// Margin ranges for PVP suggestion
-const MARGIN_RANGES = [
+// Margin ranges for PVP suggestion (when seller sets their price)
+const SELLER_MARGIN_RANGES = [
   { min: 0, max: 20, margin: 50 },
   { min: 20, max: 50, margin: 45 },
   { min: 50, max: 100, margin: 40 },
@@ -74,9 +80,26 @@ const MARGIN_RANGES = [
   { min: 200, max: Infinity, margin: 30 },
 ];
 
-function getSuggestedMargin(b2bPrice: number): number {
-  const range = MARGIN_RANGES.find(r => b2bPrice >= r.min && b2bPrice < r.max);
+function getSuggestedSellerMargin(b2bPrice: number): number {
+  const range = SELLER_MARGIN_RANGES.find(r => b2bPrice >= r.min && b2bPrice < r.max);
   return range?.margin ?? 35;
+}
+
+/**
+ * Finds the applicable B2B margin range for a given factory cost.
+ * Returns the margin percentage to apply BEFORE logistics.
+ */
+function findMarginRangeForCost(
+  baseCost: number, 
+  ranges: B2BMarginRange[]
+): B2BMarginRange | null {
+  if (!ranges || ranges.length === 0) return null;
+  
+  return ranges.find(range => {
+    const minOk = baseCost >= range.min_cost;
+    const maxOk = range.max_cost === null || baseCost < range.max_cost;
+    return minOk && maxOk && range.is_active;
+  }) || null;
 }
 
 export function B2BPriceCalculator({
@@ -86,6 +109,7 @@ export function B2BPriceCalculator({
   categories,
   profitMargin,
   platformFee = 0,
+  marginRanges = [],
   onCalculationChange,
 }: B2BPriceCalculatorProps) {
   const [factoryCost, setFactoryCost] = useState<string>('100');
@@ -107,7 +131,16 @@ export function B2BPriceCalculator({
     const cost = parseFloat(factoryCost) || 0;
     const weight = parseFloat(weightKg) || 1;
 
-    // Calculate logistics cost from route segments
+    // STEP 1: Find the applicable margin range based on factory cost
+    // The margin is determined by the base cost BEFORE any logistics
+    const appliedMarginRange = findMarginRangeForCost(cost, marginRanges);
+    const marginPercent = appliedMarginRange?.margin_percent ?? profitMargin;
+    
+    // STEP 2: Apply margin to factory cost (PROTECTED - before logistics)
+    const marginValue = (cost * marginPercent) / 100;
+    const subtotalWithMargin = cost + marginValue;
+
+    // STEP 3: Calculate logistics cost from route segments (added AFTER margin)
     let logisticsCost = 0;
     const logisticsSegments: { name: string; cost: number }[] = [];
     
@@ -117,7 +150,7 @@ export function B2BPriceCalculator({
         logisticsCost += segmentCost;
         
         const segmentLabel = segment.segment === 'china_to_transit' 
-          ? 'Tramo A (China → Hub)' 
+          ? 'Tramo A (Origen → Hub)' 
           : segment.segment === 'transit_to_destination'
           ? 'Tramo B (Hub → Destino)'
           : 'Ruta Directa';
@@ -126,21 +159,22 @@ export function B2BPriceCalculator({
       });
     }
 
-    // Calculate category fees
+    // STEP 4: Calculate category fees (applied to factory cost)
     let categoryFixedFee = 0;
     let categoryPercentageFee = 0;
     
     if (selectedCategoryRate) {
       categoryFixedFee = selectedCategoryRate.fixedFee || 0;
-      // Percentage fee is applied to the factory cost (acquisition cost)
       categoryPercentageFee = (cost * (selectedCategoryRate.percentageFee || 0)) / 100;
     }
     const categoryTotalFee = categoryFixedFee + categoryPercentageFee;
 
-    // Calculate expenses
+    // STEP 5: Calculate running total for expense calculations
+    let runningTotal = subtotalWithMargin + logisticsCost + categoryTotalFee;
+
+    // STEP 6: Apply additional expenses
     let expensesCost = 0;
     const expensesDetails: { name: string; cost: number }[] = [];
-    let runningTotal = cost + logisticsCost + categoryTotalFee;
 
     const activeExpenses = expenses.filter(e => e.is_active);
     for (const expense of activeExpenses) {
@@ -161,18 +195,15 @@ export function B2BPriceCalculator({
       expensesDetails.push({ name: expense.nombre_gasto, cost: expenseValue });
     }
 
-    // Platform fee
+    // STEP 7: Apply platform fee
     const feeValue = (runningTotal * platformFee) / 100;
     
-    // Subtotal before margin
+    // STEP 8: Calculate final B2B price
     const subtotal = runningTotal + feeValue;
+    const b2bPrice = subtotal;
 
-    // Apply profit margin
-    const marginValue = (subtotal * profitMargin) / 100;
-    const b2bPrice = subtotal + marginValue;
-
-    // Calculate suggested PVP
-    const pvpMarginPercent = getSuggestedMargin(b2bPrice);
+    // STEP 9: Calculate suggested PVP for sellers (separate from B2B calculation)
+    const pvpMarginPercent = getSuggestedSellerMargin(b2bPrice);
     const suggestedPVP = b2bPrice * (1 + pvpMarginPercent / 100);
     const profitAmount = suggestedPVP - b2bPrice;
 
@@ -181,6 +212,10 @@ export function B2BPriceCalculator({
       weightKg: weight,
       routeId: selectedRouteId || null,
       categoryId: selectedCategoryId || null,
+      appliedMarginRange,
+      marginPercent,
+      marginValue: Math.round(marginValue * 100) / 100,
+      subtotalWithMargin: Math.round(subtotalWithMargin * 100) / 100,
       logisticsCost,
       logisticsSegments,
       categoryFixedFee,
@@ -190,8 +225,6 @@ export function B2BPriceCalculator({
       expensesDetails,
       platformFee: feeValue,
       subtotal,
-      marginPercent: profitMargin,
-      marginValue,
       b2bPrice: Math.round(b2bPrice * 100) / 100,
       suggestedPVP: Math.round(suggestedPVP * 100) / 100,
       pvpMarginPercent,
@@ -200,7 +233,7 @@ export function B2BPriceCalculator({
 
     onCalculationChange?.(result);
     return result;
-  }, [factoryCost, weightKg, selectedRoute, selectedCategoryRate, expenses, profitMargin, platformFee, selectedRouteId, selectedCategoryId, onCalculationChange]);
+  }, [factoryCost, weightKg, selectedRoute, selectedCategoryRate, expenses, profitMargin, platformFee, selectedRouteId, selectedCategoryId, marginRanges, onCalculationChange]);
 
   return (
     <TooltipProvider>
@@ -309,7 +342,7 @@ export function B2BPriceCalculator({
               Desglose de Precio B2B
             </CardTitle>
             <CardDescription>
-              Fórmula: Costo Fábrica + Logística + Tarifa Categoría + Gastos + Fee + Margen
+              Fórmula Protegida: (Costo × (1 + Margen%)) + Logística + Categoría + Gastos + Fee
             </CardDescription>
           </CardHeader>
           <CardContent className="pt-6">
@@ -324,20 +357,48 @@ export function B2BPriceCalculator({
                       <Info className="h-4 w-4 text-muted-foreground" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p>Precio FOB del producto en China</p>
+                      <p>Precio FOB del producto en origen</p>
                     </TooltipContent>
                   </Tooltip>
                 </div>
                 <span className="font-mono text-lg">${calculation.factoryCost.toFixed(2)}</span>
               </div>
 
+              {/* PROTECTED: Margin applied BEFORE logistics */}
+              <div className="flex items-center justify-between py-2 bg-green-50 dark:bg-green-950/20 px-3 rounded-lg border border-green-200 dark:border-green-800">
+                <div className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4 text-green-600" />
+                  <span className="font-medium">Margen de Beneficio</span>
+                  {calculation.appliedMarginRange && (
+                    <Badge variant="secondary" className="bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                      Rango: ${calculation.appliedMarginRange.min_cost}-{calculation.appliedMarginRange.max_cost || '∞'} → {calculation.marginPercent}%
+                    </Badge>
+                  )}
+                  <Tooltip>
+                    <TooltipTrigger>
+                      <Info className="h-4 w-4 text-green-600" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs">
+                      <p><strong>Regla de Protección:</strong> El margen se aplica sobre el costo base ANTES de sumar la logística, garantizando que el beneficio nunca se reduzca por costos de envío.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <span className="font-mono font-medium text-green-600">+${calculation.marginValue.toFixed(2)}</span>
+              </div>
+
+              {/* Subtotal with margin (PROTECTED) */}
+              <div className="flex items-center justify-between py-2 bg-muted/30 px-3 rounded-lg">
+                <span className="font-medium">Subtotal Protegido (Base + Margen)</span>
+                <span className="font-mono font-medium text-lg">${calculation.subtotalWithMargin.toFixed(2)}</span>
+              </div>
+
               <Separator />
 
-              {/* Logistics breakdown */}
+              {/* Logistics breakdown - ADDED AFTER MARGIN */}
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                   <Truck className="h-4 w-4" />
-                  Desglose Logístico
+                  Desglose Logístico (sumado después del margen)
                   {selectedRoute && (
                     <Badge variant="outline" className="ml-2">
                       {selectedRoute.isDirect ? 'Directa' : `Vía ${selectedRoute.hubName}`}
@@ -469,19 +530,10 @@ export function B2BPriceCalculator({
 
               <Separator />
 
-              {/* Subtotal */}
-              <div className="flex items-center justify-between py-2 bg-muted/30 px-3 rounded-lg">
-                <span className="font-medium">Subtotal (Costo Aterrizado)</span>
+              {/* Subtotal - Landed cost */}
+              <div className="flex items-center justify-between py-2 bg-muted/50 px-3 rounded-lg">
+                <span className="font-medium">Total Costos Aterrizados</span>
                 <span className="font-mono font-medium text-lg">${calculation.subtotal.toFixed(2)}</span>
-              </div>
-
-              {/* Profit margin */}
-              <div className="flex items-center justify-between py-2">
-                <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4 text-green-500" />
-                  <span>Margen de Ganancia ({calculation.marginPercent}%)</span>
-                </div>
-                <span className="font-mono text-green-600">+${calculation.marginValue.toFixed(2)}</span>
               </div>
 
               <Separator className="border-2" />
@@ -490,7 +542,7 @@ export function B2BPriceCalculator({
               <div className="flex items-center justify-between py-3 bg-primary/10 px-4 rounded-lg">
                 <div>
                   <span className="font-bold text-lg">PRECIO B2B FINAL</span>
-                  <p className="text-xs text-muted-foreground">Precio que paga el vendedor</p>
+                  <p className="text-xs text-muted-foreground">Precio que paga el Inversionista/Seller</p>
                 </div>
                 <span className="font-mono font-bold text-2xl text-primary">
                   ${calculation.b2bPrice.toFixed(2)}
