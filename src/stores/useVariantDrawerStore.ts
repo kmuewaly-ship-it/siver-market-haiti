@@ -12,6 +12,8 @@ export interface VariantDrawerProduct {
   stock?: number;
   source_product_id?: string;
   description?: string;
+  categoryId?: string;
+  weight?: number;
 }
 
 type State = {
