@@ -803,8 +803,14 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                   </AccordionItem>
                 </Accordion>
 
-                <Card className="bg-muted/30">
-                  <CardContent className="pt-4">
+                <Card className="bg-muted/30 border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4 text-primary" />
+                      Configuración Obligatoria
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-2">
                     <div className="grid grid-cols-3 gap-4">
                       <div className="space-y-2">
                         <Label className="text-sm font-medium">Categoría por defecto</Label>
@@ -820,25 +826,41 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
                         </Select>
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium">País de Origen</Label>
+                        <Label className="text-sm font-medium flex items-center gap-1">
+                          País de Origen
+                          <span className="text-destructive">*</span>
+                        </Label>
                         <Select value={defaultOriginId} onValueChange={setDefaultOriginId}>
-                          <SelectTrigger><SelectValue placeholder="Seleccionar origen" /></SelectTrigger>
+                          <SelectTrigger className={cn(!defaultOriginId && "border-destructive/50")}>
+                            <SelectValue placeholder="Seleccionar origen" />
+                          </SelectTrigger>
                           <SelectContent>
                             {shippingOrigins.map((o) => <SelectItem key={o.id} value={o.id}>{o.name} ({o.code})</SelectItem>)}
                           </SelectContent>
                         </Select>
+                        {!defaultOriginId && (
+                          <p className="text-xs text-destructive">Requerido</p>
+                        )}
                       </div>
                     </div>
                     
-                    {/* Market Selector */}
+                    {/* Market Selector - Required */}
                     <div className="mt-4">
                       <MarketSelector
                         selectedMarketIds={selectedMarketIds}
                         onSelectionChange={setSelectedMarketIds}
                         compact
-                        title="Mercados de Destino"
-                        description="Asigna los productos a mercados específicos"
+                        title={
+                          <span className="flex items-center gap-1">
+                            Mercados de Destino
+                            <span className="text-destructive">*</span>
+                          </span>
+                        }
+                        description="Asigna los productos a mercados específicos (obligatorio)"
                       />
+                      {selectedMarketIds.length === 0 && (
+                        <p className="text-xs text-destructive mt-1">Debes seleccionar al menos un mercado</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -1312,7 +1334,10 @@ const SmartBulkImportDialog = ({ open, onOpenChange }: SmartBulkImportDialogProp
             </Button>
             
             {step === 'mapping' && (
-              <Button onClick={() => setStep('attributes')}>
+              <Button 
+                onClick={() => setStep('attributes')}
+                disabled={!defaultOriginId || selectedMarketIds.length === 0}
+              >
                 Siguiente: Atributos <ArrowRight className="h-4 w-4 ml-2" />
               </Button>
             )}
