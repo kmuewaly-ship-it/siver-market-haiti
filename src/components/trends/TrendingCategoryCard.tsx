@@ -3,6 +3,7 @@ import { Sparkles, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
+import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 
 interface CategoryProduct {
   id: string;
@@ -10,6 +11,8 @@ interface CategoryProduct {
   nombre: string;
   imagen: string | null;
   precio: number;
+  precio_mayorista: number;
+  categoria_id: string | null;
 }
 
 interface TrendingCategoryCardProps {
@@ -28,6 +31,20 @@ const TrendingCategoryCard = ({ category }: TrendingCategoryCardProps) => {
   const navigate = useNavigate();
   const { user, role } = useAuth();
   const isB2B = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
+  const { calculateProductPrice } = useB2BPriceCalculator();
+
+  // Calculate display price based on user type
+  const getDisplayPrice = (product: CategoryProduct): number => {
+    if (isB2B && product.precio_mayorista > 0) {
+      return calculateProductPrice({
+        id: product.id,
+        factoryCost: product.precio_mayorista,
+        categoryId: product.categoria_id || undefined,
+        weight: 0.5,
+      }).finalB2BPrice;
+    }
+    return product.precio;
+  };
 
   const handleProductClick = (product: CategoryProduct) => {
     if (isB2B) {
@@ -128,7 +145,7 @@ const TrendingCategoryCard = ({ category }: TrendingCategoryCardProps) => {
             {/* Price in orange */}
             <p className="text-orange-500 font-bold text-sm mt-1.5">
               <span className="text-orange-500/70 text-xs">$</span>
-              <span className="text-orange-500">{product.precio.toFixed(2)}</span>
+              <span className="text-orange-500">{getDisplayPrice(product).toFixed(2)}</span>
             </p>
           </div>
         ))}
