@@ -9,6 +9,7 @@ import { useAddresses, Address } from '@/hooks/useAddresses';
 import { usePickupPoints } from '@/hooks/usePickupPoints';
 import { useCompleteB2BCart } from '@/hooks/useBuyerOrders';
 import { useLogisticsEngine } from '@/hooks/useLogisticsEngine';
+import { useB2BCartLogistics } from '@/hooks/useB2BCartLogistics';
 import { validateB2BCheckout, getFieldError, hasFieldError, type CheckoutValidationError } from '@/services/checkoutValidation';
 import { useApplyDiscount, AppliedDiscount } from '@/hooks/useApplyDiscount';
 import { useAdminPaymentMethods } from '@/hooks/usePaymentMethods';
@@ -48,6 +49,7 @@ import {
   X,
   User,
   Edit2,
+  Clock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -104,8 +106,11 @@ const SellerCheckout = () => {
   const [showPickupModal, setShowPickupModal] = useState(false);
   const [expandedPickupId, setExpandedPickupId] = useState<string | null>(null);
   
-  // Calcular totales desde items de BD
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0);
+  // Calculate logistics and correct B2B pricing using the pricing engine
+  const cartLogistics = useB2BCartLogistics(items, 'HT');
+  
+  // Use logistics-calculated totals instead of raw DB values
+  const subtotal = cartLogistics.totalFinalPrice || items.reduce((sum, item) => sum + item.subtotal, 0);
   const totalQuantity = items.reduce((sum, item) => sum + item.cantidad, 0);
   const discountAmount = appliedDiscount?.discountAmount || 0;
   
@@ -741,47 +746,77 @@ const SellerCheckout = () => {
                 <h2 className="text-xl font-bold mb-3">
                   Productos ({items.length})
                 </h2>
+                
+                {/* Delivery Estimate Banner */}
+                {cartLogistics.estimatedDeliveryDays && (
+                  <div className="flex items-center gap-2 mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Clock className="h-4 w-4 text-amber-600" />
+                    <span className="text-sm text-amber-700">
+                      <span className="font-medium">Entrega estimada:</span>{' '}
+                      {cartLogistics.estimatedDeliveryDays.min === cartLogistics.estimatedDeliveryDays.max 
+                        ? `${cartLogistics.estimatedDeliveryDays.min} días`
+                        : `${cartLogistics.estimatedDeliveryDays.min}-${cartLogistics.estimatedDeliveryDays.max} días`}
+                    </span>
+                  </div>
+                )}
+                
                 <div className={`space-y-3 ${items.length > 4 ? 'max-h-[340px] overflow-y-auto pr-2' : ''}`}>
-                  {items.map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex gap-4 pb-4 border-b last:border-b-0"
-                    >
-                      <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {item.image ? (
-                          <img 
-                            src={item.image} 
-                            alt={item.name}
-                            className="w-full h-full object-cover"
-                          />
-                        ) : (
-                          <ShoppingBag className="h-6 w-6 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <p className="font-semibold line-clamp-1">{item.name}</p>
-                        {/* Variant badges */}
-                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                          {item.color && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
-                              {item.color}
-                            </span>
-                          )}
-                          {item.size && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
-                              {item.size}
-                            </span>
+                  {items.map((item) => {
+                    // Get logistics info for this item
+                    const itemLogistics = cartLogistics.itemsLogistics.get(item.id);
+                    const itemPrice = itemLogistics?.finalTotalPrice || item.subtotal;
+                    const itemUnitPrice = itemLogistics?.finalUnitPrice || item.precioB2B;
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        className="flex gap-4 pb-4 border-b last:border-b-0"
+                      >
+                        <div className="w-16 h-16 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {item.image ? (
+                            <img 
+                              src={item.image} 
+                              alt={item.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <ShoppingBag className="h-6 w-6 text-muted-foreground" />
                           )}
                         </div>
-                        <div className="flex items-center justify-between text-sm mt-1">
-                          <span className="text-muted-foreground">Cant: {item.cantidad}</span>
-                          <span className="font-semibold text-primary">
-                            ${item.subtotal.toFixed(2)}
-                          </span>
+                        <div className="flex-1">
+                          <p className="font-semibold line-clamp-1">{item.name}</p>
+                          {/* Variant badges */}
+                          <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                            {item.color && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                                {item.color}
+                              </span>
+                            )}
+                            {item.size && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                {item.size}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center justify-between text-sm mt-1">
+                            <span className="text-muted-foreground">Cant: {item.cantidad}</span>
+                            <span className="font-semibold text-primary">
+                              ${itemPrice.toFixed(2)}
+                            </span>
+                          </div>
+                          {/* Show logistics cost if available */}
+                          {itemLogistics && itemLogistics.logisticsCost > 0 && (
+                            <div className="flex items-center gap-1 mt-0.5">
+                              <Truck className="h-3 w-3 text-blue-500" />
+                              <span className="text-[10px] text-blue-600">
+                                +${(itemLogistics.logisticsCost * item.cantidad).toFixed(2)} envío
+                              </span>
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </Card>
 
@@ -1026,38 +1061,56 @@ const SellerCheckout = () => {
 
                 {/* Items List with Images - Max 2 visible with scroll */}
                 <div className="space-y-2 max-h-[140px] overflow-y-auto mb-3 pb-3 border-b pr-1">
-                  {items.map((item) => (
-                    <div key={item.id} className="flex gap-3 pb-3 border-b last:border-b-0">
-                      <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {item.image ? (
-                          <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                        ) : (
-                          <ShoppingBag className="h-5 w-5 text-muted-foreground" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm line-clamp-1">{item.name}</p>
-                        {/* Variant badges instead of SKU */}
-                        <div className="flex items-center gap-1 flex-wrap mt-0.5">
-                          {item.color && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
-                              {item.color}
-                            </span>
-                          )}
-                          {item.size && (
-                            <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
-                              {item.size}
-                            </span>
+                  {items.map((item) => {
+                    const itemLogistics = cartLogistics.itemsLogistics.get(item.id);
+                    const itemPrice = itemLogistics?.finalTotalPrice || item.subtotal;
+                    
+                    return (
+                      <div key={item.id} className="flex gap-3 pb-3 border-b last:border-b-0">
+                        <div className="w-14 h-14 bg-muted rounded-lg flex items-center justify-center overflow-hidden flex-shrink-0">
+                          {item.image ? (
+                            <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                          ) : (
+                            <ShoppingBag className="h-5 w-5 text-muted-foreground" />
                           )}
                         </div>
-                        <div className="flex justify-between items-center mt-1">
-                          <span className="text-xs text-muted-foreground">Cant: {item.cantidad}</span>
-                          <span className="text-sm font-semibold">${item.subtotal.toFixed(2)}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm line-clamp-1">{item.name}</p>
+                          {/* Variant badges instead of SKU */}
+                          <div className="flex items-center gap-1 flex-wrap mt-0.5">
+                            {item.color && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-gray-100 text-gray-700">
+                                {item.color}
+                              </span>
+                            )}
+                            {item.size && (
+                              <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-blue-100 text-blue-700">
+                                {item.size}
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex justify-between items-center mt-1">
+                            <span className="text-xs text-muted-foreground">Cant: {item.cantidad}</span>
+                            <span className="text-sm font-semibold">${itemPrice.toFixed(2)}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
+
+                {/* Delivery Estimate in Summary */}
+                {cartLogistics.estimatedDeliveryDays && (
+                  <div className="flex items-center gap-2 mb-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
+                    <Clock className="h-4 w-4 text-amber-600 flex-shrink-0" />
+                    <span className="text-xs text-amber-700">
+                      <span className="font-medium">Entrega:</span>{' '}
+                      {cartLogistics.estimatedDeliveryDays.min === cartLogistics.estimatedDeliveryDays.max 
+                        ? `${cartLogistics.estimatedDeliveryDays.min} días`
+                        : `${cartLogistics.estimatedDeliveryDays.min}-${cartLogistics.estimatedDeliveryDays.max} días`}
+                    </span>
+                  </div>
+                )}
 
                 <div className="space-y-2 mb-4 pb-4 border-b">
                   <div className="flex justify-between text-muted-foreground">
