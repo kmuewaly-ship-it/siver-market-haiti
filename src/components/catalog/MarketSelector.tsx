@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, ReactNode } from 'react';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -12,7 +12,7 @@ interface MarketSelectorProps {
   onSelectionChange: (marketIds: string[]) => void;
   disabled?: boolean;
   showCard?: boolean;
-  title?: string;
+  title?: ReactNode;
   description?: string;
   compact?: boolean;
 }
