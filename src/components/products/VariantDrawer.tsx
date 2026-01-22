@@ -7,10 +7,11 @@ import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/auth';
 import { addItemB2C, addItemB2B } from '@/services/cartService';
 import { useToast } from '@/hooks/use-toast';
-import { supabase } from '@/integrations/supabase/client';
-import { X, TrendingUp, ImageIcon, Info } from 'lucide-react';
+
+import { X, TrendingUp, ImageIcon, Info, Truck, Clock } from 'lucide-react';
 import { useB2BCartProductTotals } from '@/hooks/useB2BCartProductTotals';
 import { useProductVariants } from '@/hooks/useProductVariants';
+import { useB2BProductPrice } from '@/hooks/useB2BProductPrice';
 
 const VariantDrawer: React.FC = () => {
   const isMobile = useIsMobile();
@@ -30,6 +31,15 @@ const VariantDrawer: React.FC = () => {
   
   // Fetch product variants to get attribute_combination for each variant
   const { data: productVariants } = useProductVariants(product?.source_product_id || product?.id);
+  
+  // Get calculated B2B price from pricing engine (factory + margin + logistics)
+  const b2bPriceInfo = useB2BProductPrice(
+    isB2BUser && product ? {
+      factoryCost: product.costB2B || product.price || 0,
+      categoryId: product.categoryId,
+      weight: product.weight || 0.5,
+    } : null
+  );
 
   // Prevent body scroll when drawer open
   useEffect(() => {
@@ -53,18 +63,21 @@ const VariantDrawer: React.FC = () => {
   // Get the current display image (variant image or product image)
   const displayImage = variantImage || product?.images?.[0] || '/placeholder.svg';
 
-  // Business calculator for B2B users
+  // Business calculator for B2B users - USE PRICING ENGINE
   const businessSummary = useMemo(() => {
     if (!isB2BUser || !product || totalQty === 0) return null;
-    const costB2B = product.costB2B || 0;
-    const pvp = product.pvp || product.price || 0;
+    // Use calculated B2B price from engine (includes margin + logistics)
+    const costB2B = b2bPriceInfo?.calculatedPrice || product.costB2B || 0;
+    const pvp = b2bPriceInfo?.suggestedPVP || product.pvp || product.price || 0;
     const investment = costB2B * totalQty;
     const estimatedRevenue = pvp * totalQty;
     const estimatedProfit = estimatedRevenue - investment;
     const profitPercentage = costB2B > 0 ? ((pvp - costB2B) / costB2B * 100).toFixed(1) : '0.0';
     const profitPerUnit = pvp - costB2B;
-    return { investment, estimatedRevenue, estimatedProfit, profitPercentage, profitPerUnit };
-  }, [isB2BUser, product, totalQty]);
+    const logisticsCost = b2bPriceInfo?.logisticsCost || 0;
+    const estimatedDays = b2bPriceInfo?.estimatedDays || { min: 10, max: 20 };
+    return { investment, estimatedRevenue, estimatedProfit, profitPercentage, profitPerUnit, logisticsCost, estimatedDays };
+  }, [isB2BUser, product, totalQty, b2bPriceInfo]);
 
   // Calculate product-level MOQ validation (cart + new selection)
   const productId = product?.source_product_id || product?.id || '';
@@ -109,12 +122,14 @@ const VariantDrawer: React.FC = () => {
         const itemName = variantLabel ? `${product.nombre} - ${variantLabel}` : product.nombre;
 
         if (isB2BUser) {
+          // Use calculated price from pricing engine
+          const unitPrice = b2bPriceInfo?.calculatedPrice || matchedVariant?.price || product.costB2B || product.price || 0;
           await addItemB2B({
             userId: user.id,
             productId: product.source_product_id || product.id,
             sku: matchedVariant?.sku || product.sku || product.id,
             name: itemName,
-            priceB2B: matchedVariant?.price ?? product.costB2B ?? product.price ?? 0,
+            priceB2B: unitPrice,
             quantity: qty,
             image: variantImage || matchedVariant?.images?.[0] || product.images?.[0] || undefined,
             variant: {
@@ -145,12 +160,14 @@ const VariantDrawer: React.FC = () => {
     } else if (totalQty > 0) {
       // No variant selections, fallback to single add
       if (isB2BUser) {
+        // Use calculated price from pricing engine
+        const unitPrice = b2bPriceInfo?.calculatedPrice || product.costB2B || product.price || 0;
         await addItemB2B({
           userId: user.id,
           productId: product.source_product_id || product.id,
           sku: product.sku || product.id,
           name: product.nombre,
-          priceB2B: product.costB2B ?? product.price ?? 0,
+          priceB2B: unitPrice,
           quantity: totalQty,
           image: product.images?.[0] || undefined,
         });
@@ -174,8 +191,11 @@ const VariantDrawer: React.FC = () => {
 
   if (!isOpen || !product) return null;
 
-  const displayPrice = isB2BUser ? (product.costB2B || 0) : (product.price || 0);
-  const pvpPrice = product.pvp || product.price || 0;
+  // Use calculated B2B price from engine for display
+  const displayPrice = isB2BUser 
+    ? (b2bPriceInfo?.calculatedPrice || product.costB2B || 0) 
+    : (product.price || 0);
+  const pvpPrice = b2bPriceInfo?.suggestedPVP || product.pvp || product.price || 0;
 
   // Render NOTHING on mobile - only desktop
   if (isMobile) return null;
@@ -263,6 +283,26 @@ const VariantDrawer: React.FC = () => {
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Inversión:</span>
                   <span className="font-bold text-foreground">${businessSummary.investment.toFixed(2)}</span>
+                </div>
+                {/* Logistics included indicator */}
+                {businessSummary.logisticsCost > 0 && (
+                  <div className="flex justify-between text-blue-600">
+                    <span className="flex items-center gap-1">
+                      <Truck className="w-3 h-3" />
+                      Envío incluido:
+                    </span>
+                    <span className="font-medium">+${(businessSummary.logisticsCost * totalQty).toFixed(2)}</span>
+                  </div>
+                )}
+                {/* Delivery time */}
+                <div className="flex justify-between text-amber-600">
+                  <span className="flex items-center gap-1">
+                    <Clock className="w-3 h-3" />
+                    Entrega:
+                  </span>
+                  <span className="font-medium">
+                    {businessSummary.estimatedDays.min}-{businessSummary.estimatedDays.max} días
+                  </span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Venta (PVP):</span>

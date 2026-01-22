@@ -401,7 +401,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
               productId: product.id || product.source_product_id,
               sku: product.sku,
               name: `${product.name} - ${variant.label}`,
-              priceB2B: variant.precio || priceB2B,
+              // Use calculated B2B price from pricing engine
+              priceB2B: priceB2B,
               quantity: sel.quantity,
               image: product.image,
               variant: {
@@ -418,9 +419,10 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
                 productId: product.id || product.source_product_id,
                 sku: product.sku,
                 nombre: `${product.name} - ${variant.label}`,
-                precio_b2b: variant.precio || priceB2B,
+                // Use calculated B2B price from pricing engine
+                precio_b2b: priceB2B,
                 cantidad: sel.quantity,
-                subtotal: (variant.precio || priceB2B) * sel.quantity,
+                subtotal: priceB2B * sel.quantity,
                 imagen_principal: product.image || null,
                 moq: product.moq || 1,
                 stock_fisico: product.stock || 100,
@@ -520,7 +522,8 @@ export const ProductBottomSheet = ({ product, isOpen, onClose, selectedVariation
         const finalName = variantLabel 
           ? `${product.name} - ${variantLabel}` 
           : product.name;
-        const finalPrice = selectedVariant?.price ?? variantPrice;
+        // Use calculated B2B price from pricing engine for B2B users
+        const finalPrice = isSeller ? priceB2B : (selectedVariant?.price ?? product.price ?? 0);
         const finalImage = variantImage || product.image;
         
         if (isSeller) {
