@@ -6,6 +6,8 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { ProductBottomSheet } from "@/components/products/ProductBottomSheet";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useAuth } from '@/hooks/useAuth';
+import { UserRole } from '@/types/auth';
 
 interface ProductCardB2BProps {
   product: ProductB2BCard;
@@ -15,6 +17,8 @@ interface ProductCardB2BProps {
 }
 
 const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "50312345678" }: ProductCardB2BProps) => {
+  const { role } = useAuth();
+  const isAdmin = role === UserRole.ADMIN;
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   const isOutOfStock = product.stock_fisico === 0;
@@ -237,8 +241,8 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
           )}
         </div>
 
-        {/* Factory Cost Breakdown (optional - only on hover/expanded view) */}
-        {product.factory_cost && product.margin_percent && (
+        {/* Factory Cost Breakdown - ADMIN ONLY */}
+        {isAdmin && product.factory_cost && product.margin_percent && (
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
