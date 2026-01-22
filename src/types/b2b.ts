@@ -81,6 +81,16 @@ export interface AttributeDefinition {
   values: string[];
 }
 
+// Logistics info for B2B products
+export interface B2BLogisticsInfo {
+  routeId: string | null;
+  routeName: string;
+  logisticsCost: number;
+  estimatedDays: { min: number; max: number };
+  originCountry: string;
+  destinationCountry: string;
+}
+
 export interface ProductB2BCard {
   id: string;
   sku: string;
@@ -113,6 +123,18 @@ export interface ProductB2BCard {
   num_b2c_sellers?: number; // Number of sellers in B2C with this product
   profit_amount?: number; // PVP - Costo B2B
   roi_percent?: number; // ROI percentage
+  
+  // B2B Price Engine fields
+  factory_cost?: number; // Costo de fábrica (base)
+  margin_percent?: number; // Porcentaje de margen aplicado
+  margin_value?: number; // Valor del margen en USD
+  subtotal_with_margin?: number; // Costo + Margen (antes de logística)
+  
+  // Logistics fields
+  logistics?: B2BLogisticsInfo | null;
+  logistics_cost?: number; // Costo de envío
+  category_fees?: number; // Tarifas de categoría
+  estimated_delivery_days?: { min: number; max: number }; // Tiempo estimado de entrega
 }
 
 export interface CartItemB2B {

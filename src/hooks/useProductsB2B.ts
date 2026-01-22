@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ProductB2BCard, B2BFilters, ProductVariantInfo, AttributeCombination, ProductVariantEAV } from "@/types/b2b";
+import { ProductB2BCard, B2BFilters, ProductVariantInfo, AttributeCombination, ProductVariantEAV, B2BLogisticsInfo } from "@/types/b2b";
+import { useB2BMarginRanges, B2BMarginRange } from "./useB2BMarginRanges";
 
 /**
  * Extract unique attribute options from variants' attribute_combination
@@ -50,9 +51,27 @@ const getAttributeDisplayName = (type: string): string => {
   return names[type.toLowerCase()] || type.charAt(0).toUpperCase() + type.slice(1);
 };
 
-export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
+/**
+ * Find applicable margin range for a cost
+ */
+const findMarginForCost = (baseCost: number, ranges: B2BMarginRange[]): { percent: number; range: B2BMarginRange | null } => {
+  if (!ranges || ranges.length === 0) return { percent: 30, range: null };
+  
+  const range = ranges.find(r => {
+    const minOk = baseCost >= r.min_cost;
+    const maxOk = r.max_cost === null || baseCost < r.max_cost;
+    return minOk && maxOk && r.is_active;
+  });
+  
+  return { percent: range?.margin_percent ?? 30, range: range || null };
+};
+
+export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24, destinationCountryCode?: string) => {
+  const { useActiveMarginRanges } = useB2BMarginRanges();
+  const { data: marginRanges = [] } = useActiveMarginRanges();
+
   return useQuery({
-    queryKey: ["products-b2b-eav", filters, page, limit],
+    queryKey: ["products-b2b-eav", filters, page, limit, marginRanges.length],
     staleTime: 1000 * 60 * 5, // 5 minutes cache
     refetchOnMount: true, // Always refetch when component mounts
     queryFn: async () => {
@@ -105,8 +124,8 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
       // Fetch all variants for parent products with attribute_combination
       const productIds = parentProducts.map(p => p.id);
       
-      // Parallel fetch: variants AND B2C market prices
-      const [variantsResult, marketPricesResult] = await Promise.all([
+      // Parallel fetch: variants, B2C market prices, routes, category rates, destinations
+      const [variantsResult, marketPricesResult, routesResult, logisticsCostsResult, categoryRatesResult, destinationsResult] = await Promise.all([
         supabase
           .from("product_variants")
           .select("id, product_id, sku, name, option_type, option_value, price, stock, moq, attribute_combination, is_active")
@@ -115,12 +134,68 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
         supabase
           .from("b2c_max_prices")
           .select("source_product_id, max_b2c_price, num_sellers, min_b2c_price")
-          .in("source_product_id", productIds)
+          .in("source_product_id", productIds),
+        supabase
+          .from("shipping_routes")
+          .select(`*, destination_country:destination_countries(*), transit_hub:transit_hubs(*)`)
+          .eq("is_active", true),
+        supabase
+          .from("route_logistics_costs")
+          .select("*")
+          .eq("is_active", true),
+        supabase
+          .from("category_shipping_rates")
+          .select("*")
+          .eq("is_active", true),
+        supabase
+          .from("destination_countries")
+          .select("*")
+          .eq("is_active", true)
       ]);
 
       if (variantsResult.error) {
         console.error("Error fetching variants:", variantsResult.error);
       }
+
+      // Determine destination (default to Haiti if not specified)
+      const destCode = destinationCountryCode || 'HT';
+      const destination = (destinationsResult.data || []).find(d => d.code === destCode) || destinationsResult.data?.[0];
+
+      // Find route for destination
+      const route = (routesResult.data || []).find(r => 
+        r.destination_country?.code?.toUpperCase() === destCode.toUpperCase()
+      );
+
+      // Calculate logistics cost from route segments
+      const routeLogistics = route ? (logisticsCostsResult.data || []).filter(c => c.shipping_route_id === route.id) : [];
+      
+      const calculateLogisticsCost = (weight: number = 0.5): { cost: number; days: { min: number; max: number } } => {
+        if (!routeLogistics.length) return { cost: 0, days: { min: 0, max: 0 } };
+        
+        let totalCost = 0;
+        let totalDaysMin = 0;
+        let totalDaysMax = 0;
+        
+        routeLogistics.forEach(segment => {
+          const segmentCost = Math.max((segment.cost_per_kg || 0) * weight, segment.min_cost || 0);
+          totalCost += segmentCost;
+          totalDaysMin += segment.estimated_days_min || 0;
+          totalDaysMax += segment.estimated_days_max || 0;
+        });
+        
+        return { 
+          cost: Math.round(totalCost * 100) / 100, 
+          days: { min: totalDaysMin, max: totalDaysMax } 
+        };
+      };
+
+      // Get category fees
+      const getCategoryFees = (categoryId: string | null, baseCost: number): number => {
+        if (!categoryId) return 0;
+        const rate = (categoryRatesResult.data || []).find(r => r.category_id === categoryId);
+        if (!rate) return 0;
+        return Math.round(((rate.fixed_fee || 0) + (baseCost * (rate.percentage_fee || 0) / 100)) * 100) / 100;
+      };
 
       // Create B2C market price lookup map
       const marketPriceMap = new Map<string, { max_b2c_price: number; num_sellers: number; min_b2c_price: number }>();
@@ -156,7 +231,7 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
       // Apply pagination
       const paginatedProducts = parentProducts.slice(page * limit, (page + 1) * limit);
 
-      // Map to B2B card format with EAV data AND market reference
+      // Map to B2B card format with EAV data, market reference AND price engine
       const products: ProductB2BCard[] = paginatedProducts.map((p) => {
         const variants = variantsByProduct.get(p.id) || [];
         
@@ -166,13 +241,28 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
         
         // Calculate aggregates
         const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
-        const prices = variants.map(v => v.price).filter(price => price > 0);
-        const minPrice = prices.length > 0 ? Math.min(...prices) : p.precio_mayorista || 0;
-        const maxPrice = prices.length > 0 ? Math.max(...prices) : minPrice;
+        const variantPrices = variants.map(v => v.price).filter(price => price > 0);
+        const minVariantPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+        const maxVariantPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : 0;
         
-        const precioMayorista = minPrice || p.precio_mayorista || 0;
-        const precioSugerido = p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
+        // FACTORY COST = precio_mayorista (costo de fábrica/costo base)
+        const factoryCost = p.precio_mayorista || minVariantPrice || 0;
         const imagen = p.imagen_principal || "/placeholder.svg";
+        
+        // Apply B2B Price Engine with Protection Rule
+        const { percent: marginPercent, range: marginRange } = findMarginForCost(factoryCost, marginRanges);
+        const marginValue = Math.round((factoryCost * marginPercent / 100) * 100) / 100;
+        const subtotalWithMargin = Math.round((factoryCost + marginValue) * 100) / 100;
+        
+        // Calculate logistics (assuming avg weight 0.5kg per unit)
+        const logisticsInfo = calculateLogisticsCost(0.5);
+        const logisticsCost = logisticsInfo.cost;
+        
+        // Get category fees
+        const categoryFees = getCategoryFees(p.categoria_id, factoryCost);
+        
+        // FINAL B2B PRICE = Subtotal with margin + Logistics + Category fees
+        const finalB2BPrice = Math.round((subtotalWithMargin + logisticsCost + categoryFees) * 100) / 100;
         
         // Convert to ProductVariantInfo format
         const variantInfos: ProductVariantInfo[] = variants.map(v => ({
@@ -190,21 +280,42 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
         const marketData = marketPriceMap.get(p.id);
         const isMarketSynced = !!marketData?.max_b2c_price;
         
-        // Calculate PVP: Priority = Market > Admin > Calculated (30% margin)
-        const pvpReference = marketData?.max_b2c_price || p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
+        // Calculate PVP: Priority = Market > Admin > Calculated (30% margin over B2B price)
+        const pvpReference = marketData?.max_b2c_price || p.precio_sugerido_venta || Math.round(finalB2BPrice * 1.3 * 100) / 100;
         const pvpSource = marketData?.max_b2c_price ? 'market' : (p.precio_sugerido_venta ? 'admin' : 'calculated');
         
-        // Calculate profit metrics
-        const profitAmount = pvpReference - precioMayorista;
-        const roiPercent = precioMayorista > 0 ? Math.round((profitAmount / precioMayorista) * 100 * 10) / 10 : 0;
+        // Calculate profit metrics (based on final B2B price)
+        const profitAmount = Math.round((pvpReference - finalB2BPrice) * 100) / 100;
+        const roiPercent = finalB2BPrice > 0 ? Math.round((profitAmount / finalB2BPrice) * 100 * 10) / 10 : 0;
+
+        // Build logistics info object
+        const logistics: B2BLogisticsInfo | null = route ? {
+          routeId: route.id,
+          routeName: route.is_direct 
+            ? `China → ${route.destination_country?.name || 'Destino'}`
+            : `China → ${route.transit_hub?.name || 'Hub'} → ${route.destination_country?.name || 'Destino'}`,
+          logisticsCost,
+          estimatedDays: logisticsInfo.days,
+          originCountry: 'China',
+          destinationCountry: route.destination_country?.name || destination?.name || 'Destino',
+        } : null;
 
         return {
           id: p.id,
           sku: p.sku_interno,
           nombre: p.nombre,
-          precio_b2b: precioMayorista,
-          precio_b2b_max: maxPrice !== minPrice ? maxPrice : undefined,
-          precio_sugerido: pvpReference, // Now using market reference
+          
+          // B2B Price Engine fields
+          factory_cost: factoryCost,
+          margin_percent: marginPercent,
+          margin_value: marginValue,
+          subtotal_with_margin: subtotalWithMargin,
+          
+          // Final B2B price (includes margin + logistics + fees)
+          precio_b2b: finalB2BPrice,
+          precio_b2b_max: maxVariantPrice > minVariantPrice ? Math.round((maxVariantPrice * (1 + marginPercent/100) + logisticsCost + categoryFees) * 100) / 100 : undefined,
+          
+          precio_sugerido: pvpReference,
           moq: p.moq || 1,
           stock_fisico: totalStock > 0 ? totalStock : p.stock_fisico || 0,
           imagen_principal: imagen,
@@ -214,10 +325,12 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           variant_ids: variants.map(v => v.id),
           variants: variantInfos,
           source_product_id: p.id,
+          
           // EAV-specific fields
           variant_type: attributeTypes[0] || 'unknown',
           variant_types: attributeTypes,
           has_grouped_variants: variants.length > 1,
+          
           // Market reference fields
           pvp_reference: pvpReference,
           pvp_source: pvpSource as 'market' | 'admin' | 'calculated',
@@ -225,6 +338,13 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
           num_b2c_sellers: marketData?.num_sellers || 0,
           profit_amount: profitAmount,
           roi_percent: roiPercent,
+          
+          // Logistics fields
+          logistics,
+          logistics_cost: logisticsCost,
+          category_fees: categoryFees,
+          estimated_delivery_days: logisticsInfo.days,
+          
           // Store raw attribute options for the selector to use
           variants_by_type: Object.fromEntries(
             attributeTypes.map(type => [
@@ -234,7 +354,7 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24) => {
                 label: value,
                 code: value.toLowerCase().replace(/\s+/g, '-'),
                 image: imagen,
-                price: minPrice,
+                price: minVariantPrice,
                 stock: variants.filter(v => v.attribute_combination[type] === value)
                   .reduce((sum, v) => sum + v.stock, 0),
                 type,

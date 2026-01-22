@@ -1,6 +1,6 @@
 import { useState, MouseEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ShoppingCart, MessageCircle, ShieldCheck, TrendingUp, Layers, ArrowUpRight } from 'lucide-react';
+import { ShoppingCart, MessageCircle, ShieldCheck, TrendingUp, ArrowUpRight, Truck, Clock, Package } from 'lucide-react';
 import { ProductB2BCard, CartItemB2B } from '@/types/b2b';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -27,6 +27,12 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
   const isMarketSynced = product.is_market_synced ?? false;
   const pvpSource = product.pvp_source ?? 'calculated';
 
+  // Logistics info
+  const hasLogistics = !!product.logistics || (product.logistics_cost !== undefined && product.logistics_cost > 0);
+  const logisticsCost = product.logistics_cost ?? product.logistics?.logisticsCost ?? 0;
+  const estimatedDays = product.estimated_delivery_days ?? product.logistics?.estimatedDays ?? { min: 0, max: 0 };
+  const hasDeliveryEstimate = estimatedDays.min > 0 || estimatedDays.max > 0;
+
   const handleAddToCart = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -46,6 +52,14 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
       return `$${product.precio_b2b.toFixed(2)} - $${product.precio_b2b_max!.toFixed(2)}`;
     }
     return `$${product.precio_b2b.toFixed(2)}`;
+  };
+
+  // Format delivery time
+  const formatDeliveryTime = () => {
+    if (estimatedDays.min === estimatedDays.max) {
+      return `${estimatedDays.min} días`;
+    }
+    return `${estimatedDays.min}-${estimatedDays.max} días`;
   };
 
   return (
@@ -169,12 +183,89 @@ const ProductCardB2B = ({ product, onAddToCart, cartItem, whatsappNumber = "5031
               </span>
             </div>
           )}
+
+          {/* Logistics & Delivery Info */}
+          {(hasLogistics || hasDeliveryEstimate) && (
+            <div className="mt-1.5 space-y-1">
+              {/* Shipping cost */}
+              {logisticsCost > 0 && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-[10px] text-blue-600 cursor-help">
+                        <Truck className="w-3 h-3" />
+                        <span>Envío: +${logisticsCost.toFixed(2)}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs max-w-[200px]">
+                      <div className="space-y-1">
+                        <p className="font-medium">Costo de logística incluido</p>
+                        {product.logistics?.routeName && (
+                          <p className="text-muted-foreground">{product.logistics.routeName}</p>
+                        )}
+                        {product.category_fees && product.category_fees > 0 && (
+                          <p className="text-muted-foreground">+ Tarifa categoría: ${product.category_fees.toFixed(2)}</p>
+                        )}
+                      </div>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+              
+              {/* Delivery time estimate */}
+              {hasDeliveryEstimate && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div className="flex items-center gap-1 text-[10px] text-amber-600 cursor-help">
+                        <Clock className="w-3 h-3" />
+                        <span>Entrega: {formatDeliveryTime()}</span>
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" className="text-xs">
+                      <p>Tiempo estimado de entrega desde origen</p>
+                      {product.logistics?.originCountry && product.logistics?.destinationCountry && (
+                        <p className="text-muted-foreground">
+                          {product.logistics.originCountry} → {product.logistics.destinationCountry}
+                        </p>
+                      )}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </div>
+          )}
         </div>
 
-        {/* Min Order & Variants Info */}
-        <div className="mt-1 text-xs">
-          {/* Flexible MOQ message - removed */}
-        </div>
+        {/* Factory Cost Breakdown (optional - only on hover/expanded view) */}
+        {product.factory_cost && product.margin_percent && (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="mt-1 flex items-center gap-1 text-[9px] text-muted-foreground cursor-help">
+                  <Package className="w-2.5 h-2.5" />
+                  <span>Fábrica: ${product.factory_cost.toFixed(2)} + {product.margin_percent}%</span>
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs max-w-[220px]">
+                <div className="space-y-1">
+                  <p className="font-medium">Desglose de precio B2B</p>
+                  <div className="text-muted-foreground space-y-0.5">
+                    <p>Costo fábrica: ${product.factory_cost.toFixed(2)}</p>
+                    <p>Margen ({product.margin_percent}%): +${product.margin_value?.toFixed(2) || '0.00'}</p>
+                    {logisticsCost > 0 && <p>Logística: +${logisticsCost.toFixed(2)}</p>}
+                    {product.category_fees && product.category_fees > 0 && (
+                      <p>Tarifa categoría: +${product.category_fees.toFixed(2)}</p>
+                    )}
+                    <p className="font-medium text-foreground pt-1 border-t">
+                      Total B2B: ${product.precio_b2b.toFixed(2)}
+                    </p>
+                  </div>
+                </div>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
 
         {/* Spacer */}
         <div className="flex-1"></div>
