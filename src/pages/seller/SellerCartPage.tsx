@@ -47,6 +47,7 @@ import { VariantBadges } from "@/components/seller/cart/VariantBadges";
 import { addItemB2B } from "@/services/cartService";
 import { useB2BCartLogistics } from "@/hooks/useB2BCartLogistics";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
@@ -54,6 +55,7 @@ const SellerCartPage = () => {
   const { items, isLoading, refetch } = useB2BCartItems();
   const { productsNotMeetingMOQ, isCartValid, productTotals } = useB2BCartProductTotals();
   const isMobile = useIsMobile();
+  const priceCalculator = useB2BPriceCalculator();
   
   // Calculate logistics for all cart items
   const cartLogistics = useB2BCartLogistics(items);
@@ -65,6 +67,18 @@ const SellerCartPage = () => {
   const [variantSelections, setVariantSelections] = useState<any[]>([]);
   const [isAddingVariant, setIsAddingVariant] = useState(false);
   const [variantImage, setVariantImage] = useState<string | null>(null);
+
+  // Calcular precio del producto seleccionado con el motor
+  const calculatedProductPrice = useMemo(() => {
+    if (!selectedProductForVariants?.costB2B) return null;
+    
+    return priceCalculator.calculateProductPrice({
+      id: selectedProductForVariants.id,
+      factoryCost: selectedProductForVariants.costB2B,
+      categoryId: selectedProductForVariants.categoryId,
+      weight: 0.5,
+    });
+  }, [selectedProductForVariants, priceCalculator]);
 
   // Prefill variant quantities in the selector with what's already in the cart
   const initialVariantQuantities = useMemo(() => {
@@ -1479,7 +1493,7 @@ const SellerCartPage = () => {
                       <div>
                         <p className="text-[10px] text-muted-foreground">Precio B2B</p>
                         <p className="font-bold" style={{ color: '#29892a' }}>
-                          ${selectedProductForVariants.costB2B?.toFixed(2) || '0.00'}
+                          ${(calculatedProductPrice?.finalB2BPrice || selectedProductForVariants.costB2B || 0).toFixed(2)}
                         </p>
                       </div>
                       {variantSelections.length > 0 && (

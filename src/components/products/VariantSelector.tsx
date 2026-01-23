@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Minus, Plus, Package, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 
 interface VariantSelection {
   variantId: string;
@@ -73,6 +74,9 @@ const VariantSelector = ({
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   const onSelectionChangeRef = useRef(onSelectionChange);
   const onVariantImageChangeRef = useRef(onVariantImageChange);
+  
+  // Motor de precios B2B
+  const priceCalculator = useB2BPriceCalculator();
   
   // Keep ref updated
   useEffect(() => {
@@ -308,11 +312,33 @@ const VariantSelector = ({
 
   // Calculate totals
   const totalQty = Object.values(selections).reduce((sum, qty) => sum + qty, 0);
-  const totalPrice = variants?.reduce((sum, v) => {
-    const qty = selections[v.id] || 0;
-    const price = v.price ?? basePrice;
-    return sum + price * qty;
-  }, 0) || 0;
+  
+  // Para B2B, usar motor de precios; para B2C, usar precio normal
+  const totalPrice = useMemo(() => {
+    if (!variants) return 0;
+    
+    return variants.reduce((sum, v) => {
+      const qty = selections[v.id] || 0;
+      if (qty === 0) return sum;
+      
+      const baseVariantPrice = v.price ?? basePrice;
+      
+      if (isB2B) {
+        // Usar motor de precios para B2B
+        const calculated = priceCalculator.calculateProductPrice({
+          id: v.id,
+          factoryCost: baseVariantPrice,
+          categoryId: undefined,
+          weight: 0.5,
+        });
+        return sum + calculated.finalB2BPrice * qty;
+      } else {
+        // Para B2C, usar precio normal o promocional
+        const price = v.precio_promocional && v.precio_promocional < baseVariantPrice ? v.precio_promocional : baseVariantPrice;
+        return sum + price * qty;
+      }
+    }, 0);
+  }, [variants, selections, isB2B, basePrice, priceCalculator]);
 
   // Get the display name for an attribute type directly from database
   const getAttributeDisplayName = useCallback((attrType: string): string => {
@@ -367,7 +393,7 @@ const VariantSelector = ({
         validationState.errors
       );
     }
-  }, [selections, totalQty, totalPrice, variants, matchingVariant, validationState]);
+  }, [selections, totalQty, totalPrice, variants, matchingVariant, validationState, isB2B]);
 
   const updateQuantity = (variantId: string, delta: number, variant: ProductVariant) => {
     setSelections((prev) => {

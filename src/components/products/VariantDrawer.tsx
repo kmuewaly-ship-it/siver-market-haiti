@@ -11,7 +11,7 @@ import { useToast } from '@/hooks/use-toast';
 import { X, TrendingUp, ImageIcon, Info, Truck, Clock } from 'lucide-react';
 import { useB2BCartProductTotals } from '@/hooks/useB2BCartProductTotals';
 import { useProductVariants } from '@/hooks/useProductVariants';
-import { useB2BProductPrice } from '@/hooks/useB2BProductPrice';
+import { useB2BPriceCalculator } from '@/hooks/useB2BPriceCalculator';
 
 const VariantDrawer: React.FC = () => {
   const isMobile = useIsMobile();
@@ -32,14 +32,21 @@ const VariantDrawer: React.FC = () => {
   // Fetch product variants to get attribute_combination for each variant
   const { data: productVariants } = useProductVariants(product?.source_product_id || product?.id);
   
-  // Get calculated B2B price from pricing engine (factory + margin + logistics)
-  const b2bPriceInfo = useB2BProductPrice(
-    isB2BUser && product ? {
-      factoryCost: product.costB2B || product.price || 0,
+  // Usar motor de precios B2B directo
+  const priceCalculator = useB2BPriceCalculator();
+  
+  // Calcular precio B2B con el motor
+  const b2bPriceInfo = useMemo(() => {
+    if (!isB2BUser || !product) return null;
+    
+    const factoryCost = product.costB2B || product.price || 0;
+    return priceCalculator.calculateProductPrice({
+      id: product.source_product_id || product.id,
+      factoryCost,
       categoryId: product.categoryId,
       weight: product.weight || 0.5,
-    } : null
-  );
+    });
+  }, [isB2BUser, product, priceCalculator]);
 
   // Prevent body scroll when drawer open
   useEffect(() => {
@@ -193,7 +200,7 @@ const VariantDrawer: React.FC = () => {
 
   // Use calculated B2B price from engine for display
   const displayPrice = isB2BUser 
-    ? (b2bPriceInfo?.calculatedPrice || product.costB2B || 0) 
+    ? (b2bPriceInfo?.finalB2BPrice || product.costB2B || 0) 
     : (product.price || 0);
   const pvpPrice = b2bPriceInfo?.suggestedPVP || product.pvp || product.price || 0;
 

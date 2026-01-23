@@ -370,6 +370,7 @@ export const useProductsB2B = (filters: B2BFilters, page = 0, limit = 24, destin
 };
 
 export const useFeaturedProductsB2B = (limit = 6) => {
+  
   return useQuery({
     queryKey: ["products-b2b-featured-eav", limit],
     staleTime: 1000 * 60 * 5,
@@ -420,13 +421,19 @@ export const useFeaturedProductsB2B = (limit = 6) => {
         const attributeTypes = Object.keys(attributeOptions);
         
         const totalStock = variants.reduce((sum, v) => sum + v.stock, 0);
-        const prices = variants.map(v => v.price).filter(price => price > 0);
-        const minPrice = prices.length > 0 ? Math.min(...prices) : p.precio_mayorista || 0;
-        const maxPrice = prices.length > 0 ? Math.max(...prices) : minPrice;
+        const variantPrices = variants.map(v => v.price).filter(price => price > 0);
+        const minVariantPrice = variantPrices.length > 0 ? Math.min(...variantPrices) : 0;
+        const maxVariantPrice = variantPrices.length > 0 ? Math.max(...variantPrices) : 0;
         
-        const precioMayorista = minPrice || p.precio_mayorista || 0;
-        const precioSugerido = p.precio_sugerido_venta || Math.round(precioMayorista * 1.3 * 100) / 100;
+        // FACTORY COST = precio_mayorista (viene precalculado del motor desde el backend)
+        const factoryCost = p.precio_mayorista || minVariantPrice || 0;
         const imagen = p.imagen_principal || "/placeholder.svg";
+        
+        // El precio B2B ya está calculado en el backend con el motor de precios
+        // Solo usamos el precio_mayorista directamente
+        const precioB2B = factoryCost > 0 ? factoryCost : 0;
+        const precioB2BMax = maxVariantPrice > minVariantPrice ? maxVariantPrice : undefined;
+        const precioSugerido = p.precio_sugerido_venta || Math.round(precioB2B * 1.3 * 100) / 100;
 
         const variantInfos: ProductVariantInfo[] = variants.map(v => ({
           id: v.id,
@@ -443,8 +450,8 @@ export const useFeaturedProductsB2B = (limit = 6) => {
           id: p.id,
           sku: p.sku_interno,
           nombre: p.nombre,
-          precio_b2b: precioMayorista,
-          precio_b2b_max: maxPrice !== minPrice ? maxPrice : undefined,
+          precio_b2b: precioB2B,
+          precio_b2b_max: precioB2BMax,
           precio_sugerido: precioSugerido,
           moq: p.moq || 1,
           stock_fisico: totalStock > 0 ? totalStock : p.stock_fisico || 0,
@@ -466,7 +473,7 @@ export const useFeaturedProductsB2B = (limit = 6) => {
                 label: value,
                 code: value.toLowerCase().replace(/\s+/g, '-'),
                 image: imagen,
-                price: minPrice,
+                price: factoryCost,
                 stock: variants.filter(v => v.attribute_combination[type] === value)
                   .reduce((sum, v) => sum + v.stock, 0),
                 type,
