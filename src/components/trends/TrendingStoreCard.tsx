@@ -29,14 +29,14 @@ const TrendingStoreCard = ({ store, onFollowChange }: TrendingStoreCardProps) =>
   const [showReviewModal, setShowReviewModal] = useState(false);
 
   // Calcular precios con el motor para los productos de la tienda
+  // Nota: TrendingStoreProduct solo tiene precio_venta, usamos ese como base
   const productsWithCalculatedPrices = useMemo(() => {
     if (!isB2B) return store.products;
     
     return store.products.map(product => {
       const calculated = priceCalculator.calculateProductPrice({
         id: product.id,
-        factoryCost: product.precio_mayorista || product.precio_venta || 0,
-        categoryId: product.categoria_id,
+        factoryCost: product.precio_venta || 0,
         weight: 0.5,
       });
       
