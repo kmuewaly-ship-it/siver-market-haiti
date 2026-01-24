@@ -74,7 +74,7 @@ const VariantDrawer: React.FC = () => {
   const businessSummary = useMemo(() => {
     if (!isB2BUser || !product || totalQty === 0) return null;
     // Use calculated B2B price from engine (includes margin + logistics)
-    const costB2B = b2bPriceInfo?.calculatedPrice || product.costB2B || 0;
+    const costB2B = b2bPriceInfo?.finalB2BPrice || product.costB2B || 0;
     const pvp = b2bPriceInfo?.suggestedPVP || product.pvp || product.price || 0;
     const investment = costB2B * totalQty;
     const estimatedRevenue = pvp * totalQty;
@@ -82,7 +82,7 @@ const VariantDrawer: React.FC = () => {
     const profitPercentage = costB2B > 0 ? ((pvp - costB2B) / costB2B * 100).toFixed(1) : '0.0';
     const profitPerUnit = pvp - costB2B;
     const logisticsCost = b2bPriceInfo?.logisticsCost || 0;
-    const estimatedDays = b2bPriceInfo?.estimatedDays || { min: 10, max: 20 };
+    const estimatedDays = b2bPriceInfo?.logistics?.estimatedDays || { min: 10, max: 20 };
     return { investment, estimatedRevenue, estimatedProfit, profitPercentage, profitPerUnit, logisticsCost, estimatedDays };
   }, [isB2BUser, product, totalQty, b2bPriceInfo]);
 
@@ -130,7 +130,7 @@ const VariantDrawer: React.FC = () => {
 
         if (isB2BUser) {
           // Use calculated price from pricing engine
-          const unitPrice = b2bPriceInfo?.calculatedPrice || matchedVariant?.price || product.costB2B || product.price || 0;
+          const unitPrice = b2bPriceInfo?.finalB2BPrice || matchedVariant?.price || product.costB2B || product.price || 0;
           await addItemB2B({
             userId: user.id,
             productId: product.source_product_id || product.id,
@@ -168,7 +168,7 @@ const VariantDrawer: React.FC = () => {
       // No variant selections, fallback to single add
       if (isB2BUser) {
         // Use calculated price from pricing engine
-        const unitPrice = b2bPriceInfo?.calculatedPrice || product.costB2B || product.price || 0;
+        const unitPrice = b2bPriceInfo?.finalB2BPrice || product.costB2B || product.price || 0;
         await addItemB2B({
           userId: user.id,
           productId: product.source_product_id || product.id,

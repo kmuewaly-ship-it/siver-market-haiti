@@ -19,12 +19,12 @@ const SellerFavoritesPage = () => {
   const priceCalculator = useB2BPriceCalculator();
 
   // Calcular precios con motor para cada favorito
+  // Nota: WishlistItem tiene price pero no category_id
   const itemsWithCalculatedPrices = useMemo(() => {
     return items.map(item => {
       const calculated = priceCalculator.calculateProductPrice({
         id: item.product_id || item.id,
         factoryCost: item.price || 0,
-        categoryId: item.category_id,
         weight: 0.5, // peso promedio
       });
       return {
