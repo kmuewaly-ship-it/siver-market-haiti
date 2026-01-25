@@ -3855,10 +3855,13 @@ export type Database = {
           dimensiones_cm: Json | null
           embedding: string | null
           galeria_imagenes: string[] | null
+          height_cm: number | null
           id: string
           imagen_principal: string | null
           is_active: boolean
+          is_oversize: boolean
           is_parent: boolean | null
+          length_cm: number | null
           moq: number
           nombre: string
           origin_country_id: string | null
@@ -3873,11 +3876,14 @@ export type Database = {
           proveedor_id: string | null
           rating: number | null
           reviews_count: number | null
+          shipping_mode: string | null
           sku_interno: string
           stock_fisico: number
           stock_status: Database["public"]["Enums"]["stock_status"]
           updated_at: string
           url_origen: string | null
+          weight_kg: number | null
+          width_cm: number | null
         }
         Insert: {
           categoria_id?: string | null
@@ -3889,10 +3895,13 @@ export type Database = {
           dimensiones_cm?: Json | null
           embedding?: string | null
           galeria_imagenes?: string[] | null
+          height_cm?: number | null
           id?: string
           imagen_principal?: string | null
           is_active?: boolean
+          is_oversize?: boolean
           is_parent?: boolean | null
+          length_cm?: number | null
           moq?: number
           nombre: string
           origin_country_id?: string | null
@@ -3907,11 +3916,14 @@ export type Database = {
           proveedor_id?: string | null
           rating?: number | null
           reviews_count?: number | null
+          shipping_mode?: string | null
           sku_interno: string
           stock_fisico?: number
           stock_status?: Database["public"]["Enums"]["stock_status"]
           updated_at?: string
           url_origen?: string | null
+          weight_kg?: number | null
+          width_cm?: number | null
         }
         Update: {
           categoria_id?: string | null
@@ -3923,10 +3935,13 @@ export type Database = {
           dimensiones_cm?: Json | null
           embedding?: string | null
           galeria_imagenes?: string[] | null
+          height_cm?: number | null
           id?: string
           imagen_principal?: string | null
           is_active?: boolean
+          is_oversize?: boolean
           is_parent?: boolean | null
+          length_cm?: number | null
           moq?: number
           nombre?: string
           origin_country_id?: string | null
@@ -3941,11 +3956,14 @@ export type Database = {
           proveedor_id?: string | null
           rating?: number | null
           reviews_count?: number | null
+          shipping_mode?: string | null
           sku_interno?: string
           stock_fisico?: number
           stock_status?: Database["public"]["Enums"]["stock_status"]
           updated_at?: string
           url_origen?: string | null
+          weight_kg?: number | null
+          width_cm?: number | null
         }
         Relationships: [
           {
@@ -7223,10 +7241,13 @@ export type Database = {
           dimensiones_cm: Json | null
           embedding: string | null
           galeria_imagenes: string[] | null
+          height_cm: number | null
           id: string
           imagen_principal: string | null
           is_active: boolean
+          is_oversize: boolean
           is_parent: boolean | null
+          length_cm: number | null
           moq: number
           nombre: string
           origin_country_id: string | null
@@ -7241,11 +7262,14 @@ export type Database = {
           proveedor_id: string | null
           rating: number | null
           reviews_count: number | null
+          shipping_mode: string | null
           sku_interno: string
           stock_fisico: number
           stock_status: Database["public"]["Enums"]["stock_status"]
           updated_at: string
           url_origen: string | null
+          weight_kg: number | null
+          width_cm: number | null
         }[]
         SetofOptions: {
           from: "*"
