@@ -7,8 +7,6 @@ export interface TrendingCategoryProduct {
   nombre: string;
   imagen: string | null;
   precio: number;
-  precio_mayorista: number;
-  categoria_id: string | null;
 }
 
 export interface TrendingCategory {
@@ -73,8 +71,6 @@ export const useTrendingCategories = (limit = 6) => {
               nombre: p.nombre,
               imagen: p.imagen_principal,
               precio: p.precio_sugerido_venta || p.precio_mayorista,
-              precio_mayorista: p.precio_mayorista,
-              categoria_id: cat.id,
             })),
           };
         })

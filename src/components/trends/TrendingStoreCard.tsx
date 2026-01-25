@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { TrendingUp, UserPlus, UserMinus, Star } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
@@ -9,7 +9,6 @@ import { useToast } from "@/hooks/use-toast";
 import type { TrendingStore } from "@/hooks/useTrendingStores";
 import { useStoreFollow } from "@/hooks/useTrendingStores";
 import StoreReviewModal from "./StoreReviewModal";
-import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 
 interface TrendingStoreCardProps {
   store: TrendingStore;
@@ -22,30 +21,10 @@ const TrendingStoreCard = ({ store, onFollowChange }: TrendingStoreCardProps) =>
   const { toast } = useToast();
   const { followStore, unfollowStore, checkIfFollowing } = useStoreFollow();
   const isB2B = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
-  const priceCalculator = useB2BPriceCalculator();
   
   const [isFollowing, setIsFollowing] = useState(false);
   const [isLoadingFollow, setIsLoadingFollow] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
-
-  // Calcular precios con el motor para los productos de la tienda
-  // Nota: TrendingStoreProduct solo tiene precio_venta, usamos ese como base
-  const productsWithCalculatedPrices = useMemo(() => {
-    if (!isB2B) return store.products;
-    
-    return store.products.map(product => {
-      const calculated = priceCalculator.calculateProductPrice({
-        id: product.id,
-        factoryCost: product.precio_venta || 0,
-        weight: 0.5,
-      });
-      
-      return {
-        ...product,
-        displayPrice: calculated.finalB2BPrice,
-      };
-    });
-  }, [store.products, isB2B, priceCalculator]);
 
   // Check if user is following this store
   useState(() => {
@@ -198,7 +177,7 @@ const TrendingStoreCard = ({ store, onFollowChange }: TrendingStoreCardProps) =>
 
         {/* Products Grid - 4 columns with gap */}
         <div className="grid grid-cols-4 gap-1 px-3">
-          {productsWithCalculatedPrices.map((product) => (
+          {store.products.map((product) => (
             <div 
               key={product.id}
               className="cursor-pointer group"
@@ -212,22 +191,18 @@ const TrendingStoreCard = ({ store, onFollowChange }: TrendingStoreCardProps) =>
                   loading="lazy"
                 />
               </div>
-              {/* ✅ Precio calculado del motor para B2B, precio_venta para B2C */}
+              {/* Price in orange like reference */}
               <p className="text-orange-500 font-bold text-sm mt-1.5">
                 <span className="text-orange-500/70 text-xs">$</span>
                 <span className="text-orange-500/70 text-[10px]">MXN</span>
-                <span className="text-orange-500">
-                  {(isB2B && 'displayPrice' in product 
-                    ? (product as any).displayPrice 
-                    : product.precio_venta).toFixed(2)}
-                </span>
+                <span className="text-orange-500">{product.precio_venta.toFixed(2)}</span>
               </p>
             </div>
           ))}
           
           {/* Fill empty slots if less than 4 products */}
-          {productsWithCalculatedPrices.length < 4 && 
-            Array.from({ length: 4 - productsWithCalculatedPrices.length }).map((_, i) => (
+          {store.products.length < 4 && 
+            Array.from({ length: 4 - store.products.length }).map((_, i) => (
               <div key={`empty-${i}`}>
                 <div className="aspect-[3/4] bg-muted/30 rounded" />
                 <div className="h-5 mt-1.5" />

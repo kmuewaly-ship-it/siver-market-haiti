@@ -245,22 +245,15 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                           </button>
                         </div>
                         
-                        {/* Price - Using engine calculated price (landed cost) */}
-                        {(() => {
-                          const itemKey = item.productId + (item.variantId || '');
-                          const itemLogistics = cartLogistics.itemsLogistics.get(itemKey);
-                          const unitPrice = itemLogistics?.finalUnitPrice || item.precio_b2b;
-                          return (
-                            <div className="flex items-center justify-between mt-1">
-                              <span className="text-xs text-gray-600">
-                                ${unitPrice.toFixed(2)} × {item.cantidad}
-                              </span>
-                              <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
-                                ${(unitPrice * item.cantidad).toFixed(2)}
-                              </span>
-                            </div>
-                          );
-                        })()}
+                        {/* Price - Using unit_price (B2B special price) */}
+                        <div className="flex items-center justify-between mt-1">
+                          <span className="text-xs text-gray-600">
+                            ${(item.unit_price ?? item.precio_b2b).toFixed(2)} × {item.cantidad}
+                          </span>
+                          <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
+                            ${((item.unit_price ?? item.precio_b2b) * item.cantidad).toFixed(2)}
+                          </span>
+                        </div>
 
                         {/* Logistics info per item */}
                         {(() => {
@@ -379,7 +372,7 @@ Me gustaría negociar condiciones para este pedido. Quedo atento.`;
                 <div className="border-t border-gray-300 pt-3 flex justify-between text-lg font-bold">
                   <span className="text-gray-900">Total Inversión:</span>
                   <span className="font-bold" style={{ color: '#071d7f' }}>
-                    ${cartLogistics.totalFinalPrice.toFixed(2)}
+                    ${(cart.subtotal + cartLogistics.totalLogisticsCost + cartLogistics.totalCategoryFees).toFixed(2)}
                   </span>
                 </div>
 

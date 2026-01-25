@@ -6,9 +6,8 @@ import { useB2BWishlist } from "@/hooks/useWishlist";
 import { useCartB2B } from "@/hooks/useCartB2B";
 import { useAuth } from "@/hooks/useAuth";
 import { Link, useNavigate } from "react-router-dom";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 
 const SellerFavoritesPage = () => {
   const { items, isLoading, removeFromWishlist, isRemoving } = useB2BWishlist();
@@ -16,47 +15,23 @@ const SellerFavoritesPage = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [addingItemId, setAddingItemId] = useState<string | null>(null);
-  const priceCalculator = useB2BPriceCalculator();
 
-  // Calcular precios con motor para cada favorito
-  // Nota: WishlistItem tiene price pero no category_id
-  const itemsWithCalculatedPrices = useMemo(() => {
-    return items.map(item => {
-      const calculated = priceCalculator.calculateProductPrice({
-        id: item.product_id || item.id,
-        factoryCost: item.price || 0,
-        weight: 0.5, // peso promedio
-      });
-      return {
-        ...item,
-        calculatedPrice: calculated.finalB2BPrice,
-        suggestedPVP: calculated.suggestedPVP,
-        marginPercent: calculated.marginPercent,
-        logisticsCost: calculated.logisticsCost,
-      };
-    });
-  }, [items, priceCalculator]);
-
-  const handleAddToCart = async (item: typeof itemsWithCalculatedPrices[0]) => {
+  const handleAddToCart = async (item: typeof items[0]) => {
     if (!item.product_id) return;
     
     setAddingItemId(item.id);
     try {
-      // Usar el precio CALCULADO del motor, no el precio base
       await addItem({
         productId: item.product_id,
         sku: item.sku || '',
         nombre: item.name || 'Producto',
-        precio_b2b: item.calculatedPrice, // ✅ AHORA USA EL PRECIO DEL MOTOR
+        precio_b2b: item.price || 0,
         cantidad: item.moq || 1,
         moq: item.moq || 1,
         stock_fisico: 999,
-        subtotal: item.calculatedPrice * (item.moq || 1),
+        subtotal: (item.price || 0) * (item.moq || 1),
       });
-      toast.success('Producto agregado al carrito B2B');
-    } catch (error) {
-      console.error('Error adding to cart:', error);
-      toast.error('Error al agregar al carrito');
+      toast.success('Producto agregado al carrito');
     } finally {
       setAddingItemId(null);
     }
@@ -128,7 +103,7 @@ const SellerFavoritesPage = () => {
           </Card>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {itemsWithCalculatedPrices.map((item) => (
+            {items.map((item) => (
               <Card key={item.id} className="overflow-hidden group">
                 <div className="aspect-square relative">
                   <img
@@ -155,40 +130,17 @@ const SellerFavoritesPage = () => {
                 <CardContent className="p-3">
                   <h3 className="font-medium text-sm truncate mb-1">{item.name}</h3>
                   <p className="text-xs text-muted-foreground truncate mb-2">SKU: {item.sku}</p>
-                  
-                  {/* Precio con motor de precios */}
-                  <div className="mb-3">
-                    <p className="text-lg font-bold" style={{ color: '#071d7f' }}>
-                      ${item.calculatedPrice.toFixed(2)}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      PVP: ${item.suggestedPVP.toFixed(2)}
-                    </p>
-                  </div>
-
-                  {/* Botones */}
-                  <div className="space-y-2">
-                    <Button
-                      className="w-full gap-2 h-9 text-sm bg-primary hover:bg-primary/90"
-                      onClick={() => handleAddToCart(item)}
-                      disabled={addingItemId === item.id}
-                    >
-                      {addingItemId === item.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <ShoppingCart className="h-4 w-4" />
-                      )}
-                      Carrito
-                    </Button>
-                    <Button
-                      className="w-full gap-2 h-9 text-sm"
-                      variant="outline"
-                      onClick={() => item.product_id && navigate(`/producto/${item.sku}`)}
-                    >
-                      <Package className="h-4 w-4" />
-                      Ver
-                    </Button>
-                  </div>
+                  <p className="text-lg font-bold text-primary mb-3">
+                    ${(item.price || 0).toFixed(2)}
+                  </p>
+                  <Button
+                    className="w-full gap-2 h-9 text-sm"
+                    variant="outline"
+                    onClick={() => item.product_id && navigate(`/producto/${item.sku}`)}
+                  >
+                    <Package className="h-4 w-4" />
+                    Ver
+                  </Button>
                 </CardContent>
               </Card>
             ))}

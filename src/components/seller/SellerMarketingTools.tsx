@@ -1,25 +1,28 @@
 import React, { useState, useMemo } from 'react';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   FileText, 
   Image, 
   Download, 
+  Eye, 
   Check, 
   Package,
   Loader2,
+  QrCode,
   Share2,
-  RefreshCw,
-  CheckSquare,
-  XSquare
+  X
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { 
   openPDFCatalog, 
   downloadWhatsAppStatusImage, 
   downloadWhatsAppStatusBulk,
+  type WhatsAppStatusOptions
 } from '@/services/marketingGenerators';
 import { useSellerCatalog } from '@/hooks/useSellerCatalog';
 import { useStore } from '@/hooks/useStore';
@@ -45,14 +48,14 @@ interface CatalogProduct {
 
 export const SellerMarketingTools: React.FC = () => {
   const { user } = useAuth();
-  const { items: catalogItems, storeId, refetch } = useSellerCatalog();
+  const { items: catalogItems, storeId } = useSellerCatalog();
   const { data: store } = useStore(storeId || undefined);
   
   const [selectedProducts, setSelectedProducts] = useState<Set<string>>(new Set());
   const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
   const [isGeneratingImages, setIsGeneratingImages] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState({ current: 0, total: 0 });
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [previewProduct, setPreviewProduct] = useState<string | null>(null);
 
   // Transform catalog items to CatalogProduct format
   const products: CatalogProduct[] = useMemo(() => {
@@ -91,12 +94,6 @@ export const SellerMarketingTools: React.FC = () => {
 
   const clearSelection = () => {
     setSelectedProducts(new Set());
-  };
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await refetch();
-    setIsRefreshing(false);
   };
 
   // Generate PDF Catalog
@@ -177,209 +174,225 @@ export const SellerMarketingTools: React.FC = () => {
 
   if (!storeId) {
     return (
-      <div className="bg-card border border-border rounded-lg p-6">
-        <div className="text-center py-8">
+      <Card>
+        <CardContent className="py-12 text-center">
           <Package className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
           <p className="text-muted-foreground mb-4">Necesitas tener una tienda configurada</p>
           <Button asChild variant="outline">
             <a href="/seller/cuenta">Configurar tienda</a>
           </Button>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     );
   }
 
-  // Stats for the header
-  const stats = [
-    {
-      label: "Seleccionados",
-      value: selectedProducts.size,
-      icon: Check,
-      color: "text-primary",
-      bgColor: "bg-primary/10",
-      borderColor: "border-primary/20",
-    },
-    {
-      label: "Total",
-      value: products.length,
-      icon: Package,
-      color: "text-purple-500",
-      bgColor: "bg-purple-50",
-      borderColor: "border-purple-200",
-    },
-  ];
-
   return (
-    <div className="space-y-4">
-      {/* Header Card - Stats Style like Inventario B2C */}
-      <div className="bg-card border border-border rounded-lg">
-        <div className="p-3">
-          {/* Title Row */}
-          <div className="flex items-center justify-between mb-3 pb-2 border-b">
-            <div className="flex items-center gap-2">
-              <Share2 className="h-5 w-5 text-primary" />
-              <h2 className="text-lg font-bold text-foreground">Marketing</h2>
-            </div>
-            <div className="flex gap-2">
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="rounded-full h-8 w-8"
-                onClick={selectAll}
-                title="Seleccionar todo"
-              >
-                <CheckSquare className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                size="icon"
-                className="rounded-full h-8 w-8"
-                onClick={clearSelection}
-                title="Limpiar selección"
-              >
-                <XSquare className="h-4 w-4" />
-              </Button>
-              <Button 
-                variant="outline" 
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                size="icon"
-                className="rounded-full h-8 w-8"
-              >
-                <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
-              </Button>
-            </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Share2 className="h-5 w-5" />
+            Herramientas de Marketing
+          </CardTitle>
+          <CardDescription>
+            Genera catálogos PDF e imágenes para WhatsApp Status con tracking integrado
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-wrap gap-3">
+            <Badge variant="outline" className="gap-1">
+              <Check className="h-3 w-3" />
+              {selectedProducts.size} seleccionados
+            </Badge>
+            <Button variant="outline" size="sm" onClick={selectAll}>
+              Seleccionar todo
+            </Button>
+            <Button variant="outline" size="sm" onClick={clearSelection}>
+              Limpiar selección
+            </Button>
           </div>
-          
-          {/* Stats + Action Buttons - Single Row */}
-          <div className="flex items-stretch gap-1">
-            {/* Stats - Compact */}
-            {stats.map((stat) => (
-              <Card key={stat.label} className={`${stat.bgColor} ${stat.borderColor} border flex-1`}>
-                <CardContent className="p-1 text-center">
-                  <stat.icon className={`h-2.5 w-2.5 ${stat.color} mx-auto`} />
-                  <div className={`text-sm font-bold ${stat.color}`}>{stat.value}</div>
-                  <p className="text-[8px] text-muted-foreground leading-tight">{stat.label}</p>
-                </CardContent>
-              </Card>
-            ))}
-            
-            {/* PDF Button */}
+        </CardContent>
+      </Card>
+
+      {/* Action Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* PDF Catalog */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <FileText className="h-5 w-5 text-primary" />
+              Catálogo PDF
+            </CardTitle>
+            <CardDescription>
+              Genera un catálogo interactivo con QR codes y deep links
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>✓ Imágenes de alta calidad</li>
+              <li>✓ Miniaturas de variantes clickeables</li>
+              <li>✓ QR codes con tracking</li>
+              <li>✓ Links directos a tu tienda</li>
+            </ul>
             <Button 
               onClick={handleGeneratePDF} 
               disabled={isGeneratingPDF || selectedProducts.size === 0}
-              className="flex-1 h-auto py-1.5 flex flex-col items-center justify-center gap-0"
-              style={{ backgroundColor: '#071d7f' }}
+              className="w-full"
             >
               {isGeneratingPDF ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generando...
+                </>
               ) : (
-                <FileText className="h-3.5 w-3.5" />
+                <>
+                  <Eye className="h-4 w-4 mr-2" />
+                  Generar y Ver PDF
+                </>
               )}
-              <span className="text-[8px] font-medium leading-tight">PDF</span>
             </Button>
+          </CardContent>
+        </Card>
 
-            {/* WhatsApp Button */}
+        {/* WhatsApp Status */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Image className="h-5 w-5 text-green-500" />
+              WhatsApp Status
+            </CardTitle>
+            <CardDescription>
+              Imágenes optimizadas 9:16 para estados de WhatsApp
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <ul className="text-sm text-muted-foreground space-y-1">
+              <li>✓ Formato vertical optimizado</li>
+              <li>✓ Diseño atractivo con precios</li>
+              <li>✓ QR code para compra directa</li>
+              <li>✓ Descarga masiva en ZIP</li>
+            </ul>
+            
+            {isGeneratingImages && downloadProgress.total > 0 && (
+              <div className="space-y-2">
+                <Progress 
+                  value={(downloadProgress.current / downloadProgress.total) * 100} 
+                />
+                <p className="text-xs text-muted-foreground text-center">
+                  Procesando {downloadProgress.current} de {downloadProgress.total}
+                </p>
+              </div>
+            )}
+            
             <Button 
               onClick={handleDownloadBulkStatus} 
               disabled={isGeneratingImages || selectedProducts.size === 0}
+              className="w-full"
               variant="outline"
-              className="flex-1 h-auto py-1.5 flex flex-col items-center justify-center gap-0 border-green-500 text-green-600 hover:bg-green-50"
             >
               {isGeneratingImages ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Generando ZIP...
+                </>
               ) : (
-                <Image className="h-3.5 w-3.5" />
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar {selectedProducts.size > 0 ? `${selectedProducts.size} imágenes` : 'Selecciona productos'}
+                </>
               )}
-              <span className="text-[8px] font-medium leading-tight">Status</span>
             </Button>
-          </div>
-
-          {/* Progress Bar */}
-          {isGeneratingImages && downloadProgress.total > 0 && (
-            <div className="mt-2 space-y-1">
-              <Progress 
-                value={(downloadProgress.current / downloadProgress.total) * 100} 
-              />
-              <p className="text-[10px] text-muted-foreground text-center">
-                {downloadProgress.current} de {downloadProgress.total}
-              </p>
-            </div>
-          )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Products Grid - Clean */}
-      {products.length === 0 ? (
-        <div className="bg-muted/50 rounded-lg text-center py-12">
-          <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-          <h3 className="text-lg font-medium mb-2">Sin productos en inventario</h3>
-          <p className="text-sm text-muted-foreground mb-4 max-w-xs mx-auto">
-            Importa productos desde el catálogo B2B para crear materiales de marketing
-          </p>
-          <Button asChild variant="outline">
-            <a href="/seller/inventario">
-              <Download className="h-4 w-4 mr-2" />
-              Ver Catálogo B2B
-            </a>
-          </Button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-3 gap-2">
-          {products.map(product => {
-            const isSelected = selectedProducts.has(product.id);
-            return (
-              <div 
-                key={product.id}
-                className={`relative border rounded-lg overflow-hidden cursor-pointer transition-all bg-card ${
-                  isSelected 
-                    ? 'ring-2 ring-primary border-primary' 
-                    : 'border-border hover:border-primary/50'
-                }`}
-                onClick={() => toggleProduct(product.id)}
-              >
-                {/* Selection indicator */}
-                <div className="absolute top-1.5 left-1.5 z-10">
-                  <Checkbox 
-                    checked={isSelected}
-                    className="h-4 w-4 bg-white/90 backdrop-blur-sm"
-                  />
-                </div>
-                
-                {/* Quick download button */}
-                <Button
-                  size="icon"
-                  variant="secondary"
-                  className="absolute top-1.5 right-1.5 z-10 h-6 w-6 bg-white/90 backdrop-blur-sm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDownloadSingleStatus(product);
-                  }}
-                >
-                  <Download className="h-3 w-3" />
+      {/* Products Grid */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Productos del Catálogo</CardTitle>
+          <CardDescription>
+            Selecciona los productos a incluir en tus materiales de marketing
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {products.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground space-y-4">
+              <Package className="h-10 w-10 mx-auto mb-2 opacity-50" />
+              <p className="font-medium">No tienes productos en tu catálogo</p>
+              <p className="text-sm max-w-md mx-auto">
+                Importa productos directamente desde el catálogo B2B para generar materiales de marketing.
+                ¡No necesitas comprar primero!
+              </p>
+              <div className="flex flex-wrap justify-center gap-2">
+                <Button asChild variant="default" style={{ backgroundColor: '#071d7f' }}>
+                  <a href="/seller/inventario">
+                    <Download className="h-4 w-4 mr-2" />
+                    Importar desde B2B
+                  </a>
                 </Button>
-                
-                {/* Product image */}
-                <div className="aspect-square bg-muted">
-                  <img 
-                    src={product.images[0] || '/placeholder.svg'} 
-                    alt={product.nombre}
-                    className="w-full h-full object-cover"
-                  />
-                </div>
-                
-                {/* Product info - minimal */}
-                <div className="p-1.5">
-                  <p className="text-[11px] font-medium truncate text-foreground">{product.nombre}</p>
-                  <p className="text-xs text-primary font-bold">
-                    ${product.precio_venta.toFixed(2)}
-                  </p>
-                </div>
               </div>
-            );
-          })}
-        </div>
-      )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {products.map(product => {
+                const isSelected = selectedProducts.has(product.id);
+                return (
+                  <div 
+                    key={product.id}
+                    className={`relative border rounded-lg overflow-hidden cursor-pointer transition-all ${
+                      isSelected 
+                        ? 'ring-2 ring-primary border-primary' 
+                        : 'hover:border-primary/50'
+                    }`}
+                    onClick={() => toggleProduct(product.id)}
+                  >
+                    {/* Selection checkbox */}
+                    <div className="absolute top-2 left-2 z-10">
+                      <Checkbox 
+                        checked={isSelected}
+                        className="bg-white/80 backdrop-blur-sm"
+                      />
+                    </div>
+                    
+                    {/* Quick actions */}
+                    <div className="absolute top-2 right-2 z-10 flex gap-1">
+                      <Button
+                        size="icon"
+                        variant="secondary"
+                        className="h-7 w-7 bg-white/80 backdrop-blur-sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDownloadSingleStatus(product);
+                        }}
+                      >
+                        <Image className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    
+                    {/* Product image */}
+                    <div className="aspect-square bg-muted">
+                      <img 
+                        src={product.images[0] || '/placeholder.svg'} 
+                        alt={product.nombre}
+                        className="w-full h-full object-cover"
+                      />
+                    </div>
+                    
+                    {/* Product info */}
+                    <div className="p-2">
+                      <p className="text-sm font-medium truncate">{product.nombre}</p>
+                      <p className="text-sm text-primary font-bold">
+                        ${product.precio_venta.toFixed(2)}
+                      </p>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 };

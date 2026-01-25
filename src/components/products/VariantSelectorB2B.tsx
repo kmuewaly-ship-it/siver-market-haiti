@@ -4,7 +4,6 @@ import { Badge } from "@/components/ui/badge";
 import { Minus, Plus, Package, Palette, Check, Ruler, AlertCircle, Image as ImageIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AttributeCombination } from "@/types/b2b";
-import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 
 interface VariantInfo {
   id: string;
@@ -119,9 +118,6 @@ const VariantSelectorB2B = ({
   const [selectedAttributes, setSelectedAttributes] = useState<Record<string, string>>({});
   // Quantities per variant
   const [quantities, setQuantities] = useState<Record<string, number>>({});
-  
-  // Usar motor de precios B2B para calcular precios de variantes
-  const priceCalculator = useB2BPriceCalculator();
 
   // Prefill quantities from cart when opening the selector
   useEffect(() => {
@@ -281,30 +277,13 @@ const VariantSelectorB2B = ({
 
   // Calculate totals
   const totalQty = Object.values(quantities).reduce((sum, qty) => sum + qty, 0);
-  
-  // Calcular precio TOTAL usando el motor de precios
   const totalPrice = useMemo(() => {
-    let sum = 0;
-    Object.entries(quantities).forEach(([variantId, qty]) => {
-      if (qty <= 0) return;
+    return Object.entries(quantities).reduce((sum, [variantId, qty]) => {
+      if (qty <= 0) return sum;
       const variant = variants.find(v => v.id === variantId);
-      if (!variant) return;
-      
-      // Usar precio base del motor de precios
-      const factoryCost = variant?.precio || basePrice;
-      const calculated = priceCalculator.calculateProductPrice({
-        id: variantId,
-        factoryCost,
-        categoryId: undefined, // Si tienes categoryId, pásalo aquí
-        weight: 0.5,
-      });
-      
-      // Usar el precio calculado del motor (incluye margen + logística)
-      const variantCalculatedPrice = calculated.finalB2BPrice;
-      sum += variantCalculatedPrice * qty;
-    });
-    return sum;
-  }, [quantities, variants, basePrice, priceCalculator]);
+      return sum + (variant?.precio || basePrice) * qty;
+    }, 0);
+  }, [quantities, variants, basePrice]);
 
   // Notify parent of changes
   useEffect(() => {
@@ -321,28 +300,19 @@ const VariantSelectorB2B = ({
           const variant = variants.find(v => v.id === variantId);
           if (!variant) return null;
 
-          // Calcular precio de la variante con el motor
-          const factoryCost = variant.precio || basePrice;
-          const calculated = priceCalculator.calculateProductPrice({
-            id: variantId,
-            factoryCost,
-            categoryId: undefined,
-            weight: 0.5,
-          });
-
           return {
             variantId,
             sku: variant.sku,
             label: variant.label,
             quantity,
-            price: calculated.finalB2BPrice, // ✅ USA PRECIO DEL MOTOR
+            price: variant.precio || basePrice,
           };
         })
         .filter(Boolean) as VariantSelection[];
 
       onSelectionChange(selections, totalQty, totalPrice);
     }
-  }, [quantities, totalQty, totalPrice, variants, basePrice, onSelectionChange, initialQuantities, priceCalculator]);
+  }, [quantities, totalQty, totalPrice, variants, basePrice, onSelectionChange, initialQuantities]);
 
   // Auto-select first option for each type on mount
   useEffect(() => {
@@ -376,16 +346,6 @@ const VariantSelectorB2B = ({
           const qty = quantities[variant.id] || 0;
           const outOfStock = variant.stock === 0;
           
-          // Calcular precio con motor
-          const factoryCost = variant.precio || basePrice;
-          const calculated = priceCalculator.calculateProductPrice({
-            id: variant.id,
-            factoryCost,
-            categoryId: undefined,
-            weight: 0.5,
-          });
-          const calculatedPrice = calculated.finalB2BPrice;
-          
           return (
             <div
               key={variant.id}
@@ -398,7 +358,7 @@ const VariantSelectorB2B = ({
               <div className="flex-1 min-w-0">
                 <span className="font-medium text-sm">{variant.label}</span>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <span className="font-semibold text-primary">${calculatedPrice.toFixed(2)}</span>
+                  <span className="font-semibold text-primary">${variant.precio.toFixed(2)}</span>
                   <span>· {variant.stock} disp.</span>
                 </div>
               </div>

@@ -17,7 +17,6 @@ import TrendingStoresSection from "@/components/trends/TrendingStoresSection";
 import TrendingCategoriesSection from "@/components/trends/TrendingCategoriesSection";
 import { useAuth } from "@/hooks/useAuth";
 import { UserRole } from "@/types/auth";
-import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 const TrendsPage = () => {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
@@ -39,9 +38,6 @@ const TrendsPage = () => {
   const isSeller = Boolean(user && role && (role === UserRole.SELLER || role === UserRole.ADMIN));
   const isB2B = isSeller;
 
-  // B2B pricing engine (landed cost)
-  const { calculateProductPrice } = useB2BPriceCalculator();
-
   // States for seller header
   const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -57,24 +53,11 @@ const TrendsPage = () => {
     window.scrollTo(0, 0);
   }, []);
 
-  // Helper to get display price (B2B uses engine, B2C uses PVP/mayorista)
-  const getProductPrice = (p: any): number => {
-    if (isB2B) {
-      return calculateProductPrice({
-        id: p.id,
-        factoryCost: p.precio_mayorista || 0,
-        categoryId: p.categoria_id || undefined,
-        weight: 0.5,
-      }).finalB2BPrice;
-    }
-    return p.precio_sugerido_venta || p.precio_mayorista || 0;
-  };
-
   // Calculate max price from trending products
   const maxPrice = useMemo(() => {
     if (!trendingProducts) return 1000;
-    return Math.max(...trendingProducts.map(p => getProductPrice(p)), 1000);
-  }, [trendingProducts, isB2B, calculateProductPrice]);
+    return Math.max(...trendingProducts.map(p => p.precio_sugerido_venta || p.precio_mayorista || 0), 1000);
+  }, [trendingProducts]);
 
   // Get filtered and sorted trending products
   const filteredTrendingProducts = useMemo(() => {
@@ -87,15 +70,15 @@ const TrendsPage = () => {
 
     // Filter by price range
     products = products.filter(p => {
-      const price = getProductPrice(p);
+      const price = p.precio_sugerido_venta || p.precio_mayorista;
       return price >= priceRange[0] && price <= priceRange[1];
     });
 
     // Sort
     if (sortBy === "price-low") {
-      products = [...products].sort((a, b) => getProductPrice(a) - getProductPrice(b));
+      products = [...products].sort((a, b) => (a.precio_sugerido_venta || a.precio_mayorista) - (b.precio_sugerido_venta || b.precio_mayorista));
     } else if (sortBy === "price-high") {
-      products = [...products].sort((a, b) => getProductPrice(b) - getProductPrice(a));
+      products = [...products].sort((a, b) => (b.precio_sugerido_venta || b.precio_mayorista) - (a.precio_sugerido_venta || a.precio_mayorista));
     }
 
     return products;
@@ -157,20 +140,12 @@ const TrendsPage = () => {
       id: p.id,
       sku: p.sku_interno,
       nombre: p.nombre,
-      // IMPORTANT: For B2B users we must always show the engine landed cost (factory + margin + logistics + fees)
-      precio: isB2B
-        ? calculateProductPrice({
-            id: p.id,
-            factoryCost: p.precio_mayorista || 0,
-            categoryId: p.categoria_id || undefined,
-            weight: 0.5,
-          }).finalB2BPrice
-        : (p.precio_sugerido_venta || p.precio_mayorista),
+      precio: p.precio_sugerido_venta || p.precio_mayorista,
       imagen_principal: p.imagen_principal || '/placeholder.svg',
       stock: p.stock_status === 'out_of_stock' ? 0 : 1,
       moq: 1
     }));
-  }, [trendingProducts, isB2B, calculateProductPrice]);
+  }, [trendingProducts]);
   // Si auth está cargando, no renderizar header hasta que se sepa el rol
   const showSellerHeader = !authLoading && isSeller;
   const showClientHeader = !authLoading && !isSeller;

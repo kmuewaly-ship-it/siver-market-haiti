@@ -3,9 +3,8 @@ import useEmblaCarousel from 'embla-carousel-react';
 import Autoplay from 'embla-carousel-autoplay';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { useIsMobile } from '@/hooks/use-mobile';
-import { useB2BPriceCalculator } from '@/hooks/useB2BPriceCalculator';
 
 interface FeaturedProductsCarouselProps {
   products: ProductB2BCard[];
@@ -15,27 +14,6 @@ const FeaturedProductsCarousel = ({
   products
 }: FeaturedProductsCarouselProps) => {
   const isMobile = useIsMobile();
-  const priceCalculator = useB2BPriceCalculator();
-  
-  // Calcular precios con el motor para todos los productos
-  const productsWithCalculatedPrices = useMemo(() => {
-    return products.map(product => {
-      const calculated = priceCalculator.calculateProductPrice({
-        id: product.id,
-        factoryCost: product.precio_b2b,
-        categoryId: product.categoria_id,
-        weight: 0.5,
-      });
-      
-      return {
-        ...product,
-        calculatedPrice: calculated.finalB2BPrice,
-        suggestedPVP: calculated.suggestedPVP,
-        marginPercent: calculated.marginPercent,
-      };
-    });
-  }, [products, priceCalculator]);
-  
   const autoplayPlugin = useRef(Autoplay({
     delay: 3000,
     stopOnInteraction: false,
@@ -46,14 +24,14 @@ const FeaturedProductsCarousel = ({
     loop: true
   }, [autoplayPlugin.current]);
   
-  if (productsWithCalculatedPrices.length === 0) return null;
+  if (products.length === 0) return null;
   
   return <div className="w-full bg-white/80 backdrop-blur-sm border-b border-gray-100 py-0 mb-0">
       <div className="container mx-auto px-4">
         <div className="border border-gray-300 rounded-lg p-2">
           <div className="overflow-hidden" ref={emblaRef}>
             <div className="flex gap-4">
-              {productsWithCalculatedPrices.map(product => <div className="flex-[0_0_28%] min-w-[100px] max-w-[120px]" key={product.id}>
+              {products.map(product => <div className="flex-[0_0_28%] min-w-[100px] max-w-[120px]" key={product.id}>
                   <Card className="h-full border-none shadow-sm hover:shadow-md transition-shadow bg-white">
                     <CardContent className={isMobile ? "p-2" : "p-2"}>
                       <div className="relative aspect-square mb-2 rounded-md overflow-hidden bg-gray-100">
@@ -68,10 +46,9 @@ const FeaturedProductsCarousel = ({
                             {product.nombre}
                           </h4>
                         )}
-                        {/* ✅ Mostrar precio calculado del motor */}
                         <div className="flex items-baseline gap-1">
                           <span className="text-sm font-bold text-orange-600">
-                            ${product.calculatedPrice.toFixed(2)}
+                            ${product.precio_b2b.toFixed(2)}
                           </span>
                           <span className="text-[10px] text-gray-500">
                             /ud

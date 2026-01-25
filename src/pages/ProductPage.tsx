@@ -12,7 +12,6 @@ import { useStore } from '@/hooks/useStore';
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useProductVariants } from "@/hooks/useProductVariants";
 import { useRecommendedProducts } from "@/hooks/useMarketplaceData";
-import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 import GlobalHeader from "@/components/layout/GlobalHeader";
 import Footer from "@/components/layout/Footer";
 import VariantSelector from "@/components/products/VariantSelector";
@@ -412,30 +411,11 @@ const ProductPage = () => {
     return validImages.length > 0 ? validImages : [];
   }, [product]);
 
-  // B2B Price Calculator
-  const priceCalculator = useB2BPriceCalculator();
-
-  // B2B Specific Data - Use pricing engine
-  const factoryCost = product?.source_product?.precio_mayorista || 0;
-  const productCategoryId = product?.source_product?.categoria_id || product?.source_product?.category?.id;
+  // B2B Specific Data
+  const costB2B = product?.source_product?.precio_mayorista || 0;
   const pvp = product?.precio_venta || 0;
   const moq = product?.source_product?.moq || 1;
   const stockB2B = product?.source_product?.stock_fisico || 0;
-  
-  // Calculate B2B price using the pricing engine
-  const calculatedB2BPrice = useMemo(() => {
-    if (!isB2BUser || factoryCost <= 0) return null;
-    
-    return priceCalculator.calculateProductPrice({
-      id: product?.id || '',
-      factoryCost,
-      categoryId: productCategoryId,
-      weight: 0.5, // Default weight
-    });
-  }, [isB2BUser, factoryCost, productCategoryId, product?.id, priceCalculator]);
-  
-  // Use calculated price or fallback to factory cost
-  const costB2B = calculatedB2BPrice?.finalB2BPrice || factoryCost;
 
   // Limits
   const minQuantity = isB2BUser ? moq : 1;
@@ -448,28 +428,22 @@ const ProductPage = () => {
     }
   }, [isB2BUser, moq]);
 
-  // Business Logic for B2B - Using pricing engine data
+  // Business Logic for B2B
   const businessSummary = useMemo(() => {
-    if (!isB2BUser || !product || !calculatedB2BPrice) return null;
-    
+    if (!isB2BUser || !product) return null;
     const investment = costB2B * quantity;
-    const suggestedPVP = calculatedB2BPrice.suggestedPVP;
-    const estimatedRevenue = suggestedPVP * quantity;
+    const estimatedRevenue = pvp * quantity;
     const estimatedProfit = estimatedRevenue - investment;
-    const profitPercentage = calculatedB2BPrice.roiPercent;
-    const profitPerUnit = suggestedPVP - costB2B;
-    
+    const profitPercentage = costB2B > 0 ? (pvp - costB2B) / costB2B * 100 : 0;
+    const profitPerUnit = pvp - costB2B;
     return {
       investment,
       estimatedRevenue,
       estimatedProfit,
       profitPercentage: profitPercentage.toFixed(1),
-      profitPerUnit,
-      logistics: calculatedB2BPrice.logistics,
-      marginPercent: calculatedB2BPrice.marginPercent,
-      logisticsCost: calculatedB2BPrice.logisticsCost,
+      profitPerUnit
     };
-  }, [isB2BUser, product, quantity, costB2B, calculatedB2BPrice]);
+  }, [isB2BUser, product, quantity, costB2B, pvp]);
 
   // Related Products Logic (simplified without allProducts)
   const relatedProducts: any[] = [];

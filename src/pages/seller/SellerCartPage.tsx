@@ -47,7 +47,6 @@ import { VariantBadges } from "@/components/seller/cart/VariantBadges";
 import { addItemB2B } from "@/services/cartService";
 import { useB2BCartLogistics } from "@/hooks/useB2BCartLogistics";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useB2BPriceCalculator } from "@/hooks/useB2BPriceCalculator";
 
 const SellerCartPage = () => {
   const navigate = useNavigate();
@@ -55,7 +54,6 @@ const SellerCartPage = () => {
   const { items, isLoading, refetch } = useB2BCartItems();
   const { productsNotMeetingMOQ, isCartValid, productTotals } = useB2BCartProductTotals();
   const isMobile = useIsMobile();
-  const priceCalculator = useB2BPriceCalculator();
   
   // Calculate logistics for all cart items
   const cartLogistics = useB2BCartLogistics(items);
@@ -67,18 +65,6 @@ const SellerCartPage = () => {
   const [variantSelections, setVariantSelections] = useState<any[]>([]);
   const [isAddingVariant, setIsAddingVariant] = useState(false);
   const [variantImage, setVariantImage] = useState<string | null>(null);
-
-  // Calcular precio del producto seleccionado con el motor
-  const calculatedProductPrice = useMemo(() => {
-    if (!selectedProductForVariants?.costB2B) return null;
-    
-    return priceCalculator.calculateProductPrice({
-      id: selectedProductForVariants.id,
-      factoryCost: selectedProductForVariants.costB2B,
-      categoryId: selectedProductForVariants.categoryId,
-      weight: 0.5,
-    });
-  }, [selectedProductForVariants, priceCalculator]);
 
   // Prefill variant quantities in the selector with what's already in the cart
   const initialVariantQuantities = useMemo(() => {
@@ -124,20 +110,17 @@ const SellerCartPage = () => {
   const allSelected = items.length > 0 && items.every(item => b2bSelectedIds.has(item.id));
   const someSelected = selectedItems.length > 0;
 
-  // Calculate profit analysis for SELECTED items only using engine prices
+  // Calculate profit analysis for SELECTED items only
   const profitAnalysis = useMemo(() => {
-    let totalInversion = 0; // Total cost (engine B2B price * quantity)
+    let totalInversion = 0; // Total cost (precio B2B * cantidad)
     let totalVenta = 0;      // Total retail (precio de venta * cantidad)
     let ganancia = 0;        // Profit (totalVenta - totalInversion)
     let margen = 0;          // Profit margin percentage
 
     selectedItems.forEach(item => {
-      // IMPORTANT: Use engine calculated price (includes margin + logistics + fees)
-      const itemLogistics = cartLogistics.itemsLogistics.get(item.id);
-      const engineUnitPrice = itemLogistics?.finalUnitPrice || item.precioB2B;
-      const costoItem = engineUnitPrice * item.cantidad;
-      // Use precioVenta (retail price) if available, otherwise use suggested PVP (30% over engine price)
-      const precioVenta = item.precioVenta || (engineUnitPrice * 1.3);
+      const costoItem = item.precioB2B * item.cantidad;
+      // Use precioVenta (retail price) if available, otherwise default to cost price
+      const precioVenta = item.precioVenta || item.precioB2B;
       const ventaItem = precioVenta * item.cantidad;
       
       totalInversion += costoItem;
@@ -153,7 +136,7 @@ const SellerCartPage = () => {
       ganancia: ganancia,
       margen: margen
     };
-  }, [selectedItems, cartLogistics.itemsLogistics]);
+  }, [selectedItems]);
 
   // Get unique payment methods - Default to Tarjetas, Transferencia, MonCash, NatCash
   const paymentMethods = useMemo(() => {
@@ -582,7 +565,7 @@ const SellerCartPage = () => {
                 <div>
                   <span className="text-gray-900">Total:</span>
                   <span className="font-bold ml-1 text-gray-900">
-                    ${cartLogistics.totalFinalPrice.toFixed(2)}
+                    ${subtotal.toFixed(2)}
                   </span>
                 </div>
               </div>
@@ -727,7 +710,7 @@ const SellerCartPage = () => {
                                   </span>
                                 )}
                                 <span className="text-sm font-bold ml-2" style={{ color: '#29892a' }}>
-                                  ${(cartLogistics.itemsLogistics.get(item.id)?.finalUnitPrice || item.precioB2B).toFixed(2)}
+                                  ${item.precioB2B.toFixed(2)}
                                 </span>
                               </div>
                               
@@ -870,12 +853,12 @@ const SellerCartPage = () => {
                   {/* Total Price */}
                   <div className="p-2 bg-gradient-to-b from-gray-50 to-white border-b border-gray-200">
                     <div className="flex justify-between items-center">
-                      <span className="text-sm font-medium text-gray-700">Total Inversión:</span>
+                      <span className="text-sm font-medium text-gray-700">Total Estimado:</span>
                       <span className="text-lg font-bold" style={{ color: '#071d7f' }}>
-                        ${cartLogistics.totalFinalPrice.toFixed(2)}
+                        ${(subtotal + cartLogistics.totalLogisticsCost + cartLogistics.totalCategoryFees).toFixed(2)}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 mt-1">Incluye productos + margen + envío a destino</p>
+                    <p className="text-xs text-gray-500 mt-1">Incluye productos + envío a destino</p>
                   </div>
 
                   {/* Business Analysis Panel */}
@@ -1124,27 +1107,9 @@ const SellerCartPage = () => {
                                 </span>
                               )}
                               <span className="text-sm font-bold ml-2" style={{ color: '#29892a' }}>
-                                ${(cartLogistics.itemsLogistics.get(item.id)?.finalUnitPrice || item.precioB2B).toFixed(2)}
+                                ${item.precioB2B.toFixed(2)}
                               </span>
                             </div>
-                            
-                            {/* Logistics info per item - MOBILE */}
-                            {(() => {
-                              const itemLogistics = cartLogistics.itemsLogistics.get(item.id);
-                              if (!itemLogistics) return null;
-                              return (
-                                <div className="flex items-center gap-3 mt-1 text-[10px]">
-                                  <span className="text-blue-600 flex items-center gap-0.5">
-                                    <Truck className="w-2.5 h-2.5" />
-                                    +${itemLogistics.logisticsCost.toFixed(2)}
-                                  </span>
-                                  <span className="text-amber-600 flex items-center gap-0.5">
-                                    <Clock className="w-2.5 h-2.5" />
-                                    {itemLogistics.estimatedDays.min}-{itemLogistics.estimatedDays.max}d
-                                  </span>
-                                </div>
-                              );
-                            })()}
                           </div>
                           {/* Quantity Controls + Subtotal */}
                           <div className="flex items-center justify-between mt-2">
@@ -1171,23 +1136,9 @@ const SellerCartPage = () => {
                                 +
                               </button>
                             </div>
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <span className="text-sm font-bold cursor-help" style={{ color: '#071d7f' }}>
-                                    ${(cartLogistics.itemsLogistics.get(item.id)?.finalTotalPrice || item.subtotal).toFixed(2)}
-                                  </span>
-                                </TooltipTrigger>
-                                <TooltipContent side="left" className="text-xs">
-                                  <div className="space-y-0.5">
-                                    <p>Producto: ${item.subtotal.toFixed(2)}</p>
-                                    {cartLogistics.itemsLogistics.get(item.id) && (
-                                      <p>Envío: +${(cartLogistics.itemsLogistics.get(item.id)!.logisticsCost * item.cantidad).toFixed(2)}</p>
-                                    )}
-                                  </div>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
+                            <span className="text-sm font-bold" style={{ color: '#071d7f' }}>
+                              ${item.subtotal.toFixed(2)}
+                            </span>
                           </div>
                         </div>
                       </div>
@@ -1228,18 +1179,12 @@ const SellerCartPage = () => {
                 {/* Total en el Medio - Clickeable */}
                 <button
                   onClick={() => setShowSummaryModal(true)}
-                  className="transition-all hover:opacity-80 flex flex-col items-center"
+                  className="transition-all hover:opacity-80"
                 >
                   <Badge variant="outline" className="text-sm border-2 px-3 py-1.5 rounded-lg" style={{ borderColor: '#29892a', color: '#29892a' }}>
                     <DollarSign className="w-3.5 h-3.5 mr-1.5" />
-                    ${cartLogistics.totalFinalPrice.toFixed(2)}
+                    ${subtotal.toFixed(2)}
                   </Badge>
-                  {cartLogistics.estimatedDeliveryDays.max > 0 && (
-                    <span className="text-[10px] text-amber-600 flex items-center gap-0.5 mt-0.5">
-                      <Clock className="w-2.5 h-2.5" />
-                      {cartLogistics.estimatedDeliveryDays.min}-{cartLogistics.estimatedDeliveryDays.max}d
-                    </span>
-                  )}
                 </button>
 
                 {/* Botón Comprar B2B */}
@@ -1372,34 +1317,16 @@ const SellerCartPage = () => {
             {/* Pricing Breakdown */}
             <div className="space-y-2 bg-blue-50 p-3 rounded-lg border border-blue-200">
               <div className="flex justify-between text-xs">
-                <span className="text-gray-700">Subtotal productos:</span>
+                <span className="text-gray-700">Total artículos:</span>
                 <span className="font-semibold">${subtotal.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-xs">
-                <span className="text-blue-600 flex items-center gap-1">
-                  <Truck className="w-3 h-3" />
-                  Logística Total:
-                </span>
-                <span className="font-semibold text-blue-600">+${cartLogistics.totalLogisticsCost.toFixed(2)}</span>
-              </div>
-              {cartLogistics.totalCategoryFees > 0 && (
-                <div className="flex justify-between text-xs">
-                  <span className="text-gray-700">Tarifas categoría:</span>
-                  <span className="font-semibold">+${cartLogistics.totalCategoryFees.toFixed(2)}</span>
-                </div>
-              )}
-              <div className="flex justify-between text-xs">
-                <span className="text-amber-600 flex items-center gap-1">
-                  <Clock className="w-3 h-3" />
-                  Tiempo de Entrega:
-                </span>
-                <span className="font-semibold text-amber-600">
-                  {cartLogistics.estimatedDeliveryDays.min}-{cartLogistics.estimatedDeliveryDays.max} días
-                </span>
+                <span className="text-gray-700">Envío:</span>
+                <span className="font-medium text-green-600">Gratis</span>
               </div>
               <div className="border-t border-blue-200 pt-2 mt-2 flex justify-between">
-                <span className="font-bold text-sm">Total Inversión</span>
-                <span className="font-bold text-lg text-[#071d7f]">${cartLogistics.totalFinalPrice.toFixed(2)}</span>
+                <span className="font-bold text-sm">Total</span>
+                <span className="font-bold text-lg text-[#071d7f]">${subtotal.toFixed(2)}</span>
               </div>
             </div>
 
@@ -1493,7 +1420,7 @@ const SellerCartPage = () => {
                       <div>
                         <p className="text-[10px] text-muted-foreground">Precio B2B</p>
                         <p className="font-bold" style={{ color: '#29892a' }}>
-                          ${(calculatedProductPrice?.finalB2BPrice || selectedProductForVariants.costB2B || 0).toFixed(2)}
+                          ${selectedProductForVariants.costB2B?.toFixed(2) || '0.00'}
                         </p>
                       </div>
                       {variantSelections.length > 0 && (
