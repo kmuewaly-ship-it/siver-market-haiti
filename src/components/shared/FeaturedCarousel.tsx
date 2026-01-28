@@ -1,8 +1,6 @@
 import useEmblaCarousel from 'embla-carousel-react';
-import Autoplay from 'embla-carousel-autoplay';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { UserRole } from '@/types/auth';
@@ -26,16 +24,10 @@ const FeaturedCarousel = ({ products, showMoq = false }: FeaturedCarouselProps) 
   const navigate = useNavigate();
   const { role, user } = useAuth();
   
-  const autoplayPlugin = useRef(Autoplay({
-    delay: 3000,
-    stopOnInteraction: false,
-    stopOnMouseEnter: true
-  }));
-  
   const [emblaRef] = useEmblaCarousel({
     align: 'start',
     loop: true
-  }, [autoplayPlugin.current]);
+  });
 
   const isB2B = user && (role === UserRole.SELLER || role === UserRole.ADMIN);
 
